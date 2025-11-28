@@ -323,6 +323,7 @@ export default function SeriePage() {
                     title={serie.name}
                     url={currentUrl}
                     type="series"
+                    className="hidden sm:flex"
                   />
                 </div>
                 
@@ -435,7 +436,97 @@ export default function SeriePage() {
                 {episodes.map((episode) => (
                   <div key={episode.id} className="bg-gray-900 rounded-lg overflow-hidden border border-gray-800">
                     <div className="p-4">
-                      <div className="flex gap-4">
+                      {/* Mobile Layout: Image on top */}
+                      <div className="sm:hidden">
+                        {/* Episode Thumbnail */}
+                        {episode.still_path ? (
+                          <img
+                            src={`https://image.tmdb.org/t/p/w300${episode.still_path}`}
+                            alt={episode.name}
+                            className="w-full h-48 object-cover rounded-lg mb-4"
+                          />
+                        ) : (
+                          <div className="w-full h-48 bg-gray-800 rounded-lg flex items-center justify-center mb-4">
+                            <Tv size={32} className="text-gray-600" />
+                          </div>
+                        )}
+                        
+                        {/* Episode Info */}
+                        <div>
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              {hasVideos(episode.episode_number) ? (
+                                <Link 
+                                  href={`/watch/series/${id}/${selectedSeason}/${episode.episode_number}`}
+                                  className="block group"
+                                >
+                                  <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-sky-400 transition-colors cursor-pointer">
+                                    Épisode {episode.episode_number}: {episode.name}
+                                  </h3>
+                                </Link>
+                              ) : (
+                                <h3 className="text-lg font-semibold text-gray-500 mb-1 cursor-default">
+                                  Épisode {episode.episode_number}: {episode.name}
+                                </h3>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-2 ml-4">
+                              {hasVideos(episode.episode_number) ? (
+                                <Link 
+                                  href={`/watch/series/${id}/${selectedSeason}/${episode.episode_number}`}
+                                  className="p-2 text-sky-400 hover:text-sky-300 hover:bg-sky-900/20 rounded-lg transition-colors"
+                                  title="Lire l'épisode"
+                                >
+                                  <Play size={16} />
+                                </Link>
+                              ) : (
+                                <div 
+                                  className="p-2 text-gray-600 cursor-not-allowed rounded-lg"
+                                  title="Épisode non disponible"
+                                >
+                                  <Play size={16} />
+                                </div>
+                              )}
+                              
+                              <button
+                                onClick={() => toggleEpisode(episode.id)}
+                                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                              >
+                                {expandedEpisode === episode.id ? (
+                                  <ChevronUp size={20} />
+                                ) : (
+                                  <ChevronDown size={20} />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
+                            {episode.air_date && (
+                              <div className="flex items-center gap-1">
+                                <Calendar size={12} />
+                                <span>{new Date(episode.air_date).toLocaleDateString('fr-FR')}</span>
+                              </div>
+                            )}
+                            {episode.runtime && (
+                              <div className="flex items-center gap-1">
+                                <Clock size={12} />
+                                <span>{episode.runtime}min</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {episode.overview && (
+                            <p className="text-gray-300 text-sm line-clamp-2 mb-3">
+                              {episode.overview}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Desktop Layout: Side by side */}
+                      <div className="hidden sm:flex gap-4">
                         {/* Episode Thumbnail */}
                         {episode.still_path ? (
                           <img

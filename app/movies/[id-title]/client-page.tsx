@@ -197,6 +197,7 @@ export default function MovieClientPage({ movie, videos, imagesData }: MoviePage
                     title={movie.title}
                     url={currentUrl}
                     type="movie"
+                    className="hidden sm:flex"
                   />
                 </div>
                 
