@@ -64,6 +64,17 @@ interface SerieDetails {
   genres?: Array<{ id: number; name: string }>
 }
 
+interface VideoSource {
+  src: string
+  language: string
+  quality: string
+  m3u8: string
+}
+
+interface VideoSourcesResponse {
+  sources: VideoSource[]
+}
+
 async function getSerieDetails(id: string): Promise<SerieDetails | null> {
   const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
   
@@ -112,6 +123,23 @@ async function getEpisodeDetails(serieId: string, seasonNumber: number, episodeN
     return data
   } catch (error) {
     console.error('Error fetching episode details:', error)
+    return null
+  }
+}
+
+async function getVideoSources(url: string): Promise<VideoSource[] | null> {
+  try {
+    const response = await fetch(url)
+    
+    if (!response.ok) {
+      console.error(`Video sources API error: ${response.status} ${response.statusText}`)
+      return null
+    }
+    
+    const data: VideoSourcesResponse = await response.json()
+    return data.sources || []
+  } catch (error) {
+    console.error('Error fetching video sources:', error)
     return null
   }
 }
@@ -181,13 +209,53 @@ export default function WatchSeriesPage() {
           // Ajouter des IDs uniques à toutes les vidéos si elles n'en ont pas
           const episodeVideos = videos.season[season]?.episodes[episode]
           if (episodeVideos?.videos?.length > 0) {
-            const videosWithIds = episodeVideos.videos.map((video, index) => ({
-              ...video,
-              id: video.id || `${id}-s${season}e${episode}-video-${index}`,
-              hasAds: video.pub === 1,
-              server: video.name,
-              serverIndex: index + 1
-            }))
+            // Traiter les vidéos avec play=1 pour récupérer les vraies sources
+            const processedVideos = await Promise.all(
+              episodeVideos.videos.map(async (video, index) => {
+                if (video.play === 1 && video.url) {
+                  // Récupérer les vraies sources
+                  const sources = await getVideoSources(video.url)
+                  if (sources && sources.length > 0) {
+                    // Transformer chaque source en une vidéo distincte
+                    return sources.map((source, sourceIndex) => ({
+                      id: `${id}-s${season}e${episode}-video-${index}-source-${sourceIndex}`,
+                      name: video.name,
+                      url: source.m3u8,
+                      lang: source.language.toLowerCase().includes('french') || source.language === 'French' ? 'vf' : 
+                           source.language.toLowerCase().includes('multi') ? 'vostfr' : 
+                           source.language.toLowerCase(),
+                      quality: source.quality,
+                      pub: video.pub,
+                      play: 1,
+                      hasAds: video.pub === 1,
+                      server: video.name,
+                      serverIndex: index + 1,
+                      originalSrc: source.src
+                    }))
+                  } else {
+                    // Si aucune source trouvée, garder la vidéo originale
+                    return [{
+                      ...video,
+                      id: video.id || `${id}-s${season}e${episode}-video-${index}`,
+                      hasAds: video.pub === 1,
+                      server: video.name,
+                      serverIndex: index + 1
+                    }]
+                  }
+                }
+                // Vidéo normale, la garder telle quelle
+                return [{
+                  ...video,
+                  id: video.id || `${id}-s${season}e${episode}-video-${index}`,
+                  hasAds: video.pub === 1,
+                  server: video.name,
+                  serverIndex: index + 1
+                }]
+              })
+            )
+            
+            // Aplatir le tableau de vidéos
+            const videosWithIds = processedVideos.flat()
             
             // Mettre à jour les données avec les IDs
             const updatedVideosData = { ...videos }
