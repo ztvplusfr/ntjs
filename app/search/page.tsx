@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { Search as SearchIcon, Film, Star, Calendar, Tv } from 'lucide-react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 interface TMDBMovie {
   id: number
@@ -16,11 +17,20 @@ interface TMDBMovie {
   media_type: 'movie' | 'tv'
 }
 
-export default function Search() {
+function SearchContent() {
+  const searchParams = useSearchParams()
   const [query, setQuery] = useState('')
   const [movies, setMovies] = useState<TMDBMovie[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Récupérer la requête depuis l'URL au chargement
+  useEffect(() => {
+    const searchQuery = searchParams.get('search')
+    if (searchQuery) {
+      setQuery(searchQuery)
+    }
+  }, [searchParams])
 
   const searchMovies = async (searchQuery: string) => {
     if (!searchQuery.trim()) {
@@ -198,5 +208,17 @@ export default function Search() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function Search() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-700 border-t-sky-500"></div>
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   )
 }
