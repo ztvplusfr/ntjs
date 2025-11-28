@@ -1,13 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Play, Star, Users, Globe, Zap, Shield, Monitor, Smartphone, Tv } from 'lucide-react'
 import { 
-  IconBrandApple as BrandApple, 
-  IconBrandAndroid as BrandAndroid, 
-  IconBrandXbox as BrandXbox, 
-  IconBrandWindows as BrandWindows,
-  IconDeviceTv as DeviceTv
+  IconPlayerPlay,
+  IconStar,
+  IconUsers,
+  IconWorld,
+  IconBolt,
+  IconShield,
+  IconDeviceDesktop,
+  IconDeviceMobile,
+  IconDeviceTv,
+  IconBrandApple, 
+  IconBrandAndroid, 
+  IconBrandXbox, 
+  IconBrandWindows
 } from '@tabler/icons-react'
 import Link from 'next/link'
 import Countdown from '@/components/countdown'
@@ -22,46 +29,46 @@ export default function WelcomePage() {
 
   const features = [
     {
-      icon: Play,
+      icon: IconPlayerPlay,
       title: "Streaming Gratuit",
       description: "Profitez de milliers de films et séries en streaming HD sans abonnement"
     },
     {
-      icon: Star,
+      icon: IconStar,
       title: "Contenu Premium",
       description: "Accédez aux derniers films et séries en VF et VOSTFR"
     },
     {
-      icon: Users,
+      icon: IconUsers,
       title: "Communauté Active",
       description: "Rejoignez une communauté française passionnée de cinéma"
     },
     {
-      icon: Globe,
+      icon: IconWorld,
       title: "100% Français",
       description: "Une plateforme créée et maintenue en France pour les utilisateurs francophones"
     },
     {
-      icon: Zap,
+      icon: IconBolt,
       title: "Rapide & Fluide",
       description: "Une interface moderne et des serveurs optimisés pour une expérience parfaite"
     },
     {
-      icon: Shield,
+      icon: IconShield,
       title: "Sécurisé",
       description: "Votre sécurité et votre confidentialité sont nos priorités"
     }
   ]
 
   const platforms = [
-    { icon: Monitor, name: "Web", description: "Navigateur web" },
-    { icon: Smartphone, name: "Mobile", description: "iOS & Android" },
-    { icon: DeviceTv, name: "Smart TV", description: "Télévision connectée" },
-    { icon: BrandWindows, name: "Windows", description: "PC Windows" },
-    { icon: BrandApple, name: "macOS", description: "Mac et iPad" },
-    { icon: Monitor, name: "Linux", description: "Distribution Linux" },
-    { icon: BrandXbox, name: "Gaming", description: "Xbox & consoles" },
-    { icon: BrandAndroid, name: "Android TV", description: "Box Android" }
+    { icon: IconDeviceDesktop, name: "Web", description: "Navigateur web" },
+    { icon: IconDeviceMobile, name: "Mobile", description: "iOS & Android" },
+    { icon: IconDeviceTv, name: "Smart TV", description: "Télévision connectée" },
+    { icon: IconBrandWindows, name: "Windows", description: "PC Windows" },
+    { icon: IconBrandApple, name: "macOS", description: "Mac et iPad" },
+    { icon: IconDeviceDesktop, name: "Linux", description: "Distribution Linux" },
+    { icon: IconBrandXbox, name: "Gaming", description: "Xbox & consoles" },
+    { icon: IconBrandAndroid, name: "Android TV", description: "Box Android" }
   ]
 
   return (
@@ -114,7 +121,7 @@ export default function WelcomePage() {
                     href="/"
                     className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-sky-600 to-cyan-600 text-white font-semibold rounded-lg hover:from-sky-700 hover:to-cyan-700 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-sky-500/25"
                   >
-                    <Play size={20} />
+                    <IconPlayerPlay size={20} />
                     Commencer à regarder
                   </Link>
                   <Link
@@ -228,7 +235,7 @@ export default function WelcomePage() {
                 href="/"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-600 to-cyan-600 text-white font-semibold rounded-lg hover:from-sky-700 hover:to-cyan-700 transition-all duration-300"
               >
-                <Globe size={20} />
+                <IconWorld size={20} />
                 Commencer maintenant
               </Link>
             </div>
@@ -251,7 +258,7 @@ export default function WelcomePage() {
                   href="/"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-sky-600 to-cyan-600 text-white font-semibold rounded-lg hover:from-sky-700 hover:to-cyan-700 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-sky-500/25"
                 >
-                  <Play size={20} />
+                  <IconPlayerPlay size={20} />
                   Regarder maintenant
                 </Link>
                 <Link
