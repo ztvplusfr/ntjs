@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import './globals.css'
 import '@vidstack/react/player/styles/default/theme.css'
 import '@vidstack/react/player/styles/default/layouts/video.css'
@@ -49,6 +50,11 @@ export default function RootLayout({
           </SessionProviderWrapper>
         </CookieMigrationProvider>
         <Analytics />
+        <Script
+          defer
+          src="https://cloud.umami.is/script.js"
+          data-website-id="105b8ab6-f84a-4937-a009-daa814d98116"
+        />
       </body>
     </html>
   )
