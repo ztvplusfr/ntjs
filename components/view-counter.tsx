@@ -23,35 +23,47 @@ function formatViews(num: number): string {
 export default function ViewCounter({ id, type, className = '' }: ViewCounterProps) {
   const [views, setViews] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [hasIncremented, setHasIncremented] = useState(false)
 
   useEffect(() => {
-    const incrementView = async () => {
+    const loadViews = async () => {
       try {
-        // Appeler l'API pour incrémenter les vues
-        const response = await fetch('/api/views/increment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            id,
-            type,
-          }),
-        })
-
-        if (response.ok) {
-          const data = await response.json()
+        // D'abord récupérer les vues actuelles sans incrémenter
+        const getResponse = await fetch(`/api/views/get?id=${encodeURIComponent(id)}&type=${type}`)
+        
+        if (getResponse.ok) {
+          const data = await getResponse.json()
           setViews(data.views)
         }
+
+        // Ensuite incrémenter seulement une fois par session
+        if (!hasIncremented) {
+          const incrementResponse = await fetch('/api/views/increment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              id,
+              type,
+            }),
+          })
+
+          if (incrementResponse.ok) {
+            const incrementData = await incrementResponse.json()
+            setViews(incrementData.views)
+            setHasIncremented(true)
+          }
+        }
       } catch (error) {
-        console.error('Error incrementing views:', error)
+        console.error('Error managing views:', error)
       } finally {
         setIsLoading(false)
       }
     }
 
-    incrementView()
-  }, [id, type])
+    loadViews()
+  }, [id, type, hasIncremented])
 
   if (isLoading) {
     return (

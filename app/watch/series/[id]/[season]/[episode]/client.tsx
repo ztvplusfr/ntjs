@@ -352,7 +352,6 @@ export default function WatchSeriesPage() {
             </Link>
             <span className="text-gray-500">|</span>
             <h1 className="text-xl font-bold">{serie.name}</h1>
-            <ViewCounter id={`${id}-${season}-${episode}`} type="series" className="ml-auto" />
           </div>
         </div>
       </div>
@@ -410,44 +409,46 @@ export default function WatchSeriesPage() {
                 
                 {/* Navigation Buttons */}
                 <div className="flex flex-wrap items-center justify-between gap-2 mt-4">
-                  <Link
-                    href={`/watch/series/${id}/${season}/${parseInt(episode) - 1}`}
-                    className={`p-2 rounded-lg transition-colors ${
-                      parseInt(episode) > 1
-                        ? 'bg-gray-800 hover:bg-gray-700 text-white'
-                        : 'bg-gray-900 text-gray-600 cursor-not-allowed pointer-events-none'
-                    }`}
-                    aria-disabled={parseInt(episode) <= 1}
-                  >
-                    <ChevronLeft size={20} className="sm:hidden" />
-                    <span className="hidden sm:flex items-center gap-2">
-                      <ChevronLeft size={20} />
-                      Épisode précédent
-                    </span>
-                  </Link>
-                  
-                  <Link
-                    href={`/series/${id}-${serie.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}?season=${season}`}
-                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
-                  >
-                    Épisodes
-                  </Link>
-                  
-                  <Link
-                    href={`/watch/series/${id}/${season}/${parseInt(episode) + 1}`}
-                    className={`p-2 rounded-lg transition-colors ${
-                      videosData?.season[season]?.episodes[(parseInt(episode) + 1).toString()]
-                        ? 'bg-sky-500 hover:bg-sky-600 text-white'
-                        : 'bg-gray-900 text-gray-600 cursor-not-allowed pointer-events-none'
-                    }`}
-                    aria-disabled={!videosData?.season[season]?.episodes[(parseInt(episode) + 1).toString()]}
-                  >
-                    <ChevronRight size={20} className="sm:hidden" />
-                    <span className="hidden sm:flex items-center gap-2">
-                      Épisode suivant
-                      <ChevronRight size={20} />
-                    </span>
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/watch/series/${id}/${season}/${parseInt(episode) - 1}`}
+                      className={`p-2 rounded-lg transition-colors ${
+                        parseInt(episode) > 1
+                          ? 'bg-gray-800 hover:bg-gray-700 text-white'
+                          : 'bg-gray-900 text-gray-600 cursor-not-allowed pointer-events-none'
+                      }`}
+                      aria-disabled={parseInt(episode) <= 1}
+                    >
+                      <ChevronLeft size={20} className="sm:hidden" />
+                      <span className="hidden sm:flex items-center gap-2">
+                        <ChevronLeft size={20} />
+                        Épisode précédent
+                      </span>
+                    </Link>
+                    
+                    <Link
+                      href={`/series/${id}-${serie.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}?season=${season}`}
+                      className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                    >
+                      Épisodes
+                    </Link>
+                    
+                    <Link
+                      href={`/watch/series/${id}/${season}/${parseInt(episode) + 1}`}
+                      className={`p-2 rounded-lg transition-colors ${
+                        videosData?.season[season]?.episodes[(parseInt(episode) + 1).toString()]
+                          ? 'bg-sky-500 hover:bg-sky-600 text-white'
+                          : 'bg-gray-900 text-gray-600 cursor-not-allowed pointer-events-none'
+                      }`}
+                      aria-disabled={!videosData?.season[season]?.episodes[(parseInt(episode) + 1).toString()]}
+                    >
+                      <ChevronRight size={20} className="sm:hidden" />
+                      <span className="hidden sm:flex items-center gap-2">
+                        Épisode suivant
+                        <ChevronRight size={20} />
+                      </span>
+                    </Link>
+                  </div>
                 </div>
               </div>
 
@@ -556,7 +557,7 @@ export default function WatchSeriesPage() {
               </h2>
               
               {/* Meta */}
-              <div className="flex flex-wrap gap-3 mb-6">
+              <div className="flex flex-wrap items-center gap-3 mb-6">
                 <span className="px-3 py-1 bg-gray-800 rounded-full text-sm">
                   S{parseInt(season).toString().padStart(2, '0')}E{parseInt(episode).toString().padStart(2, '0')}
                 </span>
@@ -574,6 +575,7 @@ export default function WatchSeriesPage() {
                   <span className="text-yellow-400 mr-1">★</span>
                   <span className="font-medium">{serie.vote_average?.toFixed(1)}</span>
                 </span>
+                <ViewCounter id={`${id}-${season}-${episode}`} type="series" />
               </div>
 
               {/* Overview */}
