@@ -216,7 +216,7 @@ export default function MovieClientPage({ movie, videos, imagesData }: MoviePage
                 
                 {/* Overview */}
                 <div className="max-w-4xl">
-                  <p className="text-gray-200 leading-relaxed text-lg">
+                  <p className="text-gray-200 leading-relaxed text-lg line-clamp-2 sm:line-clamp-none">
                     {movie.overview || 'Aucun synopsis disponible.'}
                   </p>
                 </div>

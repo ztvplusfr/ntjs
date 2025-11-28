@@ -342,7 +342,7 @@ export default function SeriePage() {
                 
                 {/* Overview */}
                 <div className="max-w-4xl">
-                  <p className="text-gray-200 leading-relaxed text-base sm:text-lg mb-4">
+                  <p className="text-gray-200 leading-relaxed text-base sm:text-lg mb-4 line-clamp-2 sm:line-clamp-none">
                     {serie.overview || 'Aucun synopsis disponible.'}
                   </p>
                   
