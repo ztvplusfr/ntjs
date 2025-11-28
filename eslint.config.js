@@ -1,4 +1,4 @@
-import { FlatCompat } from '@eslint/eslintrc'
+import { FlatCompat } from '@eslint/eslintrc/dist/eslintrc.cjs'
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
