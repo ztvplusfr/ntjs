@@ -9,6 +9,17 @@ interface ViewCounterProps {
   className?: string
 }
 
+// Fonction pour formater les nombres de manière lisible
+function formatViews(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
+  }
+  return num.toString()
+}
+
 export default function ViewCounter({ id, type, className = '' }: ViewCounterProps) {
   const [views, setViews] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(true)
@@ -54,7 +65,7 @@ export default function ViewCounter({ id, type, className = '' }: ViewCounterPro
   return (
     <div className={`flex items-center gap-2 text-gray-400 ${className}`}>
       <IconEye size={16} />
-      <span className="text-sm">{views.toLocaleString('fr-FR')} vues</span>
+      <span className="text-sm">{formatViews(views)} vues</span>
     </div>
   )
 }

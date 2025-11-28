@@ -21,17 +21,24 @@ export async function POST(request: NextRequest) {
     // Clé pour stocker les vues
     const key = `views:${type}:${id}`
     
-    // Incrémenter le compteur de vues
-    const currentViews = await redis.incr(key)
+    // Récupérer la valeur actuelle d'abord
+    const currentViews = await redis.get<number>(key)
+    const baseViews = currentViews || 0
+    
+    // Incrémenter de 1 (ajoute la nouvelle vue)
+    const newTotalViews = baseViews + 1
+    
+    // Mettre à jour la valeur dans Redis
+    await redis.set(key, newTotalViews)
     
     // Si c'est la première vue, définir une expiration (1 an)
-    if (currentViews === 1) {
+    if (baseViews === 0) {
       await redis.expire(key, 365 * 24 * 60 * 60) // 1 an en secondes
     }
 
     return NextResponse.json({
       success: true,
-      views: currentViews,
+      views: newTotalViews,
       id,
       type
     })
