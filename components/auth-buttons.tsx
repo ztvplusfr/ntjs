@@ -1,7 +1,7 @@
 'use client'
 
 import { useSession, signOut } from 'next-auth/react'
-import { IconBrandDiscord, IconBrandSnapchat } from '@tabler/icons-react'
+import { IconBrandDiscord } from '@tabler/icons-react'
 import Link from 'next/link'
 
 export default function AuthButtons() {
@@ -45,24 +45,13 @@ export default function AuthButtons() {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Link 
-        href="/auth/discord"
-        className="bg-gradient-to-r from-sky-400 to-cyan-500 hover:from-sky-500 hover:to-cyan-600 text-white p-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center relative z-50 cursor-pointer sm:px-4 sm:py-2"
-        style={{ pointerEvents: 'auto' }}
-      >
-        <IconBrandDiscord size={18} />
-        <span className="hidden sm:inline ml-2">Discord</span>
-      </Link>
-      
-      <Link 
-        href="/auth/snapchat"
-        className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black p-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center relative z-50 cursor-pointer sm:px-4 sm:py-2"
-        style={{ pointerEvents: 'auto' }}
-      >
-        <IconBrandSnapchat size={18} />
-        <span className="hidden sm:inline ml-2">Snapchat</span>
-      </Link>
-    </div>
+    <Link 
+      href="/auth/discord"
+      className="bg-gradient-to-r from-sky-400 to-cyan-500 hover:from-sky-500 hover:to-cyan-600 text-white p-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center relative z-50 cursor-pointer sm:px-4 sm:py-2"
+      style={{ pointerEvents: 'auto' }}
+    >
+      <IconBrandDiscord size={18} />
+      <span className="hidden sm:inline ml-2">Connexion Discord</span>
+    </Link>
   )
 }
