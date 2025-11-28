@@ -1,35 +1,173 @@
 {
   "pages": {
-    "/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/layout.css",
-      "static/chunks/app/layout.js"
+    "/_not-found/page": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/app/_not-found/page-9c4205746e12c1e6.js"
     ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
+    "/layout": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/css/4cea6ef2769144cc.css",
+      "static/chunks/879-eaa9901a0779bbf4.js",
+      "static/chunks/308-d48b36c2d8a3f274.js",
+      "static/chunks/app/layout-cd3df8ba46efa159.js"
     ],
     "/api/auth/[...nextauth]/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/auth/[...nextauth]/route.js"
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/app/api/auth/[...nextauth]/route-7cc1093c4f182224.js"
     ],
-    "/watch/series/[id]/[season]/[episode]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/watch/series/[id]/[season]/[episode]/page.js"
+    "/api/discord/chat-messages/route": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/app/api/discord/chat-messages/route-7cc1093c4f182224.js"
+    ],
+    "/api/discord/chat/route": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/app/api/discord/chat/route-7cc1093c4f182224.js"
+    ],
+    "/api/discord/message/route": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/app/api/discord/message/route-7cc1093c4f182224.js"
+    ],
+    "/api/discord/messages/route": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/app/api/discord/messages/route-7cc1093c4f182224.js"
     ],
     "/api/series/[id]/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/series/[id]/route.js"
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/app/api/series/[id]/route-7cc1093c4f182224.js"
+    ],
+    "/api/upload/route": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/app/api/upload/route-7cc1093c4f182224.js"
+    ],
+    "/api/videos/route": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/app/api/videos/route-7cc1093c4f182224.js"
+    ],
+    "/auth/discord/page": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/308-d48b36c2d8a3f274.js",
+      "static/chunks/app/auth/discord/page-6cce4c94ab9646b7.js"
+    ],
+    "/auth/error/page": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/app/auth/error/page-a3bbbbfa5a8faacd.js"
+    ],
+    "/auth/signin/page": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/308-d48b36c2d8a3f274.js",
+      "static/chunks/app/auth/signin/page-e762b70e03a413fa.js"
+    ],
+    "/auth/test/page": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/308-d48b36c2d8a3f274.js",
+      "static/chunks/app/auth/test/page-e38a91e6f9c8480b.js"
+    ],
+    "/chat/page": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/879-eaa9901a0779bbf4.js",
+      "static/chunks/308-d48b36c2d8a3f274.js",
+      "static/chunks/app/chat/page-9844ba5a44650eef.js"
+    ],
+    "/discord/page": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/app/discord/page-7cc1093c4f182224.js"
+    ],
+    "/page": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/879-eaa9901a0779bbf4.js",
+      "static/chunks/454-d9c8fbf9bda21d9c.js",
+      "static/chunks/app/page-a2f4f9a5302cb68b.js"
+    ],
+    "/search/page": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/879-eaa9901a0779bbf4.js",
+      "static/chunks/app/search/page-dae2706dd3700326.js"
     ],
     "/series/[id-title]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/series/[id-title]/page.js"
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/879-eaa9901a0779bbf4.js",
+      "static/chunks/app/series/[id-title]/page-b86a6589555d4806.js"
+    ],
+    "/watch/series/[id]/[season]/[episode]/page": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/879-eaa9901a0779bbf4.js",
+      "static/chunks/895-55a0ff9a5499872a.js",
+      "static/chunks/app/watch/series/[id]/[season]/[episode]/page-d263654f13003b95.js"
+    ],
+    "/movies/[id-title]/page": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/app/movies/[id-title]/page-7661fff19bb1073a.js"
+    ],
+    "/watch/[movie-id]/page": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/895-55a0ff9a5499872a.js",
+      "static/chunks/app/watch/[movie-id]/page-9df1734e35868126.js"
     ]
   }
 }

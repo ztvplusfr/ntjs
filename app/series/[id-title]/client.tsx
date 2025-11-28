@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
-import { Play, Calendar, Clock, Star, ChevronDown, ChevronUp, Tv, Filter } from 'lucide-react'
+import { Play, Calendar, Clock, Star, ChevronDown, ChevronUp, Tv, Filter, Settings, Trash2, Info } from 'lucide-react'
 import Link from 'next/link'
 import ShareButton from '@/components/share-button'
 import PageHead from '@/components/page-head'
@@ -142,7 +142,25 @@ export default function SeriePage() {
   const [videosData, setVideosData] = useState<VideosData | null>(null)
   const [currentUrl, setCurrentUrl] = useState('')
   const [showAvailableOnly, setShowAvailableOnly] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Charger le filtre depuis localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedFilter = localStorage.getItem('ztv-series-filter-available')
+      if (savedFilter === 'true') {
+        setShowAvailableOnly(true)
+      }
+    }
+  }, [])
+
+  // Sauvegarder le filtre dans localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ztv-series-filter-available', showAvailableOnly.toString())
+    }
+  }, [showAvailableOnly])
 
   useEffect(() => {
     const loadSerie = async () => {
@@ -275,6 +293,20 @@ export default function SeriePage() {
     updateSeasonInUrl(seasonNumber)
   }
 
+  // Vider le cache
+  const clearCache = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.clear()
+      sessionStorage.clear()
+      // Vider aussi les cookies si nécessaire
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      })
+      alert('Cache et données locales vidés avec succès!')
+      window.location.reload()
+    }
+  }
+
   return (
     <>
       <PageHead
@@ -297,6 +329,108 @@ export default function SeriePage() {
         genres={serie.genres?.map(g => g.name)}
       />
       <div className="min-h-screen bg-black text-white">
+      {/* Settings Button */}
+      <button
+        onClick={() => setShowSettings(!showSettings)}
+        className="fixed top-4 right-4 z-50 p-3 bg-gray-800/80 backdrop-blur rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+        title="Paramètres"
+      >
+        <Settings size={20} />
+      </button>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-white">Paramètres</h2>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Filter Settings */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium text-white mb-3">Filtre des épisodes</h3>
+                <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                  <span className="text-gray-300">Se souvenir du filtre "Disponibles uniquement"</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm ${showAvailableOnly ? 'text-sky-400' : 'text-gray-500'}`}>
+                      {showAvailableOnly ? 'Activé' : 'Désactivé'}
+                    </span>
+                    <button
+                      onClick={() => setShowAvailableOnly(!showAvailableOnly)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        showAvailableOnly ? 'bg-sky-600' : 'bg-gray-600'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          showAvailableOnly ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Le choix est sauvegardé automatiquement et sera appliqué lors de votre prochaine visite.
+                </p>
+              </div>
+
+              {/* Cache Management */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium text-white mb-3">Gestion du cache</h3>
+                <button
+                  onClick={clearCache}
+                  className="w-full flex items-center justify-center gap-2 p-3 bg-red-600/20 border border-red-500/30 rounded-lg text-red-400 hover:bg-red-600/30 transition-colors"
+                >
+                  <Trash2 size={16} />
+                  Vider le cache et les données locales
+                </button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Supprime toutes les données locales, le cache et les cookies. La page se rechargera automatiquement.
+                </p>
+              </div>
+
+              {/* App Information */}
+              <div>
+                <h3 className="text-lg font-medium text-white mb-3 flex items-center gap-2">
+                  <Info size={16} />
+                  Informations de l'application
+                </h3>
+                <div className="space-y-2 p-3 bg-gray-800/50 rounded-lg">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Application:</span>
+                    <span className="text-white">ZTVPlus</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Version:</span>
+                    <span className="text-white">2.0.0</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Build:</span>
+                    <span className="text-white">{new Date().toISOString().split('T')[0]}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Framework:</span>
+                    <span className="text-white">Next.js 15</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Navigateur:</span>
+                    <span className="text-white">
+                      {typeof window !== 'undefined' ? navigator.userAgent.split(' ').slice(-2)[0] : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Hero Section */}
       <div className="relative h-[70vh] overflow-hidden">
         {backdropUrl && (
