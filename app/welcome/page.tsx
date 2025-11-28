@@ -118,7 +118,7 @@ export default function WelcomePage() {
                 </p>
                 <div className="flex flex-wrap gap-4 justify-center">
                   <Link
-                    href="/"
+                    href="/browse"
                     className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-sky-600 to-cyan-600 text-white font-semibold rounded-lg hover:from-sky-700 hover:to-cyan-700 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-sky-500/25"
                   >
                     <IconPlayerPlay size={20} />
@@ -238,7 +238,7 @@ export default function WelcomePage() {
                 Accès instantané via votre navigateur web - <span className="text-sky-400">aucune installation requise</span>
               </p>
               <Link
-                href="/"
+                href="/browse"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-600 to-cyan-600 text-white font-semibold rounded-lg hover:from-sky-700 hover:to-cyan-700 transition-all duration-300"
               >
                 <IconWorld size={20} />
@@ -261,7 +261,7 @@ export default function WelcomePage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
-                  href="/"
+                  href="/browse"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-sky-600 to-cyan-600 text-white font-semibold rounded-lg hover:from-sky-700 hover:to-cyan-700 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-sky-500/25"
                 >
                   <IconPlayerPlay size={20} />

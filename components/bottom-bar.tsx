@@ -8,7 +8,7 @@ import { useState } from 'react'
 import SupportModal from './support-modal'
 
 const bottomBarItems = [
-  { icon: Home, label: 'Home', href: '/' },
+  { icon: Home, label: 'Home', href: '/browse' },
   { icon: Search, label: 'Search', href: '/search' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ]

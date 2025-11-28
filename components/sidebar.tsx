@@ -10,7 +10,7 @@ import DiscordMessageModal from './discord-message-modal'
 import SupportModal from './support-modal'
 
 const sidebarItems = [
-  { icon: Home, label: 'Home', href: '/' },
+  { icon: Home, label: 'Home', href: '/browse' },
   { icon: Search, label: 'Search', href: '/search' },
   { icon: Settings, label: 'Settings', href: '/settings' },
   { icon: HeadphonesIcon, label: 'Support', href: '/chat' },
