@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useSearchParams, notFound } from 'next/navigation'
+import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Play, Calendar, Clock, Star, ChevronDown, ChevronUp, Tv, Filter } from 'lucide-react'
 import Link from 'next/link'
 import ShareButton from '@/components/share-button'
@@ -21,7 +21,7 @@ interface EpisodeVideos {
 }
 
 interface SeasonEpisodes {
-  [episodeNumber: string]: EpisodeVideos
+  [episodeNumber: number]: EpisodeVideos
 }
 
 interface SeasonData {
@@ -30,7 +30,7 @@ interface SeasonData {
 
 interface VideosData {
   season: {
-    [seasonNumber: string]: SeasonData
+    [seasonNumber: number]: SeasonData
   }
 }
 
@@ -125,6 +125,7 @@ async function getSeasonDetails(serieId: string, seasonNumber: number): Promise<
 export default function SeriePage() {
   const params = useParams()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [id] = (params['id-title'] as string).split('-')
   
   // Récupérer la saison depuis l'URL ou utiliser 1 par défaut
@@ -141,14 +142,17 @@ export default function SeriePage() {
   const [videosData, setVideosData] = useState<VideosData | null>(null)
   const [currentUrl, setCurrentUrl] = useState('')
   const [showAvailableOnly, setShowAvailableOnly] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadSerie = async () => {
       setLoading(true)
+      setError(null)
       const serieData = await getSerieDetails(id)
       
       if (!serieData) {
-        notFound()
+        setError('Série non trouvée')
+        setLoading(false)
         return
       }
       
@@ -219,7 +223,21 @@ export default function SeriePage() {
     )
   }
 
-  if (!serie) return notFound()
+  if (!serie || error) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center px-4">
+          <p className="text-lg mb-4">{error || 'Série non trouvée'}</p>
+          <button
+            onClick={() => router.push('/')}
+            className="px-4 py-2 rounded bg-sky-600 hover:bg-sky-700 transition-colors"
+          >
+            Retour à l&apos;accueil
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const backdropUrl = serie.backdrop_path 
     ? `https://image.tmdb.org/t/p/original${serie.backdrop_path}`
@@ -235,7 +253,7 @@ export default function SeriePage() {
 
   // Fonction pour vérifier si un épisode a des vidéos disponibles
   const hasVideos = (episodeNumber: number) => {
-    if (!videosData) return false
+    if (!videosData || !videosData.season) return false
     const episodeVideos = videosData.season[selectedSeason]?.episodes[episodeNumber]?.videos
     return episodeVideos && episodeVideos.length > 0
   }
@@ -448,6 +466,7 @@ export default function SeriePage() {
                 <p className="text-gray-400">Chargement des épisodes...</p>
               </div>
             ) : (
+              <>
               <div className="space-y-4">
                 {episodes
                   .filter(episode => !showAvailableOnly || hasVideos(episode.episode_number))
@@ -629,6 +648,7 @@ export default function SeriePage() {
                           </div>
                         </div>
                       </div>
+                      </div>
                       
                       {/* Expanded Content */}
                       {expandedEpisode === episode.id && episode.overview && (
@@ -639,7 +659,6 @@ export default function SeriePage() {
                         </div>
                       )}
                     </div>
-                  </div>
                 ))}
               </div>
               
@@ -653,6 +672,7 @@ export default function SeriePage() {
                   <p className="text-gray-400">Aucun épisode de cette saison n'est disponible en streaming pour le moment.</p>
                 </div>
               )}
+              </>
             )}
           </div>
           
