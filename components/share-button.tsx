@@ -7,9 +7,10 @@ interface ShareButtonProps {
   title: string
   url: string
   type: 'movie' | 'series'
+  className?: string
 }
 
-export default function ShareButton({ title, url, type }: ShareButtonProps) {
+export default function ShareButton({ title, url, type, className }: ShareButtonProps) {
   const [copied, setCopied] = useState(false)
   const [showOptions, setShowOptions] = useState(false)
 
@@ -55,7 +56,7 @@ export default function ShareButton({ title, url, type }: ShareButtonProps) {
       {/* Main Share Button */}
       <button
         onClick={handleNativeShare}
-        className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors"
+        className={`flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors ${className || ''}`}
       >
         {copied ? (
           <>
