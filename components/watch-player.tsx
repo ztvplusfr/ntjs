@@ -19,8 +19,15 @@ interface WatchPlayerProps {
 }
 
 export default function WatchPlayer({ video, movie, allVideos }: WatchPlayerProps) {
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [embedUrl, setEmbedUrl] = useState<string>('')
+  useEffect(() => {
+    if (video.play === 1) {
+      setIsLoading(false)
+      setError(null)
+    }
+  }, [video.play])
 
   // Generate embed URL based on video URL
   const getEmbedUrl = (url: string) => {
@@ -46,10 +53,27 @@ export default function WatchPlayer({ video, movie, allVideos }: WatchPlayerProp
   useEffect(() => {
     const url = getEmbedUrl(video.url)
     setEmbedUrl(url)
+    
+    // Preload the iframe to reduce loading time
+    const link = document.createElement('link')
+    link.rel = 'preload'
+    link.as = 'document'
+    link.href = url
+    document.head.appendChild(link)
+    
+    return () => {
+      document.head.removeChild(link)
+    }
   }, [video.url])
+
+  const handleLoad = () => {
+    setIsLoading(false)
+    setError(null)
+  }
 
   const handleError = () => {
     setError('Impossible de charger la vidéo. Veuillez réessayer avec une autre source.')
+    setIsLoading(false)
   }
 
   return (
@@ -61,6 +85,13 @@ export default function WatchPlayer({ video, movie, allVideos }: WatchPlayerProp
            onCut={(e: React.ClipboardEvent) => e.preventDefault()}
            onPaste={(e: React.ClipboardEvent) => e.preventDefault()}
       >
+        {/* Loading State - Minimal for faster loading */}
+        {isLoading && video.play !== 1 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
+            <div className="w-12 h-12 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+
         {/* Error State */}
         {error && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
@@ -86,31 +117,26 @@ export default function WatchPlayer({ video, movie, allVideos }: WatchPlayerProp
         {embedUrl && (
           <>
             {video.play === 1 ? (
-              <div className="relative w-full">
-                <video
-                  key={video.url}
-                  controls
-                  className="w-full aspect-video object-cover"
-                  preload="metadata"
-                  playsInline
-                  x5-playsinline
-                  webkit-playsinline
-                  onError={() => {
-                    setError('Impossible de charger la vidéo. Veuillez réessayer avec une autre source.')
-                  }}
-                >
-                  <source src={video.url} type="application/x-mpegURL" />
-                  <source src={video.url} type="video/mp4" />
-                  Votre navigateur ne supporte pas la lecture vidéo.
-                </video>
-              </div>
+              <video
+                key={video.url}
+                controls
+                className="w-full h-full"
+                preload="metadata"
+                onLoadedData={handleLoad}
+                onError={handleError}
+              >
+                <source src={video.url} type="application/x-mpegURL" />
+                <source src={video.url} type="video/mp4" />
+                Votre navigateur ne supporte pas la lecture vidéo.
+              </video>
             ) : (
               // Iframe player for play: 0
               <iframe
                 src={embedUrl}
-                className="w-full h-full border-0"
+                className={`w-full h-full border-0 ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
                 allowFullScreen
                 allow="autoplay; encrypted-media; picture-in-picture; web-share"
+                onLoad={handleLoad}
                 onError={handleError}
                 loading="eager"
                 title={`Regarder ${movie.title} en streaming`}

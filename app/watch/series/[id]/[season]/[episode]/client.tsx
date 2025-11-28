@@ -177,7 +177,6 @@ export default function WatchSeriesPage() {
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [videoLoading, setVideoLoading] = useState(false)
   const [serie, setSerie] = useState<SerieDetails | null>(null)
   const [episodeDetails, setEpisodeDetails] = useState<EpisodeDetails | null>(null)
   const [videosData, setVideosData] = useState<SeriesVideosData | null>(null)
@@ -201,6 +200,7 @@ export default function WatchSeriesPage() {
         const serieData = await getSerieDetails(id)
         if (!serieData) {
           setError('Série non trouvée')
+          setLoading(false)
           return
         }
         setSerie(serieData)
@@ -335,7 +335,30 @@ export default function WatchSeriesPage() {
     if (id && season && episode) {
       loadData()
     }
-  }, [id, season, episode, searchParams])
+  }, [id, season, episode])
+
+  // Mettre à jour la sélection de vidéo basée sur les paramètres d'URL (sans relancer le chargement)
+  useEffect(() => {
+    if (!loading && videosData?.season[season]?.episodes[episode]?.videos) {
+      const videosWithIds = videosData.season[season].episodes[episode].videos
+      const urlServer = searchParams.get('server')
+      const urlLang = searchParams.get('lang')
+      const urlQuality = searchParams.get('quality')
+      const urlVideoId = searchParams.get('videoId')
+      
+      if (urlServer && urlLang && urlQuality) {
+        const urlVideo = videosWithIds.find(video => 
+          video.server === urlServer && 
+          video.lang === urlLang && 
+          video.quality === urlQuality &&
+          (!urlVideoId || video.id === urlVideoId)
+        )
+        if (urlVideo && (!selectedServer || selectedServer.id !== urlVideo.id)) {
+          setSelectedServer(urlVideo)
+        }
+      }
+    }
+  }, [searchParams, loading, videosData, season, episode, selectedServer])
 
   // Sauvegarder les préférences quand la sélection change
   useEffect(() => {
@@ -351,7 +374,7 @@ export default function WatchSeriesPage() {
       
       cookieUtils.setSeriesPreferences(id, preferences)
     }
-  }, [selectedServer, id, season, episode, serie, episodeDetails])
+  }, [selectedServer, id])
 
   if (loading) {
     return (
@@ -470,26 +493,12 @@ export default function WatchSeriesPage() {
               <div className="lg:col-span-2 w-full">
                 {selectedServer ? (
                   <div className="relative w-full bg-black rounded-lg overflow-hidden">
-                    {videoLoading && (
-                      <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-10">
-                        <div className="text-center">
-                          <div className="w-12 h-12 border-2 border-gray-700 border-t-sky-500 rounded-full animate-spin mx-auto mb-3"></div>
-                          <p className="text-gray-400 text-sm">Chargement de la vidéo...</p>
-                        </div>
-                      </div>
-                    )}
                     <video
                       key={selectedServer.url}
                       controls
-                      className="w-full aspect-video object-cover"
+                      className="w-full aspect-video"
                       poster={episodeStillUrl || undefined}
-                      preload="none"
-                      playsInline
-                      x5-playsinline
-                      webkit-playsinline
-                      onLoadStart={() => setVideoLoading(true)}
-                      onCanPlay={() => setVideoLoading(false)}
-                      onError={() => setVideoLoading(false)}
+                      preload="metadata"
                     >
                       <source src={selectedServer.url} type="application/x-mpegURL" />
                       <source src={selectedServer.url} type="video/mp4" />
@@ -555,7 +564,7 @@ export default function WatchSeriesPage() {
 
               {/* Video Sources Sidebar - 1/3 width */}
               <div className="lg:col-span-1 w-full">
-                {loading ? (
+                {loading && !videosData?.season[season]?.episodes[episode]?.videos ? (
                   <div className="bg-gray-900 rounded-lg p-4 w-full">
                     <div className="animate-pulse space-y-4">
                       <div className="h-6 bg-gray-800 rounded w-1/3"></div>
@@ -575,7 +584,6 @@ export default function WatchSeriesPage() {
                         
                         const handleClick = () => {
                           // Garder la même URL de base mais changer de source via le state
-                          setVideoLoading(true)
                           setSelectedServer(video)
                         }
                         
@@ -693,7 +701,7 @@ export default function WatchSeriesPage() {
 
             {/* Sidebar - Empty or additional info */}
             <div>
-              {loading ? (
+              {loading && !serie ? (
                 <div className="animate-pulse space-y-4">
                   <div className="h-32 bg-gray-800 rounded"></div>
                   <div className="h-20 bg-gray-800 rounded"></div>
