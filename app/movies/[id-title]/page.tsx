@@ -88,8 +88,8 @@ export async function generateMetadata({ params }: MoviePageProps): Promise<Meta
   }
 
   return {
-    title: `${movie.title} (${movie.release_date?.split('-')[0]}) | Streaming HD Gratuit`,
-    description: movie.overview || `Regardez ${movie.title} en streaming HD gratuit. ${movie.runtime ? `Durée : ${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}min.` : ''} ${movie.genres?.map((g: any) => g.name).slice(0, 3).join(', ') || ''}`,
+    title: `${movie.title} (${movie.release_date?.split('-')[0]}) | ZTVPlus`,
+    description: movie.overview || `Regardez ${movie.title} en streaming HD gratuit sur ZTVPlus. ${movie.runtime ? `Durée : ${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}min.` : ''} ${movie.genres?.map((g: any) => g.name).slice(0, 3).join(', ') || ''}`,
     keywords: [
       movie.title,
       'streaming',

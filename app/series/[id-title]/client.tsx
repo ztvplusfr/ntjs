@@ -259,8 +259,8 @@ export default function SeriePage() {
   return (
     <>
       <PageHead
-        title={`${serie.name} (${serie.first_air_date?.split('-')[0]}) | Streaming HD Gratuit`}
-        description={serie.overview || `Regardez ${serie.name} en streaming HD gratuit. ${serie.number_of_seasons ? `${serie.number_of_seasons} saison${serie.number_of_seasons > 1 ? 's' : ''}.` : ''} ${serie.genres?.map(g => g.name).slice(0, 3).join(', ') || ''}`}
+        title={`${serie.name} (${serie.first_air_date?.split('-')[0]}) | ZTVPlus `}
+        description={serie.overview || `Regardez ${serie.name} en streaming HD gratuit sur ZTVPlus. ${serie.number_of_seasons ? `${serie.number_of_seasons} saison${serie.number_of_seasons > 1 ? 's' : ''}.` : ''} ${serie.genres?.map(g => g.name).slice(0, 3).join(', ') || ''}`}
         keywords={[
           serie.name,
           'streaming',
