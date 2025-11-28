@@ -126,16 +126,16 @@ export default function Sidebar() {
         
         {/* Discord icon */}
         <Link
-          href="/discord"
+          href="https://discord.com/invite/WjedsPDts3"
+          target="_blank"
+          rel="noopener noreferrer"
           className={`group relative p-3 rounded-lg transition-all duration-200 ${
-            pathname === '/discord' 
-              ? 'bg-gray-800 text-white' 
-              : 'text-gray-400 hover:text-white hover:bg-gray-800'
+            'text-gray-400 hover:text-white hover:bg-gray-800'
           }`}
         >
           <IconBrandDiscord size={24} />
           <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
-            Discord
+            Rejoindre Discord
           </div>
         </Link>
       </div>
