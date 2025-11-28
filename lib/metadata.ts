@@ -18,7 +18,7 @@ export async function generateSeriesMetadata({ id }: SeriesMetadataProps): Promi
     }
     
     const serie = await response.json()
-    const title = `ZTVPlus - ${serie.name} (${serie.first_air_date?.split('-')[0]}) | Streaming HD Gratuit`
+    const title = `${serie.name} (${serie.first_air_date?.split('-')[0]}) - ZTVPlus`
     const description = serie.overview || `Regardez ${serie.name} en streaming HD gratuit. ${serie.number_of_seasons ? `${serie.number_of_seasons} saison${serie.number_of_seasons > 1 ? 's' : ''}.` : ''} ${serie.genres?.map((g: { id: number; name: string }) => g.name).slice(0, 3).join(', ') || ''}`
     const image = serie.poster_path ? `https://image.tmdb.org/t/p/w500${serie.poster_path}` : '/og-default.jpg'
     
@@ -83,7 +83,7 @@ export async function generateMovieMetadata({ id }: MovieMetadataProps): Promise
     }
     
     const movie = await response.json()
-    const title = `ZTVPlus - ${movie.title} (${movie.release_date?.split('-')[0]}) | Streaming HD Gratuit`
+    const title = `${movie.title} (${movie.release_date?.split('-')[0]}) - ZTVPlus`
     const description = movie.overview || `Regardez ${movie.title} en streaming HD gratuit. ${movie.runtime ? `Durée : ${movie.runtime} minutes.` : ''} ${movie.genres?.map((g: { id: number; name: string }) => g.name).slice(0, 3).join(', ') || ''}`
     const image = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/og-default.jpg'
     
@@ -156,7 +156,7 @@ export async function generateEpisodeMetadata({ seriesId, season, episode }: Epi
     }
     
     const [serie, episodeDetails] = await Promise.all([seriesResponse.json(), episodeResponse.json()])
-    const title = `ZTVPlus - ${serie.name} S${season}E${episode} - ${episodeDetails?.name || `Épisode ${episode}`} en streaming HD gratuit`
+    const title = `${serie.name} S${season}E${episode} - ${episodeDetails?.name || `Épisode ${episode}`} - ZTVPlus`
     const description = episodeDetails?.overview || `Regarder ${serie.name} Saison ${season} Épisode ${episode} en streaming HD gratuit sur ZTVPlus. ${serie.number_of_seasons ? `${serie.number_of_seasons} saison${serie.number_of_seasons > 1 ? 's' : ''}.` : ''} ${serie.genres?.map((g: { id: number; name: string }) => g.name).slice(0, 3).join(', ') || ''}`
     
     const posterUrl = serie.poster_path ? `https://image.tmdb.org/t/p/w500${serie.poster_path}` : '/og-default.jpg'
