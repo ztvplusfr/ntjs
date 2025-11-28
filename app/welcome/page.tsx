@@ -81,9 +81,9 @@ export default function WelcomePage() {
         url={typeof window !== 'undefined' ? window.location.href : ''}
       />
 
-      <div className="min-h-screen bg-black text-white overflow-hidden">
+      <div className="bg-black text-white overflow-hidden">
         {/* Hero Section */}
-        <section className="relative min-h-screen flex items-center justify-center">
+        <section className="relative pt-24 pb-16 flex items-center justify-center">
           {/* Background Effects */}
           <div className="absolute inset-0 bg-gradient-to-br from-sky-900/20 via-black to-cyan-900/20" />
           <div className="absolute inset-0">
@@ -112,7 +112,7 @@ export default function WelcomePage() {
                   La plateforme de streaming <span className="text-sky-400">gratuite</span> et <span className="text-cyan-400">100% française</span>
                 </h2>
                 <p className="text-lg sm:text-xl text-gray-300 mb-8 leading-relaxed">
-                  Créée par <span className="text-sky-400 font-semibold">Hiro</span> en <span className="text-cyan-400 font-semibold">2023</span>, 
+                  Créée par <span className="text-sky-400 font-semibold">🥷Hɪʀᴏ☄️</span> en <span className="text-cyan-400 font-semibold">2023</span>, 
                   ZTVPlus vous offre un accès illimité à des milliers de films et séries en streaming HD, 
                   entièrement gratuit et sans publicité intrusive.
                 </p>
@@ -136,7 +136,7 @@ export default function WelcomePage() {
               {/* Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 max-w-2xl mx-auto">
                 <div className="text-center">
-                  <div className="text-3xl sm:text-4xl font-bold text-sky-400 mb-2">1000+</div>
+                  <div className="text-3xl sm:text-4xl font-bold text-sky-400 mb-2">10+</div>
                   <div className="text-sm text-gray-400">Films & Séries</div>
                 </div>
                 <div className="text-center">
@@ -152,12 +152,18 @@ export default function WelcomePage() {
                   <div className="text-sm text-gray-400">Disponible</div>
                 </div>
               </div>
+              <p className="mt-4 text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
+                Ces statistiques sont encore modestes suite à une grosse mise à jour de la plateforme, 
+                mais elles se rempliront progressivement au fil de vos visionnages.
+              </p>
             </div>
           </div>
         </section>
 
-        {/* Countdown Section */}
-        <Countdown />
+        {/* Anniversary / Countdown Section */}
+        <section className="border-t border-gray-900">
+          <Countdown />
+        </section>
 
         {/* Features Section */}
         <section className="py-20 px-4 sm:px-6 lg:px-8">
@@ -282,8 +288,8 @@ export default function WelcomePage() {
               <p className="text-gray-400">Streaming gratuit 100% français</p>
             </div>
             <div className="text-gray-500 text-sm space-y-2">
-              <p>Créé avec ❤️ par Hiro en 2023</p>
-              <p>© 2023-2024 ZTVPlus. Tous droits réservés.</p>
+              <p>Créé avec ❤️ par 🥷Hɪʀᴏ☄️ en 2023</p>
+              <p>© 2023-2025 ZTVPlus. Tous droits réservés.</p>
             </div>
           </div>
         </footer>
