@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Video {
   id: string
@@ -22,117 +22,12 @@ export default function WatchPlayer({ video, movie, allVideos }: WatchPlayerProp
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [embedUrl, setEmbedUrl] = useState<string>('')
-  const videoRef = useRef<HTMLVideoElement>(null)
-
-  // Setup Media Session API for native player
   useEffect(() => {
-    if (video.play === 1 && 'mediaSession' in navigator && videoRef.current) {
-      const mediaSession = navigator.mediaSession
-      
-      // Set metadata for the episode/movie
-      mediaSession.metadata = new MediaMetadata({
-        title: movie.type === 'series' 
-          ? `${movie.seriesName || movie.title} - S${movie.season?.toString().padStart(1, '0')}E${movie.episode?.toString().padStart(1, '0')} - ${movie.episodeTitle || 'Épisode sans titre'}`
-          : movie.title,
-        artist: movie.type === 'series' ? movie.seriesName || movie.title : '',
-        album: movie.type === 'series' ? `Saison ${movie.season}` : '',
-        artwork: [
-          {
-            src: movie.type === 'series' ? (movie.seriesPoster || movie.poster || '/placeholder-poster.jpg') : (movie.poster || '/placeholder-poster.jpg'),
-            sizes: '96x96',
-            type: 'image/jpeg'
-          },
-          {
-            src: movie.type === 'series' ? (movie.seriesPoster || movie.poster || '/placeholder-poster.jpg') : (movie.poster || '/placeholder-poster.jpg'),
-            sizes: '128x128',
-            type: 'image/jpeg'
-          },
-          {
-            src: movie.type === 'series' ? (movie.seriesPoster || movie.poster || '/placeholder-poster.jpg') : (movie.poster || '/placeholder-poster.jpg'),
-            sizes: '192x192',
-            type: 'image/jpeg'
-          },
-          {
-            src: movie.type === 'series' ? (movie.seriesPoster || movie.poster || '/placeholder-poster.jpg') : (movie.poster || '/placeholder-poster.jpg'),
-            sizes: '256x256',
-            type: 'image/jpeg'
-          },
-          {
-            src: movie.type === 'series' ? (movie.seriesPoster || movie.poster || '/placeholder-poster.jpg') : (movie.poster || '/placeholder-poster.jpg'),
-            sizes: '384x384',
-            type: 'image/jpeg'
-          },
-          {
-            src: movie.type === 'series' ? (movie.seriesPoster || movie.poster || '/placeholder-poster.jpg') : (movie.poster || '/placeholder-poster.jpg'),
-            sizes: '512x512',
-            type: 'image/jpeg'
-          }
-        ]
-      })
-
-      // Set action handlers
-      mediaSession.setActionHandler('play', () => {
-        videoRef.current?.play()
-      })
-
-      mediaSession.setActionHandler('pause', () => {
-        videoRef.current?.pause()
-      })
-
-      mediaSession.setActionHandler('seekbackward', (details) => {
-        if (videoRef.current && details.seekTime) {
-          videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - details.seekTime)
-        }
-      })
-
-      mediaSession.setActionHandler('seekforward', (details) => {
-        if (videoRef.current && details.seekTime && videoRef.current.duration) {
-          videoRef.current.currentTime = Math.min(videoRef.current.duration, videoRef.current.currentTime + details.seekTime)
-        }
-      })
-
-      mediaSession.setActionHandler('seekto', (details) => {
-        if (videoRef.current && details.seekTime !== undefined) {
-          videoRef.current.currentTime = details.seekTime
-        }
-      })
-
-      mediaSession.setActionHandler('previoustrack', () => {
-        // Logic to go to previous episode/video
-        window.history.back()
-      })
-
-      mediaSession.setActionHandler('nexttrack', () => {
-        // Logic to go to next episode/video
-        // This would require access to next episode data
-      })
-
-      // Update playback state
-      const updatePlaybackState = () => {
-        if (videoRef.current) {
-          mediaSession.playbackState = videoRef.current.paused ? 'paused' : 'playing'
-        }
-      }
-
-      const videoElement = videoRef.current
-      videoElement.addEventListener('play', updatePlaybackState)
-      videoElement.addEventListener('pause', updatePlaybackState)
-      videoElement.addEventListener('ended', updatePlaybackState)
-
-      return () => {
-        videoElement.removeEventListener('play', updatePlaybackState)
-        videoElement.removeEventListener('pause', updatePlaybackState)
-        videoElement.removeEventListener('ended', updatePlaybackState)
-        mediaSession.setActionHandler('play', null)
-        mediaSession.setActionHandler('pause', null)
-        mediaSession.setActionHandler('seekbackward', null)
-        mediaSession.setActionHandler('seekforward', null)
-        mediaSession.setActionHandler('seekto', null)
-        mediaSession.setActionHandler('previoustrack', null)
-        mediaSession.setActionHandler('nexttrack', null)
-      }
+    if (video.play === 1) {
+      setIsLoading(false)
+      setError(null)
     }
-  }, [video, movie])
+  }, [video.play])
 
   // Generate embed URL based on video URL
   const getEmbedUrl = (url: string) => {
@@ -191,7 +86,7 @@ export default function WatchPlayer({ video, movie, allVideos }: WatchPlayerProp
            onPaste={(e: React.ClipboardEvent) => e.preventDefault()}
       >
         {/* Loading State - Minimal for faster loading */}
-        {isLoading && (
+        {isLoading && video.play !== 1 && (
           <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
             <div className="w-12 h-12 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
@@ -222,34 +117,27 @@ export default function WatchPlayer({ video, movie, allVideos }: WatchPlayerProp
         {embedUrl && (
           <>
             {video.play === 1 ? (
-              // Native video player for play: 1 - autoplay avec contrôles
-              <video
-                ref={videoRef}
-                src={video.url}
-                className={`w-full h-full border-0 ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
-                autoPlay
-                playsInline
-                controls
-                controlsList="nodownload"
-                onLoadedData={handleLoad}
-                onError={handleError}
-                onLoadStart={() => setIsLoading(true)}
-                onCanPlay={() => setIsLoading(false)}
-                onContextMenu={(e: React.MouseEvent) => e.preventDefault()}
-                onDragStart={(e: React.DragEvent) => e.preventDefault()}
-                onCopy={(e: React.ClipboardEvent) => e.preventDefault()}
-                onCut={(e: React.ClipboardEvent) => e.preventDefault()}
-                onPaste={(e: React.ClipboardEvent) => e.preventDefault()}
-                title={`Regarder ${movie.title} en streaming`}
-                style={{ 
-                  objectFit: 'contain',
-                  WebkitUserSelect: 'none',
-                  KhtmlUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none'
-                }}
-              />
+              <div className="relative w-full">
+                <video
+                  key={video.url}
+                  controls
+                  className="w-full aspect-video object-cover"
+                  preload="none"
+                  playsInline
+                  x5-playsinline
+                  webkit-playsinline
+                  onLoadStart={() => setIsLoading(true)}
+                  onCanPlay={() => setIsLoading(false)}
+                  onError={() => {
+                    setIsLoading(false)
+                    setError('Impossible de charger la vidéo. Veuillez réessayer avec une autre source.')
+                  }}
+                >
+                  <source src={video.url} type="application/x-mpegURL" />
+                  <source src={video.url} type="video/mp4" />
+                  Votre navigateur ne supporte pas la lecture vidéo.
+                </video>
+              </div>
             ) : (
               // Iframe player for play: 0
               <iframe

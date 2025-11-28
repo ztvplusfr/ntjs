@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useParams, notFound, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Tv, Calendar, Clock, Star, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
-import WatchPlayer from '@/components/watch-player'
 import HistoryTracker from '@/components/history-tracker'
 import PageHead from '@/components/page-head'
 import ViewCounter from '@/components/view-counter'
@@ -129,7 +128,17 @@ async function getEpisodeDetails(serieId: string, seasonNumber: number, episodeN
 
 async function getVideoSources(url: string): Promise<VideoSource[] | null> {
   try {
-    const response = await fetch(url)
+    if (!url) {
+      console.error('getVideoSources: URL is empty or undefined')
+      return null
+    }
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
     
     if (!response.ok) {
       console.error(`Video sources API error: ${response.status} ${response.statusText}`)
@@ -168,6 +177,7 @@ export default function WatchSeriesPage() {
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [videoLoading, setVideoLoading] = useState(false)
   const [serie, setSerie] = useState<SerieDetails | null>(null)
   const [episodeDetails, setEpisodeDetails] = useState<EpisodeDetails | null>(null)
   const [videosData, setVideosData] = useState<SeriesVideosData | null>(null)
@@ -213,27 +223,39 @@ export default function WatchSeriesPage() {
             const processedVideos = await Promise.all(
               episodeVideos.videos.map(async (video, index) => {
                 if (video.play === 1 && video.url) {
-                  // Récupérer les vraies sources
-                  const sources = await getVideoSources(video.url)
-                  if (sources && sources.length > 0) {
-                    // Transformer chaque source en une vidéo distincte
-                    return sources.map((source, sourceIndex) => ({
-                      id: `${id}-s${season}e${episode}-video-${index}-source-${sourceIndex}`,
-                      name: video.name,
-                      url: source.m3u8,
-                      lang: source.language.toLowerCase().includes('french') || source.language === 'French' ? 'vf' : 
-                           source.language.toLowerCase().includes('multi') ? 'vostfr' : 
-                           source.language.toLowerCase(),
-                      quality: source.quality,
-                      pub: video.pub,
-                      play: 1,
-                      hasAds: video.pub === 1,
-                      server: video.name,
-                      serverIndex: index + 1,
-                      originalSrc: source.src
-                    }))
-                  } else {
-                    // Si aucune source trouvée, garder la vidéo originale
+                  try {
+                    // Récupérer les vraies sources
+                    const sources = await getVideoSources(video.url)
+                    if (sources && sources.length > 0) {
+                      // Transformer chaque source en une vidéo distincte
+                      return sources.map((source, sourceIndex) => ({
+                        id: `${id}-s${season}e${episode}-video-${index}-source-${sourceIndex}`,
+                        name: video.name,
+                        url: source.m3u8,
+                        lang: source.language.toLowerCase().includes('french') || source.language === 'French' ? 'vf' : 
+                             source.language.toLowerCase().includes('multi') ? 'vostfr' : 
+                             source.language.toLowerCase(),
+                        quality: source.quality,
+                        pub: video.pub,
+                        play: 1,
+                        hasAds: video.pub === 1,
+                        server: video.name,
+                        serverIndex: index + 1,
+                        originalSrc: source.src
+                      }))
+                    } else {
+                      // Si aucune source trouvée, garder la vidéo originale
+                      return [{
+                        ...video,
+                        id: video.id || `${id}-s${season}e${episode}-video-${index}`,
+                        hasAds: video.pub === 1,
+                        server: video.name,
+                        serverIndex: index + 1
+                      }]
+                    }
+                  } catch (error) {
+                    console.error(`Failed to fetch sources for video ${video.name}:`, error)
+                    // Garder la vidéo originale en cas d'erreur
                     return [{
                       ...video,
                       id: video.id || `${id}-s${season}e${episode}-video-${index}`,
@@ -447,22 +469,33 @@ export default function WatchSeriesPage() {
               {/* Video Player - 2/3 width */}
               <div className="lg:col-span-2 w-full">
                 {selectedServer ? (
-                  <WatchPlayer 
-                    video={selectedServer}
-                    movie={{
-                      id: id,
-                      title: `${serie.name} - S${season}E${episode}`,
-                      type: 'series',
-                      seriesName: serie.name,
-                      season: parseInt(season),
-                      episode: parseInt(episode),
-                      episodeTitle: episodeDetails?.name,
-                      poster: posterUrl,
-                      seriesPoster: posterUrl,
-                      backdrop_path: episodeStillUrl
-                    }}
-                    allVideos={videosData?.season[season]?.episodes[episode]?.videos || []}
-                  />
+                  <div className="relative w-full bg-black rounded-lg overflow-hidden">
+                    {videoLoading && (
+                      <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-10">
+                        <div className="text-center">
+                          <div className="w-12 h-12 border-2 border-gray-700 border-t-sky-500 rounded-full animate-spin mx-auto mb-3"></div>
+                          <p className="text-gray-400 text-sm">Chargement de la vidéo...</p>
+                        </div>
+                      </div>
+                    )}
+                    <video
+                      key={selectedServer.url}
+                      controls
+                      className="w-full aspect-video object-cover"
+                      poster={episodeStillUrl || undefined}
+                      preload="none"
+                      playsInline
+                      x5-playsinline
+                      webkit-playsinline
+                      onLoadStart={() => setVideoLoading(true)}
+                      onCanPlay={() => setVideoLoading(false)}
+                      onError={() => setVideoLoading(false)}
+                    >
+                      <source src={selectedServer.url} type="application/x-mpegURL" />
+                      <source src={selectedServer.url} type="video/mp4" />
+                      Votre navigateur ne supporte pas la lecture vidéo.
+                    </video>
+                  </div>
                 ) : (
                   <div className="bg-gray-900 rounded-lg aspect-video flex items-center justify-center w-full">
                     <div className="text-center">
@@ -542,6 +575,7 @@ export default function WatchSeriesPage() {
                         
                         const handleClick = () => {
                           // Garder la même URL de base mais changer de source via le state
+                          setVideoLoading(true)
                           setSelectedServer(video)
                         }
                         

@@ -67,7 +67,7 @@ export default function DiscordInvite() {
               <div className="flex flex-col items-center gap-3 sm:gap-4 mt-4 lg:mt-0">
                 <div className="text-center">
                   <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
-                    <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">14</span>
+                    <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">22</span>
                   </div>
                   <p className="text-xs sm:text-sm text-white/70">Membres actifs</p>
                 </div>
