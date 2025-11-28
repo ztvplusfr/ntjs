@@ -17,7 +17,7 @@ export default function Header() {
       <div className="hidden lg:flex items-center gap-4">
         <Link href="/">
           <img 
-            src="/image.png" 
+            src="/logo-stranger-things.png" 
             alt="ZTVPlus" 
             className="h-8 w-auto object-contain hover:opacity-80 transition-opacity cursor-pointer"
           />
@@ -69,7 +69,7 @@ export default function Header() {
       <div className="absolute left-1/2 transform -translate-x-1/2 lg:hidden">
         <Link href="/">
           <img 
-            src="/image.png" 
+            src="/logo-stranger-things.png" 
             alt="ZTVPlus" 
             className="h-8 w-auto object-contain hover:opacity-80 transition-opacity cursor-pointer"
           />

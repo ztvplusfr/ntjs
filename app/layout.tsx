@@ -12,9 +12,9 @@ export const metadata: Metadata = {
   title: 'ZTVPlus',
   description: 'Site de Streaming gratuit developpé par Hiro',
   icons: {
-    icon: '/fav.png',
-    shortcut: '/fav.png',
-    apple: '/fav.png',
+    icon: '/icon-stranger-things.png',
+    shortcut: '/icon-stranger-things.png',
+    apple: '/icon-stranger-things.png',
   },
 }
 
