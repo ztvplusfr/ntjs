@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, Search, User, LogOut, HeadphonesIcon } from 'lucide-react'
+import { Home, Search, User, LogOut, HeadphonesIcon, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
@@ -10,6 +10,7 @@ import SupportModal from './support-modal'
 const bottomBarItems = [
   { icon: Home, label: 'Home', href: '/' },
   { icon: Search, label: 'Search', href: '/search' },
+  { icon: Settings, label: 'Settings', href: '/settings' },
 ]
 
 export default function BottomBar() {

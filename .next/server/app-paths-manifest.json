@@ -1,5 +1,4 @@
 {
-  "/page": "app/page.js",
   "/_not-found/page": "app/_not-found/page.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/api/discord/chat-messages/route": "app/api/discord/chat-messages/route.js",
@@ -15,8 +14,10 @@
   "/auth/test/page": "app/auth/test/page.js",
   "/chat/page": "app/chat/page.js",
   "/discord/page": "app/discord/page.js",
+  "/page": "app/page.js",
   "/search/page": "app/search/page.js",
   "/series/[id-title]/page": "app/series/[id-title]/page.js",
+  "/settings/page": "app/settings/page.js",
   "/watch/series/[id]/[season]/[episode]/page": "app/watch/series/[id]/[season]/[episode]/page.js",
   "/movies/[id-title]/page": "app/movies/[id-title]/page.js",
   "/watch/[movie-id]/page": "app/watch/[movie-id]/page.js"

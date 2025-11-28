@@ -124,6 +124,12 @@
       "regex": "^/search(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/search(?:/)?$"
+    },
+    {
+      "page": "/settings",
+      "regex": "^/settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/settings(?:/)?$"
     }
   ],
   "dataRoutes": [],

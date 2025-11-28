@@ -12,10 +12,11 @@
       "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
       "static/chunks/573-95d28afc69bf6113.js",
       "static/chunks/main-app-c917eaf02517b970.js",
-      "static/css/4cea6ef2769144cc.css",
+      "static/css/bef12b1d4e1b2537.css",
       "static/chunks/879-eaa9901a0779bbf4.js",
       "static/chunks/308-d48b36c2d8a3f274.js",
-      "static/chunks/app/layout-cd3df8ba46efa159.js"
+      "static/chunks/284-779e9f0cb7bc1dbd.js",
+      "static/chunks/app/layout-37d74f997e9e5991.js"
     ],
     "/api/auth/[...nextauth]/route": [
       "static/chunks/webpack-a024970047474477.js",
@@ -143,7 +144,14 @@
       "static/chunks/573-95d28afc69bf6113.js",
       "static/chunks/main-app-c917eaf02517b970.js",
       "static/chunks/879-eaa9901a0779bbf4.js",
-      "static/chunks/app/series/[id-title]/page-b86a6589555d4806.js"
+      "static/chunks/app/series/[id-title]/page-3ec5e1c7cae759f6.js"
+    ],
+    "/settings/page": [
+      "static/chunks/webpack-a024970047474477.js",
+      "static/chunks/c4bc6b85-83ebe55d7d300fac.js",
+      "static/chunks/573-95d28afc69bf6113.js",
+      "static/chunks/main-app-c917eaf02517b970.js",
+      "static/chunks/app/settings/page-afb861a4fff4376d.js"
     ],
     "/watch/series/[id]/[season]/[episode]/page": [
       "static/chunks/webpack-a024970047474477.js",

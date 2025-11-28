@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, Search, User, LogOut, HeadphonesIcon } from 'lucide-react'
+import { Home, Search, User, LogOut, HeadphonesIcon, Settings } from 'lucide-react'
 import { IconBrandDiscord } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -12,6 +12,7 @@ import SupportModal from './support-modal'
 const sidebarItems = [
   { icon: Home, label: 'Home', href: '/' },
   { icon: Search, label: 'Search', href: '/search' },
+  { icon: Settings, label: 'Settings', href: '/settings' },
   { icon: HeadphonesIcon, label: 'Support', href: '/chat' },
 ]
 
