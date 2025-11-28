@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, notFound } from 'next/navigation'
-import { Play, Calendar, Clock, Star, ChevronDown, ChevronUp, Tv } from 'lucide-react'
+import { Play, Calendar, Clock, Star, ChevronDown, ChevronUp, Tv, Filter } from 'lucide-react'
 import Link from 'next/link'
 import ShareButton from '@/components/share-button'
 import PageHead from '@/components/page-head'
@@ -140,6 +140,7 @@ export default function SeriePage() {
   const [expandedEpisode, setExpandedEpisode] = useState<number | null>(null)
   const [videosData, setVideosData] = useState<VideosData | null>(null)
   const [currentUrl, setCurrentUrl] = useState('')
+  const [showAvailableOnly, setShowAvailableOnly] = useState(false)
 
   useEffect(() => {
     const loadSerie = async () => {
@@ -403,25 +404,40 @@ export default function SeriePage() {
               <h2 className="text-3xl font-bold">Saisons</h2>
               
               {/* Netflix-style Season Selector */}
-              <div className="relative">
-                <select
-                  value={selectedSeason}
-                  onChange={(e) => handleSeasonChange(parseInt(e.target.value))}
-                  className="appearance-none bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 pr-10 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 cursor-pointer hover:bg-gray-700 transition-colors"
-                >
-                  {seasons.map((season) => (
-                    <option key={season.id} value={season.season_number}>
-                      {season.name}
-                    </option>
-                  ))}
-                </select>
-                
-                {/* Custom Arrow */}
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <select
+                    value={selectedSeason}
+                    onChange={(e) => handleSeasonChange(parseInt(e.target.value))}
+                    className="appearance-none bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 pr-10 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 cursor-pointer hover:bg-gray-700 transition-colors"
+                  >
+                    {seasons.map((season) => (
+                      <option key={season.id} value={season.season_number}>
+                        {season.name}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  {/* Custom Arrow */}
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
+                
+                {/* Filter Button */}
+                <button
+                  onClick={() => setShowAvailableOnly(!showAvailableOnly)}
+                  className={`p-2 rounded-lg transition-colors ${
+                    showAvailableOnly 
+                      ? 'bg-sky-600 text-white hover:bg-sky-700' 
+                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
+                  }`}
+                  title={showAvailableOnly ? "Afficher tous les épisodes" : "Afficher uniquement les épisodes disponibles"}
+                >
+                  <Filter size={20} />
+                </button>
               </div>
             </div>
 
@@ -433,7 +449,9 @@ export default function SeriePage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {episodes.map((episode) => (
+                {episodes
+                  .filter(episode => !showAvailableOnly || hasVideos(episode.episode_number))
+                  .map((episode) => (
                   <div key={episode.id} className="bg-gray-900 rounded-lg overflow-hidden border border-gray-800">
                     <div className="p-4">
                       {/* Mobile Layout: Image on top */}
@@ -441,7 +459,7 @@ export default function SeriePage() {
                         {/* Episode Thumbnail */}
                         {episode.still_path ? (
                           <img
-                            src={`https://image.tmdb.org/t/p/w300${episode.still_path}`}
+                            src={`https://image.tmdb.org/t/p/w780${episode.still_path}`}
                             alt={episode.name}
                             className="w-full h-48 object-cover rounded-lg mb-4"
                           />
@@ -530,7 +548,7 @@ export default function SeriePage() {
                         {/* Episode Thumbnail */}
                         {episode.still_path ? (
                           <img
-                            src={`https://image.tmdb.org/t/p/w300${episode.still_path}`}
+                            src={`https://image.tmdb.org/t/p/w780${episode.still_path}`}
                             alt={episode.name}
                             className="w-32 h-20 object-cover rounded-lg"
                           />
@@ -624,6 +642,17 @@ export default function SeriePage() {
                   </div>
                 ))}
               </div>
+              
+              {/* Message quand aucun épisode disponible avec le filtre */}
+              {showAvailableOnly && episodes.filter(episode => hasVideos(episode.episode_number)).length === 0 && (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Filter size={32} className="text-gray-600" />
+                  </div>
+                  <h3 className="text-xl font-medium mb-2 text-white">Aucun épisode disponible</h3>
+                  <p className="text-gray-400">Aucun épisode de cette saison n'est disponible en streaming pour le moment.</p>
+                </div>
+              )}
             )}
           </div>
           
