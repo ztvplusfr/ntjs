@@ -66,23 +66,14 @@ interface SerieDetails {
 async function getSerieDetails(id: string): Promise<SerieDetails | null> {
   const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
   
-  if (!apiKey || apiKey === 'your_api_key_here') {
-    console.error('TMDB API key is not configured')
-    return null
-  }
-  
   try {
     const response = await fetch(
       `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=fr-FR`
     )
     
-    if (!response.ok) {
-      console.error(`TMDB API error: ${response.status} ${response.statusText}`)
-      return null
-    }
+    if (!response.ok) return null
     
-    const data = await response.json()
-    return data
+    return await response.json()
   } catch (error) {
     console.error('Error fetching serie details:', error)
     return null
@@ -92,23 +83,14 @@ async function getSerieDetails(id: string): Promise<SerieDetails | null> {
 async function getEpisodeDetails(serieId: string, seasonNumber: number, episodeNumber: number): Promise<EpisodeDetails | null> {
   const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
   
-  if (!apiKey || apiKey === 'your_api_key_here') {
-    console.error('TMDB API key is not configured')
-    return null
-  }
-  
   try {
     const response = await fetch(
       `https://api.themoviedb.org/3/tv/${serieId}/season/${seasonNumber}/episode/${episodeNumber}?api_key=${apiKey}&language=fr-FR`
     )
     
-    if (!response.ok) {
-      console.error(`TMDB API error: ${response.status} ${response.statusText}`)
-      return null
-    }
+    if (!response.ok) return null
     
-    const data = await response.json()
-    return data
+    return await response.json()
   } catch (error) {
     console.error('Error fetching episode details:', error)
     return null
@@ -117,15 +99,12 @@ async function getEpisodeDetails(serieId: string, seasonNumber: number, episodeN
 
 async function getSeriesVideos(id: string): Promise<SeriesVideosData | null> {
   try {
+    // Utiliser notre API locale qui utilise tmdb_id
     const response = await fetch(`/api/series/${id}`)
     
-    if (!response.ok) {
-      console.error(`API error: ${response.status} ${response.statusText}`)
-      return null
-    }
+    if (!response.ok) return null
     
-    const data = await response.json()
-    return data
+    return await response.json()
   } catch (error) {
     console.error('Error fetching series videos:', error)
     return null
@@ -139,9 +118,9 @@ export default function WatchSeriesPage() {
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [serie, setSerie] = useState<SerieDetails | null>(null)
-  const [episodeDetails, setEpisodeDetails] = useState<EpisodeDetails | null>(null)
-  const [videosData, setVideosData] = useState<SeriesVideosData | null>(null)
+  const [serie, setSerie] = useState<any>(null)
+  const [episodeDetails, setEpisodeDetails] = useState<any>(null)
+  const [videosData, setVideosData] = useState<any>(null)
   const [selectedServer, setSelectedServer] = useState<VideoServer | null>(null)
   const [currentUrl, setCurrentUrl] = useState('')
 
@@ -190,9 +169,7 @@ export default function WatchSeriesPage() {
             
             // Mettre à jour les données avec les IDs
             const updatedVideosData = { ...videos }
-            if (updatedVideosData.season[season]?.episodes[episode]) {
-              updatedVideosData.season[season].episodes[episode].videos = videosWithIds
-            }
+            updatedVideosData.season[season].episodes[episode].videos = videosWithIds
             setVideosData(updatedVideosData)
             
             // Récupérer les préférences depuis les cookies
@@ -305,7 +282,7 @@ export default function WatchSeriesPage() {
     <>
       <PageHead
         title={`${serie.name} S${season}E${episode} - ${episodeDetails?.name || `Épisode ${episode}`} en streaming HD gratuit`}
-        description={episodeDetails?.overview || `Regarder ${serie.name} Saison ${season} Épisode ${episode} en streaming HD gratuit sur ZTVPlus. ${serie.number_of_seasons ? `${serie.number_of_seasons} saison${serie.number_of_seasons > 1 ? 's' : ''}.` : ''} ${serie.genres?.map((g: { id: number; name: string }) => g.name).slice(0, 3).join(', ') || ''}`}
+        description={episodeDetails?.overview || `Regarder ${serie.name} Saison ${season} Épisode ${episode} en streaming HD gratuit sur ZTVPlus. ${serie.number_of_seasons ? `${serie.number_of_seasons} saison${serie.number_of_seasons > 1 ? 's' : ''}.` : ''} ${serie.genres?.map((g: any) => g.name).slice(0, 3).join(', ') || ''}`}
         keywords={[
           serie.name,
           'streaming',
@@ -316,14 +293,14 @@ export default function WatchSeriesPage() {
           `saison ${season}`,
           `épisode ${episode}`,
           episodeDetails?.name || '',
-          ...(serie.genres?.map((g: { id: number; name: string }) => g.name.toLowerCase()) || []),
+          ...(serie.genres?.map((g: any) => g.name.toLowerCase()) || []),
           serie.first_air_date?.split('-')[0]
         ].filter(Boolean).join(', ')}
         image={episodeStillUrl || posterUrl}
         url={currentUrl}
         type="series"
         releaseDate={episodeDetails?.air_date || serie.first_air_date}
-        genres={serie.genres?.map((g: { id: number; name: string }) => g.name)}
+        genres={serie.genres?.map((g: any) => g.name)}
         duration={episodeDetails?.runtime ? `${episodeDetails.runtime * 60}` : undefined}
       />
       <div className="min-h-screen bg-black text-white">
@@ -413,9 +390,8 @@ export default function WatchSeriesPage() {
                     className={`p-2 rounded-lg transition-colors ${
                       parseInt(episode) > 1
                         ? 'bg-gray-800 hover:bg-gray-700 text-white'
-                        : 'bg-gray-900 text-gray-600 cursor-not-allowed pointer-events-none'
+                        : 'bg-gray-900 text-gray-600 cursor-not-allowed'
                     }`}
-                    aria-disabled={parseInt(episode) <= 1}
                   >
                     <ChevronLeft size={20} className="sm:hidden" />
                     <span className="hidden sm:flex items-center gap-2">
@@ -433,12 +409,7 @@ export default function WatchSeriesPage() {
                   
                   <Link
                     href={`/watch/series/${id}/${season}/${parseInt(episode) + 1}`}
-                    className={`p-2 rounded-lg transition-colors ${
-                      videosData?.season[season]?.episodes[(parseInt(episode) + 1).toString()]
-                        ? 'bg-sky-500 hover:bg-sky-600 text-white'
-                        : 'bg-gray-900 text-gray-600 cursor-not-allowed pointer-events-none'
-                    }`}
-                    aria-disabled={!videosData?.season[season]?.episodes[(parseInt(episode) + 1).toString()]}
+                    className="p-2 bg-sky-500 hover:bg-sky-600 text-white rounded-lg transition-colors"
                   >
                     <ChevronRight size={20} className="sm:hidden" />
                     <span className="hidden sm:flex items-center gap-2">
@@ -451,18 +422,7 @@ export default function WatchSeriesPage() {
 
               {/* Video Sources Sidebar - 1/3 width */}
               <div className="lg:col-span-1 w-full">
-                {loading ? (
-                  <div className="bg-gray-900 rounded-lg p-4 w-full">
-                    <div className="animate-pulse space-y-4">
-                      <div className="h-6 bg-gray-800 rounded w-1/3"></div>
-                      <div className="space-y-3">
-                        {[1, 2, 3].map((i) => (
-                          <div key={i} className="h-20 bg-gray-800 rounded"></div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : videosData?.season[season]?.episodes[episode]?.videos && videosData.season[season].episodes[episode].videos.length > 0 ? (
+                {videosData?.season[season]?.episodes[episode]?.videos && videosData.season[season].episodes[episode].videos.length > 0 && (
                   <div className="bg-gray-900 rounded-lg p-4 w-full">
                     <h3 className="text-lg font-semibold mb-4 text-white">Sources disponibles</h3>
                     <div className="space-y-3 max-h-[600px] overflow-y-auto">
@@ -530,16 +490,6 @@ export default function WatchSeriesPage() {
                       })}
                     </div>
                   </div>
-                ) : (
-                  <div className="bg-gray-900 rounded-lg p-4 w-full">
-                    <h3 className="text-lg font-semibold mb-4 text-white">Sources disponibles</h3>
-                    <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Tv className="w-8 h-8 text-gray-600" />
-                      </div>
-                      <p className="text-gray-400">Aucune source disponible</p>
-                    </div>
-                  </div>
                 )}
               </div>
             </div>
@@ -587,27 +537,13 @@ export default function WatchSeriesPage() {
 
             {/* Sidebar - Empty or additional info */}
             <div>
-              {loading ? (
-                <div className="animate-pulse space-y-4">
-                  <div className="h-32 bg-gray-800 rounded"></div>
-                  <div className="h-20 bg-gray-800 rounded"></div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="bg-gray-900 rounded-lg p-4">
-                    <h4 className="font-semibold mb-2">Informations</h4>
-                    <div className="space-y-2 text-sm text-gray-400">
-                      <p>Série: {serie.name}</p>
-                      <p>Saison: {season}</p>
-                      <p>Épisode: {episode}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Additional episode info could go here */}
+            {/* Sidebar - Empty or additional info */}
+            <div>
+              {/* Additional episode info could go here */}
             </div>
           </div>
         </div>
-      </div>
       </div>
     </>
   )

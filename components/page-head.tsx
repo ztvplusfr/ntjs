@@ -35,7 +35,7 @@ export default function PageHead({
       let tag = document.querySelector(`meta[name="${name}"]`) || document.querySelector(`meta[property="${name}"]`)
       if (!tag) {
         tag = document.createElement('meta')
-        tag.setAttribute(name.startsWith('og:') ? 'property' : 'name', name)
+        tag.setAttribute(name.startsWith('og:') || name.startsWith('twitter:') ? 'property' : 'name', name)
         document.head.appendChild(tag)
       }
       tag.setAttribute('content', content)
@@ -49,25 +49,27 @@ export default function PageHead({
     updateMetaTag('og:title', title)
     updateMetaTag('og:description', description)
     updateMetaTag('og:url', url || window.location.href)
-    updateMetaTag('og:site_name', 'Streaming Platform')
+    updateMetaTag('og:site_name', 'ZTVPlus - Streaming Platform')
     updateMetaTag('og:locale', 'fr_FR')
     updateMetaTag('og:type', type === 'movie' ? 'video.movie' : 'video.tv_show')
     
     if (image) {
       updateMetaTag('og:image', image)
       updateMetaTag('og:image:alt', `${title} - Poster officiel`)
+      updateMetaTag('og:image:width', '500')
+      updateMetaTag('og:image:height', '750')
     }
+
+    // Additional Open Graph tags
+    if (releaseDate) updateMetaTag('og:release_date', releaseDate)
+    if (duration) updateMetaTag('og:duration', duration)
+    if (genres && genres.length > 0) updateMetaTag('og:tags', genres.join(','))
 
     // Twitter meta tags
     updateMetaTag('twitter:card', 'summary_large_image')
     updateMetaTag('twitter:title', title)
     updateMetaTag('twitter:description', description)
     if (image) updateMetaTag('twitter:image', image)
-
-    // Additional meta tags
-    if (releaseDate) updateMetaTag('og:release_date', releaseDate)
-    if (duration) updateMetaTag('og:duration', duration)
-    if (genres && genres.length > 0) updateMetaTag('og:tags', genres.join(','))
 
     // Canonical URL
     let canonical = document.querySelector('link[rel="canonical"]')

@@ -80,21 +80,47 @@ export async function generateMetadata({ params }: WatchPageProps): Promise<Meta
   }
   
   return {
-    title: `Regarder ${movie.title} en streaming HD gratuit`,
-    description: movie.overview || `Regarder ${movie.title} en streaming HD gratuit sur ZTVPlus`,
-    keywords: `${movie.title}, streaming, vf, vostfr, gratuit, hd, ${movie.genres?.map((g: { name: string }) => g.name).join(', ')}`,
+    title: `Regarder ${movie.title} (${movie.release_date?.split('-')[0]}) en streaming HD gratuit`,
+    description: movie.overview || `Regarder ${movie.title} en streaming HD gratuit sur ZTVPlus. ${movie.runtime ? `Durée : ${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}min.` : ''} ${movie.genres?.map((g: any) => g.name).slice(0, 3).join(', ') || ''}`,
+    keywords: `${movie.title}, streaming, vf, vostfr, gratuit, hd, ${movie.genres?.map((g: any) => g.name).join(', ')}`,
     openGraph: {
-      title: `Regarder ${movie.title} en streaming`,
+      title: `Regarder ${movie.title} en streaming HD gratuit`,
       description: movie.overview || `Regarder ${movie.title} en streaming HD gratuit sur ZTVPlus`,
-      images: movie.backdrop_path ? [`https://image.tmdb.org/t/p/original${movie.backdrop_path}`] : [],
+      url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/watch/${(await params)['movie-id']}`,
+      siteName: 'ZTVPlus - Streaming Platform',
+      images: [
+        movie.backdrop_path ? {
+          url: `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`,
+          width: 1280,
+          height: 720,
+          alt: `${movie.title} - Image de fond`
+        } : {
+          url: '/og-default.jpg',
+          width: 1200,
+          height: 630,
+          alt: 'ZTVPlus Streaming Platform'
+        },
+        ...(movie.poster_path ? [{
+          url: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+          width: 500,
+          height: 750,
+          alt: `${movie.title} - Poster officiel`
+        }] : [])
+      ],
+      locale: 'fr_FR',
       type: 'video.movie',
-      siteName: 'ZTVPlus',
+      tags: movie.genres?.map((g: any) => g.name) || [],
+      releaseDate: movie.release_date,
+      duration: movie.runtime ? movie.runtime * 60 : undefined,
     },
     twitter: {
       card: 'summary_large_image',
-      title: `Regarder ${movie.title} en streaming`,
+      title: `Regarder ${movie.title} en streaming HD gratuit`,
       description: movie.overview || `Regarder ${movie.title} en streaming HD gratuit sur ZTVPlus`,
-      images: movie.backdrop_path ? [`https://image.tmdb.org/t/p/original${movie.backdrop_path}`] : [],
+      images: movie.backdrop_path ? [`https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`] : ['/og-default.jpg'],
+    },
+    alternates: {
+      canonical: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/watch/${(await params)['movie-id']}`
     },
     robots: {
       index: true,
