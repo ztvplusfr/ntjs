@@ -6,6 +6,7 @@ import { Play, Calendar, Clock, Star, ChevronDown, ChevronUp, Tv, Filter, Settin
 import Link from 'next/link'
 import ShareButton from '@/components/share-button'
 import PageHead from '@/components/page-head'
+import StreamingDisclaimer from '@/components/streaming-disclaimer'
 
 // Interface pour les données vidéos (correspond à l'API locale)
 interface VideoServer {
@@ -809,6 +810,9 @@ export default function SeriePage() {
               </>
             )}
           </div>
+          
+          {/* Streaming Disclaimer */}
+          <StreamingDisclaimer />
           
           {/* Cast */}
           {serie.credits?.cast && serie.credits.cast.length > 0 && (
