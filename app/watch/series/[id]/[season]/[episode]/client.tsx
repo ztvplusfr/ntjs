@@ -170,6 +170,26 @@ async function getSeriesVideos(id: string): Promise<SeriesVideosData | null> {
   }
 }
 
+// Generate embed URL based on video URL
+function getEmbedUrl(url: string): string {
+  // Handle different video providers
+  if (url.includes('vidhideplus.com') || url.includes('doodstream')) {
+    // For these providers, use the direct URL in iframe
+    return url
+  } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    // YouTube embed
+    const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)?.[1]
+    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0` : url
+  } else if (url.includes('vimeo.com')) {
+    // Vimeo embed
+    const videoId = url.match(/vimeo\.com\/(\d+)/)?.[1]
+    return videoId ? `https://player.vimeo.com/video/${videoId}?autoplay=1` : url
+  }
+  
+  // Default: use direct URL
+  return url
+}
+
 export default function WatchSeriesPage() {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -182,6 +202,8 @@ export default function WatchSeriesPage() {
   const [videosData, setVideosData] = useState<SeriesVideosData | null>(null)
   const [selectedServer, setSelectedServer] = useState<VideoServer | null>(null)
   const [currentUrl, setCurrentUrl] = useState('')
+  const [embedUrl, setEmbedUrl] = useState<string>('')
+  const [isLoadingVideo, setIsLoadingVideo] = useState(true)
 
   useEffect(() => {
     const loadData = async () => {
@@ -360,6 +382,22 @@ export default function WatchSeriesPage() {
     }
   }, [searchParams, loading, videosData, season, episode, selectedServer])
 
+  // Mettre à jour l'URL d'embed quand la vidéo sélectionnée change
+  useEffect(() => {
+    if (selectedServer) {
+      if (selectedServer.play === 1) {
+        // Lecteur natif, pas besoin d'embed URL
+        setIsLoadingVideo(false)
+        setEmbedUrl('')
+      } else {
+        // Iframe embed, générer l'URL d'embed
+        setIsLoadingVideo(true)
+        const url = getEmbedUrl(selectedServer.url)
+        setEmbedUrl(url)
+      }
+    }
+  }, [selectedServer])
+
   // Sauvegarder les préférences quand la sélection change
   useEffect(() => {
     if (selectedServer && id) {
@@ -493,17 +531,44 @@ export default function WatchSeriesPage() {
               <div className="lg:col-span-2 w-full">
                 {selectedServer ? (
                   <div className="relative w-full bg-black rounded-lg overflow-hidden">
-                    <video
-                      key={selectedServer.url}
-                      controls
-                      className="w-full aspect-video"
-                      poster={episodeStillUrl || undefined}
-                      preload="metadata"
-                    >
-                      <source src={selectedServer.url} type="application/x-mpegURL" />
-                      <source src={selectedServer.url} type="video/mp4" />
-                      Votre navigateur ne supporte pas la lecture vidéo.
-                    </video>
+                    {selectedServer.play === 1 ? (
+                      // Lecteur vidéo natif pour play=1
+                      <video
+                        key={selectedServer.url}
+                        controls
+                        className="w-full aspect-video"
+                        poster={episodeStillUrl || undefined}
+                        preload="metadata"
+                        onLoadedData={() => setIsLoadingVideo(false)}
+                        onError={() => setIsLoadingVideo(false)}
+                      >
+                        <source src={selectedServer.url} type="application/x-mpegURL" />
+                        <source src={selectedServer.url} type="video/mp4" />
+                        Votre navigateur ne supporte pas la lecture vidéo.
+                      </video>
+                    ) : (
+                      // Iframe embed pour play=0
+                      <>
+                        {isLoadingVideo && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
+                            <div className="w-12 h-12 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                        )}
+                        {embedUrl && (
+                          <iframe
+                            src={embedUrl}
+                            className={`w-full aspect-video border-0 ${isLoadingVideo ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
+                            allowFullScreen
+                            allow="autoplay; encrypted-media; picture-in-picture; web-share"
+                            onLoad={() => setIsLoadingVideo(false)}
+                            onError={() => setIsLoadingVideo(false)}
+                            loading="eager"
+                            title={`Regarder ${serie.name} S${season}E${episode} en streaming`}
+                            referrerPolicy="no-referrer-when-downgrade"
+                          />
+                        )}
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="bg-gray-900 rounded-lg aspect-video flex items-center justify-center w-full">
