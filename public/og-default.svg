@@ -1,0 +1,32 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#gradient)"/>
+  
+  <!-- Dark overlay -->
+  <rect width="1200" height="630" fill="black" fill-opacity="0.8"/>
+  
+  <!-- Logo placeholder -->
+  <rect x="50" y="50" width="120" height="60" rx="8" fill="#6366f1"/>
+  <text x="110" y="85" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">ZTV+</text>
+  
+  <!-- Main title -->
+  <text x="100" y="280" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="white">ZTVPlus</text>
+  
+  <!-- Subtitle -->
+  <text x="100" y="340" font-family="Arial, sans-serif" font-size="32" fill="#e5e7eb">Streaming HD Gratuit</text>
+  
+  <!-- Description -->
+  <text x="100" y="400" font-family="Arial, sans-serif" font-size="20" fill="#9ca3af">Films et séries en streaming gratuit</text>
+  <text x="100" y="430" font-family="Arial, sans-serif" font-size="20" fill="#9ca3af">VF et VOSTFR</text>
+  
+  <!-- Call to action -->
+  <rect x="100" y="480" width="200" height="50" rx="25" fill="#6366f1"/>
+  <text x="200" y="510" font-family="Arial, sans-serif" font-size="18" font-weight="600" text-anchor="middle" fill="white">Regarder maintenant</text>
+</svg>

@@ -11,7 +11,7 @@ import DiscordMessageModal from './discord-message-modal'
 const sidebarItems = [
   { icon: Home, label: 'Home', href: '/' },
   { icon: Search, label: 'Search', href: '/search' },
-  { icon: MessageCircle, label: 'Chat', href: '/chat' },
+  { icon: MessageCircle, label: 'Support', href: '/chat' },
 ]
 
 export default function Sidebar() {
