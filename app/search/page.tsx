@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { Search as SearchIcon, Film, Star, Calendar, Tv } from 'lucide-react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 
 interface TMDBMovie {
   id: number
@@ -19,6 +19,8 @@ interface TMDBMovie {
 
 function SearchContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
   const [query, setQuery] = useState('')
   const [movies, setMovies] = useState<TMDBMovie[]>([])
   const [loading, setLoading] = useState(false)
@@ -31,6 +33,17 @@ function SearchContent() {
       setQuery(searchQuery)
     }
   }, [searchParams])
+
+  // Mettre à jour l'URL quand la requête change
+  useEffect(() => {
+    if (query.trim()) {
+      const params = new URLSearchParams()
+      params.set('search', query)
+      router.replace(`${pathname}?${params.toString()}`)
+    } else {
+      router.replace(pathname)
+    }
+  }, [query, router, pathname])
 
   const searchMovies = async (searchQuery: string) => {
     if (!searchQuery.trim()) {
