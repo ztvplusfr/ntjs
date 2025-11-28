@@ -7,6 +7,7 @@ import Link from 'next/link'
 import WatchPlayer from '@/components/watch-player'
 import HistoryTracker from '@/components/history-tracker'
 import PageHead from '@/components/page-head'
+import ViewCounter from '@/components/view-counter'
 import { cookieUtils } from '@/lib/cookies'
 
 interface VideoServer {
@@ -351,6 +352,7 @@ export default function WatchSeriesPage() {
             </Link>
             <span className="text-gray-500">|</span>
             <h1 className="text-xl font-bold">{serie.name}</h1>
+            <ViewCounter id={`${id}-${season}-${episode}`} type="series" className="ml-auto" />
           </div>
         </div>
       </div>

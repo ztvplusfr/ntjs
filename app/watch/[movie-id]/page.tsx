@@ -3,6 +3,7 @@ import { Metadata } from 'next'
 import WatchPlayer from '../../../components/watch-player'
 import HistoryTracker from '../../../components/history-tracker'
 import VideoSourceCard from '../../../components/video-source-card'
+import ViewCounter from '../../../components/view-counter'
 
 interface WatchPageProps {
   params: Promise<{
@@ -209,6 +210,7 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
             </a>
             <span className="text-gray-500">|</span>
             <h1 className="text-xl font-bold">{movie.title}</h1>
+            <ViewCounter id={movieId} type="movie" className="ml-auto" />
           </div>
         </div>
       </div>
