@@ -1,0 +1,154 @@
+'use client'
+
+import useEmblaCarousel from 'embla-carousel-react'
+import { Button } from '@/components/ui/button'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+
+interface Movie {
+  id: number
+  title?: string
+  name?: string
+  poster_path: string
+  release_date?: string
+  first_air_date?: string
+  vote_average: number
+  media_type?: string
+}
+
+interface MovieCarouselProps {
+  title: string
+  movies: Movie[]
+}
+
+export default function MovieCarousel({ title, movies }: MovieCarouselProps) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    align: 'start',
+    skipSnaps: false,
+    dragFree: true,
+  })
+
+  const [canScrollPrev, setCanScrollPrev] = useState(false)
+  const [canScrollNext, setCanScrollNext] = useState(false)
+
+  useEffect(() => {
+    if (!emblaApi) return
+
+    const onSelect = () => {
+      setCanScrollPrev(emblaApi.canScrollPrev())
+      setCanScrollNext(emblaApi.canScrollNext())
+    }
+
+    emblaApi.on('select', onSelect)
+    onSelect()
+
+    return () => {
+      emblaApi.off('select', onSelect)
+    }
+  }, [emblaApi])
+
+  const scrollPrev = () => emblaApi?.scrollPrev()
+  const scrollNext = () => emblaApi?.scrollNext()
+
+  const createSlug = (title: string, id: number) => {
+    const slug = title.toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+    return `${id}-${slug}`
+  }
+
+  const getMediaType = (movie: Movie) => {
+    if (movie.media_type) return movie.media_type
+    return movie.title ? 'movie' : 'tv'
+  }
+
+  return (
+    <div className="w-full py-8 pl-4 sm:pl-6 lg:pl-8 overflow-x-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-1 h-8 bg-blue-500"></div>
+        <h2 className="text-2xl font-bold text-white">{title}</h2>
+        <div className="flex-1"></div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={scrollPrev}
+            disabled={!canScrollPrev}
+            className="rounded-full bg-black border-gray-700 text-white hover:bg-gray-900"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={scrollNext}
+            disabled={!canScrollNext}
+            className="rounded-full bg-black border-gray-700 text-white hover:bg-gray-900"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Carousel */}
+      <div className="overflow-hidden" ref={emblaRef}>
+        <div className="flex gap-4">
+          {movies.map((movie) => (
+            <Link
+              key={movie.id}
+              href={`/${getMediaType(movie) === 'movie' ? 'movies' : 'series'}/${createSlug(movie.title || movie.name || '', movie.id)}`}
+              className="flex-[0_0_150px] xs:flex-[0_0_120px] sm:flex-[0_0_180px] md:flex-[0_0_200px] lg:flex-[0_0_220px] group cursor-pointer"
+            >
+              <div className="relative overflow-hidden rounded-lg">
+                {/* Poster */}
+                <div className="aspect-[2/3] relative bg-gray-200">
+                  {movie.poster_path ? (
+                    <Image
+                      src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                      alt={movie.title || movie.name || 'Film'}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 120px, (max-width: 1024px) 180px, 200px"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <span className="text-xs text-center px-2">No image</span>
+                    </div>
+                  )}
+                  
+                  {/* Overlay on hover */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <div className="text-white text-center p-2">
+                      <p className="text-xs font-semibold line-clamp-2 mb-1">
+                        {movie.title || movie.name || 'N/A'}
+                      </p>
+                      <div className="flex items-center justify-center text-yellow-400 text-xs">
+                        <span className="mr-1">★</span>
+                        <span>{movie.vote_average?.toFixed(1) || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info */}
+                <div className="mt-2">
+                  <p className="text-xs font-medium text-white line-clamp-1">
+                    {movie.title || movie.name || 'N/A'}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {(movie.release_date || movie.first_air_date)?.split('-')[0] || 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
