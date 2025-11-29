@@ -72,3 +72,21 @@ export default defineConfig([
 ])
 ```
 # ntjs
+
+## Supabase
+
+Créer un fichier `.env.local` à la racine avec les variables suivantes :
+
+```
+NEXT_PUBLIC_SUPABASE_URL=<https://xxxx.supabase.co>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_***
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_***
+```
+
+Installer les dépendances :
+
+```
+pnpm install
+```
+
+Appliquer la migration pour créer la table `history` dans Supabase (onglet SQL) avec le contenu de `supabase/migrations/0001_create_history.sql`.

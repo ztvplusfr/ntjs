@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import useEmblaCarousel from 'embla-carousel-react'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -42,6 +43,7 @@ interface Movie {
 export default function HistoryCarousel() {
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const { data: session, status } = useSession()
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: 'start',
     skipSnaps: false,
@@ -72,100 +74,147 @@ export default function HistoryCarousel() {
   const scrollNext = () => emblaApi?.scrollNext()
 
   useEffect(() => {
-    const loadHistory = async () => {
-      // D'abord migrer depuis localStorage si nécessaire
+    if (status === 'loading') return
+
+    const loadFromCookies = async () => {
       cookieUtils.migrateFromLocalStorage()
-      
-      // Charger l'historique depuis les cookies
       const cookieHistory = cookieUtils.getWatchHistory()
-      
-      if (cookieHistory.length > 0) {
-        console.log('History loaded from cookies:', cookieHistory.length, 'items')
-        
-        // Convertir au format attendu par le composant
-        const convertedHistory: HistoryItem[] = cookieHistory.map(item => {
-          const watchedDate = new Date(item.watchedAt)
-          return {
-            type: item.type,
-            id: item.id,
-            title: item.title,
-            poster: item.poster || '/placeholder-poster.jpg',
-            backdrop: undefined, // Sera récupéré plus tard si nécessaire
-            timestamp: watchedDate.getTime(),
-            date: watchedDate.toLocaleDateString('fr-FR'),
-            time: watchedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-            season: item.episode?.season,
-            episode: item.episode?.episode,
-            episodeTitle: undefined,
-            video: undefined
-          }
-        })
-        
-        // Vérifier et corriger les entrées sans images
-        const updatedHistory = await Promise.all(convertedHistory.map(async (item) => {
-          // Si pas de poster, essayer de le récupérer
-          if (!item.poster || item.poster === '/placeholder-poster.jpg') {
-            try {
-              const tmdbType = item.type === 'series' ? 'tv' : 'movie'
-              const response = await fetch(
-                `https://api.themoviedb.org/3/${tmdbType}/${item.id}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&language=fr-FR`,
-                { cache: 'no-store' }
-              )
-              
-              if (response.ok) {
-                const data = await response.json()
-                return {
-                  ...item,
-                  poster: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : '/placeholder-poster.jpg',
-                  backdrop: data.backdrop_path ? `https://image.tmdb.org/t/p/w780${data.backdrop_path}` : undefined
-                }
-              }
-            } catch (error) {
-              console.error('Error fetching images for item:', item.id, error)
-            }
-          }
-          
-          return item
-        }))
 
-        // Dédupliquer l'historique : une seule ligne par contenu / épisode
-        const dedupedMap = new Map<string, HistoryItem>()
-
-        updatedHistory.forEach(item => {
-          const seasonKey = item.season ?? 0
-          const episodeKey = item.episode ?? 0
-          const key = `${item.type}-${item.id}-${seasonKey}-${episodeKey}`
-
-          const existing = dedupedMap.get(key)
-          if (!existing || item.timestamp > existing.timestamp) {
-            dedupedMap.set(key, item)
-          }
-        })
-
-        const dedupedHistory = Array.from(dedupedMap.values()).sort(
-          (a, b) => b.timestamp - a.timestamp
-        )
-
-        console.log('Updated history with images:', updatedHistory)
-        console.log('Deduped history size:', dedupedHistory.length)
-        setHistory(dedupedHistory)
-      } else {
+      if (cookieHistory.length === 0) {
         console.log('No history found in cookies')
+        setHistory([])
+        setLoading(false)
+        return
       }
-      
+
+      console.log('History loaded from cookies:', cookieHistory.length, 'items')
+
+      const convertedHistory: HistoryItem[] = cookieHistory.map(item => {
+        const watchedDate = new Date(item.watchedAt)
+        return {
+          type: item.type,
+          id: item.id,
+          title: item.title,
+          poster: item.poster || '/placeholder-poster.jpg',
+          backdrop: undefined,
+          timestamp: watchedDate.getTime(),
+          date: watchedDate.toLocaleDateString('fr-FR'),
+          time: watchedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          season: item.episode?.season,
+          episode: item.episode?.episode,
+          episodeTitle: undefined,
+          video: undefined
+        }
+      })
+
+      const updatedHistory = await Promise.all(convertedHistory.map(async (item) => {
+        if (!item.poster || item.poster === '/placeholder-poster.jpg') {
+          try {
+            const tmdbType = item.type === 'series' ? 'tv' : 'movie'
+            const response = await fetch(
+              `https://api.themoviedb.org/3/${tmdbType}/${item.id}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&language=fr-FR`,
+              { cache: 'no-store' }
+            )
+
+            if (response.ok) {
+              const data = await response.json()
+              return {
+                ...item,
+                poster: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : '/placeholder-poster.jpg',
+                backdrop: data.backdrop_path ? `https://image.tmdb.org/t/p/w780${data.backdrop_path}` : undefined
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching images for item:', item.id, error)
+          }
+        }
+
+        return item
+      }))
+
+      const dedupedMap = new Map<string, HistoryItem>()
+
+      updatedHistory.forEach(item => {
+        const seasonKey = item.season ?? 0
+        const episodeKey = item.episode ?? 0
+        const key = `${item.type}-${item.id}-${seasonKey}-${episodeKey}`
+
+        const existing = dedupedMap.get(key)
+        if (!existing || item.timestamp > existing.timestamp) {
+          dedupedMap.set(key, item)
+        }
+      })
+
+      const dedupedHistory = Array.from(dedupedMap.values()).sort(
+        (a, b) => b.timestamp - a.timestamp
+      )
+
+      setHistory(dedupedHistory)
       setLoading(false)
     }
-    
-    loadHistory()
-  }, [])
 
-  const clearHistory = () => {
+    const loadFromSupabase = async () => {
+      try {
+        const response = await fetch('/api/history', { cache: 'no-store' })
+        if (!response.ok) {
+          throw new Error('Erreur récupération historique')
+        }
+
+        const data = await response.json()
+        const supabaseHistory: HistoryItem[] = (data.history || []).map((item: any) => {
+          const lastWatched = item.last_watched_at ? new Date(item.last_watched_at) : new Date()
+          const metadata = item.metadata || {}
+          return {
+            type: item.content_type,
+            id: item.content_id,
+            title: metadata.title || 'Titre inconnu',
+            poster: metadata.poster || '/placeholder-poster.jpg',
+            backdrop: metadata.backdrop,
+            timestamp: lastWatched.getTime(),
+            date: lastWatched.toLocaleDateString('fr-FR'),
+            time: lastWatched.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+            season: item.season ?? undefined,
+            episode: item.episode ?? undefined,
+            episodeTitle: metadata.episodeTitle,
+            video: metadata.video
+          }
+        })
+
+        setHistory(supabaseHistory)
+      } catch (error) {
+        console.error('Erreur chargement historique Supabase, fallback cookies:', error)
+        await loadFromCookies()
+        return
+      }
+
+      setLoading(false)
+    }
+
+    if (session?.user?.id) {
+      loadFromSupabase()
+    } else {
+      loadFromCookies()
+    }
+  }, [session, status])
+
+  const clearHistory = async () => {
     setHistory([])
     cookieUtils.clearWatchHistory()
-    console.log('History cleared')
+
+    if (session?.user?.id) {
+      try {
+        await fetch('/api/history?action=all', {
+          method: 'DELETE'
+        })
+      } catch (error) {
+        console.error('Erreur suppression historique Supabase:', error)
+      }
+    }
   }
 
-  const removeFromHistory = (id: string, season?: number, episode?: number) => {
+  const removeFromHistory = async (id: string, season?: number, episode?: number) => {
+    const targetItem = history.find(item => item.id === id && item.season === season && item.episode === episode)
+
     setHistory(prev => {
       const newHistory = prev.filter(item => 
         !(item.id === id && item.season === season && item.episode === episode)
@@ -178,6 +227,23 @@ export default function HistoryCarousel() {
       console.log('Item removed from history, new count:', newHistory.length)
       return newHistory
     })
+
+    if (session?.user?.id) {
+      try {
+        const params = new URLSearchParams({
+          contentId: id,
+          contentType: targetItem?.type || 'movie'
+        })
+        if (typeof season === 'number') params.append('season', season.toString())
+        if (typeof episode === 'number') params.append('episode', episode.toString())
+
+        await fetch(`/api/history?${params.toString()}`, {
+          method: 'DELETE'
+        })
+      } catch (error) {
+        console.error('Erreur suppression entrée Supabase:', error)
+      }
+    }
   }
 
   if (loading) {

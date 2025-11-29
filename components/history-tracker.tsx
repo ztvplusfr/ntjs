@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { cookieUtils, WatchHistoryItem } from '@/lib/cookies'
 
 interface HistoryTrackerProps {
@@ -65,7 +66,33 @@ export default function HistoryTracker({
   episodeTitle, 
   video 
 }: HistoryTrackerProps) {
+  const { data: session } = useSession()
+
   useEffect(() => {
+    const sendHistoryToSupabase = async (payload: {
+      contentId: string
+      contentType: 'movie' | 'series'
+      season?: number
+      episode?: number
+      metadata?: Record<string, unknown>
+    }) => {
+      try {
+        await fetch('/api/history', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ...payload,
+            progressSeconds: 0,
+            durationSeconds: undefined
+          })
+        })
+      } catch (error) {
+        console.error('Erreur enregistrement historique Supabase:', error)
+      }
+    }
+
     // Ajouter à l'historique
     const addToHistory = (
       itemType: 'movie' | 'series',
@@ -279,6 +306,20 @@ export default function HistoryTracker({
       cookieUtils.setWatchHistory(cookieHistory)
       console.log('History item saved:', historyItem)
       console.log('Full history saved:', newHistory)
+
+      sendHistoryToSupabase({
+        contentId: itemData.id?.toString(),
+        contentType: itemType,
+        season: seasonData,
+        episode: episodeData,
+        metadata: {
+          title: historyItem.title,
+          poster: historyItem.poster,
+          backdrop: historyItem.backdrop,
+          episodeTitle: historyItem.episodeTitle,
+          video: historyItem.video
+        }
+      })
     }
 
     if (type === 'movie' && movie) {
@@ -286,7 +327,7 @@ export default function HistoryTracker({
     } else if (type === 'series' && series) {
       addToHistory('series', series, season, episode, episodeTitle, video)
     }
-  }, [type, movie, series, season, episode, episodeTitle, video])
+  }, [type, movie, series, season, episode, episodeTitle, video, session])
 
   // Ce composant ne rend rien visuellement
   return null
