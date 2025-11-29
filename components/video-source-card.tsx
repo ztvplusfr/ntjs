@@ -49,8 +49,8 @@ export default function VideoSourceCard({ video, isSelected, movieId, videoIndex
     <div
       className={`block p-3 rounded-lg border transition-all w-full cursor-pointer ${
         isSelected 
-          ? 'bg-red-600/30 border-red-500 shadow-lg shadow-red-500/20' 
-          : 'bg-gray-800 border-gray-700 hover:border-gray-600 hover:bg-gray-750'
+          ? 'bg-black border-white/50 shadow-lg' 
+          : 'bg-black border-white/20 hover:border-white/30'
       }`}
       onClick={handleClick}
     >
@@ -58,39 +58,39 @@ export default function VideoSourceCard({ video, isSelected, movieId, videoIndex
         <div className="flex items-center space-x-2">
           {isSelected && (
             <div className="flex items-center">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
-              <span className="text-xs text-red-400 font-medium">EN COURS</span>
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
+              <span className="text-xs text-white font-medium">EN COURS</span>
             </div>
           )}
-          <div className={`font-medium text-sm ${isSelected ? 'text-red-400' : 'text-white'}`}>
+          <div className={`font-medium text-sm ${isSelected ? 'text-white' : 'text-white'}`}>
             {video.name}
           </div>
         </div>
       </div>
       <div className="flex flex-wrap gap-2 mb-2">
-        <span className={`px-2 py-1 rounded text-xs ${
-          video.quality === '1080p' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
+        <span className={`px-2 py-1 rounded-full text-xs border ${
+          video.quality === '1080p' ? 'bg-black border-white/30 text-white' : 'bg-black border-white/20 text-white'
         }`}>
           {video.quality}
         </span>
-        <span className="px-2 py-1 bg-gray-700 rounded text-xs text-gray-300">
+        <span className="px-2 py-1 bg-black border border-white/20 rounded-full text-xs text-white">
           {translateLanguage(video.lang)}
         </span>
-        <span className={`px-2 py-1 rounded text-xs ${
-          video.pub === 1 ? 'bg-red-600/20 text-red-400' : 'bg-green-600/20 text-green-400'
+        <span className={`px-2 py-1 rounded-full text-xs border ${
+          video.pub === 1 ? 'bg-black border-white/20 text-white' : 'bg-black border-white/20 text-white'
         }`}>
-          {video.pub === 1 ? 'Ads' : 'No Ads'}
+          {video.pub === 1 ? 'Avec pub' : 'Sans pub'}
         </span>
       </div>
       {isSelected && (
         <div className="flex items-center justify-between">
-          <div className="text-xs text-red-400 font-medium flex items-center">
+          <div className="text-xs text-white font-medium flex items-center">
             <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z"/>
             </svg>
             Lecture en cours
           </div>
-          <div className="text-xs text-gray-400">
+          <div className="text-xs text-white/60">
             {video.quality} • {translateLanguage(video.lang)}
           </div>
         </div>
