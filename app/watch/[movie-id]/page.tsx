@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { Metadata } from 'next'
+import Link from 'next/link'
 import WatchPlayer from '../../../components/watch-player'
 import HistoryTracker from '../../../components/history-tracker'
 import VideoSourceCard from '../../../components/video-source-card'
@@ -46,7 +47,6 @@ async function getMovieVideos(id: string): Promise<VideoResponse | null> {
     
     return await response.json()
   } catch (error) {
-    console.error('Error fetching movie videos:', error)
     return null
   }
 }
@@ -66,7 +66,6 @@ async function getMovieDetails(id: string) {
     
     return await response.json()
   } catch (error) {
-    console.error('Error fetching movie details:', error)
     return null
   }
 }
@@ -202,12 +201,12 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
       <div className="relative z-10 px-4 py-4">
         <div className="max-w-7xl">
           <div className="flex items-center space-x-4">
-            <a 
+            <Link 
               href={`/movies/${movieId}-${movie.title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`}
-              className="text-gray-300 hover:text-white transition-colors"
+              className="px-4 py-2 bg-black border border-white/30 text-white rounded-lg hover:bg-gray-900 hover:border-white/50 transition-colors"
             >
               ← Retour au film
-            </a>
+            </Link>
             <span className="text-gray-500">|</span>
             <h1 className="text-xl font-bold">{movie.title}</h1>
             <ViewCounter id={movieId} type="movie" className="ml-auto" />
@@ -242,10 +241,10 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
                     allVideos={videosData?.videos || []}
                   />
                 ) : (
-                  <div className="bg-gray-900 rounded-lg aspect-video flex items-center justify-center w-full">
+                  <div className="bg-black border border-white/20 rounded-lg aspect-video flex items-center justify-center w-full">
                     <div className="text-center">
-                      <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                      <div className="w-16 h-16 bg-black border border-white/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-white/60" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M8 5v14l11-7z"/>
                         </svg>
                       </div>
@@ -259,7 +258,7 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
               {/* Video Sources Sidebar - 1/3 width */}
               <div className="lg:col-span-1 w-full">
                 {videosData && videosData.videos && videosData.videos.length > 0 && (
-                  <div className="bg-gray-900 rounded-lg p-4 w-full">
+                  <div className="bg-black border border-white/20 rounded-lg p-4 w-full">
                     <h3 className="text-lg font-semibold mb-4 text-white">Sources disponibles</h3>
                     <div className="space-y-3 max-h-[600px] overflow-y-auto">
                       {videosData.videos.map((video: Video, index: number) => {
@@ -272,13 +271,9 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
                         }
                         
                         // Debug: Log pour vérifier la sélection
-                        console.log('Video:', videoWithId.id, videoWithId.name, videoWithId.quality, videoWithId.lang)
-                        console.log('Selected:', selectedVideo?.id, selectedVideo?.name, selectedVideo?.quality, selectedVideo?.lang)
                         
                         // Logique plus stricte : uniquement par ID
                         const isSelected = Boolean(selectedVideo && videoWithId.id === selectedVideo.id)
-                        
-                        console.log('IsSelected:', isSelected)
                         
                         return (
                           <VideoSourceCard
@@ -305,15 +300,15 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
               
               {/* Meta */}
               <div className="flex flex-wrap gap-3 mb-6">
-                <span className="px-3 py-1 bg-gray-800 rounded-full text-sm">
+                <span className="px-3 py-1 bg-black border border-white/20 rounded-full text-sm">
                   {movie.release_date?.split('-')[0]}
                 </span>
                 {movie.runtime && (
-                  <span className="px-3 py-1 bg-gray-800 rounded-full text-sm">
+                  <span className="px-3 py-1 bg-black border border-white/20 rounded-full text-sm">
                     {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}min
                   </span>
                 )}
-                <span className="flex items-center px-3 py-1 bg-gray-800 rounded-full text-sm">
+                <span className="flex items-center px-3 py-1 bg-black border border-white/20 rounded-full text-sm">
                   <span className="text-yellow-400 mr-1">★</span>
                   <span className="font-medium">{movie.vote_average?.toFixed(1)}</span>
                 </span>
@@ -325,7 +320,7 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
                   {movie.genres.map((genre: any) => (
                     <span
                       key={genre.id}
-                      className="px-3 py-1 bg-gray-700/60 rounded-full text-sm border border-gray-600"
+                      className="px-3 py-1 bg-black border border-white/20 rounded-full text-sm"
                     >
                       {genre.name}
                     </span>
