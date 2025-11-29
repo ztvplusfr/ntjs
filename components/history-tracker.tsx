@@ -89,7 +89,7 @@ export default function HistoryTracker({
           })
         })
       } catch (error) {
-        console.error('Erreur enregistrement historique Supabase:', error)
+        // Erreur silencieuse pour l'historique Supabase
       }
     }
 
@@ -136,7 +136,7 @@ export default function HistoryTracker({
             }
           }
         } catch (error) {
-          console.error('Error fetching backdrop from TMDB:', error)
+          // Erreur silencieuse pour la récupération du backdrop
         }
         return undefined
       }
@@ -171,15 +171,7 @@ export default function HistoryTracker({
         } : undefined
       }
       
-      console.log('Creating history item with data:', {
-        itemType,
-        itemData,
-        seasonData,
-        episodeData,
-        episodeTitleData,
-        videoData,
-        historyItem
-      })
+      // Créer l'entrée d'historique
       
       // Si pas de backdrop, essayer de le récupérer depuis TMDB
       if (!historyItem.backdrop && itemData.id) {
@@ -249,7 +241,7 @@ export default function HistoryTracker({
           time: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) // Mettre à jour l'heure
         }
         
-        console.log('Updating existing history item:', updatedHistoryItem)
+        // Remplacer l'ancienne entrée par la mise à jour
         
         // Remplacer l'ancienne entrée par la mise à jour
         const filtered = convertedHistory.filter(item => 
@@ -276,7 +268,6 @@ export default function HistoryTracker({
         }))
         
         cookieUtils.setWatchHistory(cookieHistory)
-        console.log('Full history saved (updated):', newHistory)
         return
       }
       // Ajouter au début et limiter à 50 éléments
@@ -304,8 +295,6 @@ export default function HistoryTracker({
       
       // Sauvegarder dans les cookies
       cookieUtils.setWatchHistory(cookieHistory)
-      console.log('History item saved:', historyItem)
-      console.log('Full history saved:', newHistory)
 
       sendHistoryToSupabase({
         contentId: itemData.id?.toString(),

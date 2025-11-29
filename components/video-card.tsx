@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { Play } from 'lucide-react'
 
 // Translation function for language codes
 const translateLanguage = (lang: string): string => {
@@ -45,9 +46,11 @@ interface VideoCardProps {
   index: number
   movieId?: string
   movieTitle?: string
+  className?: string
+  backdropUrl?: string  // Ajout de l'URL du backdrop
 }
 
-export default function VideoCard({ video, index, movieId, movieTitle }: VideoCardProps) {
+export default function VideoCard({ video, index, movieId, movieTitle, className, backdropUrl }: VideoCardProps) {
   const router = useRouter()
 
   const handleWatchNow = () => {
@@ -62,49 +65,68 @@ export default function VideoCard({ video, index, movieId, movieTitle }: VideoCa
   }
 
   return (
-    <div className="group cursor-pointer bg-gray-900 rounded-lg p-6 border border-gray-800 hover:border-gray-700 transition-colors duration-300">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
-            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
+    <div 
+      className={`group cursor-pointer bg-gray-900 rounded-lg overflow-hidden border border-white/20 hover:border-white/40 transition-colors duration-300 ${className || ''}`}
+      onClick={handleWatchNow}
+    >
+      {/* Thumbnail section */}
+      <div className="relative aspect-video bg-gray-800">
+        {/* Image backdrop du film */}
+        {backdropUrl ? (
+          <>
+            <img
+              src={backdropUrl}
+              alt={`${movieTitle || video.server} backdrop`}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors duration-300 flex items-center justify-center">
+              <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center group-hover:scale-110 transition-transform border border-white/20">
+                <Play className="w-8 h-8 text-white ml-1" />
+              </div>
+            </div>
+          </>
+        ) : (
+          // Fallback si pas de backdrop
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto mb-3 border border-white/20">
+                <Play className="w-8 h-8 text-white ml-1" />
+              </div>
+              <p className="text-white font-medium text-lg">{video.server}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-white font-medium">{video.server}</h3>
-          </div>
-        </div>
-        <div className="text-right">
-          <span className={`inline-block px-2 py-1 text-xs rounded ${
-            video.quality === 'HD' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
-          }`}>
+        )}
+        
+        {/* Badges en haut à droite - arrondis comme les cartes vidéos */}
+        <div className="absolute top-2 right-2 flex flex-col gap-1">
+          <span className="px-2 py-1 bg-black border border-white/20 rounded-full text-xs text-white">
             {video.quality}
           </span>
+          <span className="px-2 py-1 bg-black border border-white/20 rounded-full text-xs text-white">
+            {translateLanguage(video.lang)}
+          </span>
         </div>
+        
+        {/* Badge pub en haut à gauche - arrondi */}
+        {video.hasAds && (
+          <div className="absolute top-2 left-2">
+            <span className="px-2 py-1 bg-red-600/20 text-red-400 border border-red-600/40 rounded-full text-xs">
+              Pub
+            </span>
+          </div>
+        )}
       </div>
       
-      <div className="space-y-2 mb-4">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-400">Langue:</span>
-          <span className="text-white font-medium">{translateLanguage(video.lang)}</span>
-        </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-400">Publicité:</span>
-          <span className={`font-medium ${video.hasAds ? 'text-red-400' : 'text-green-400'}`}>
-            {video.hasAds ? 'Oui' : 'Non'}
+      {/* Info section */}
+      <div className="p-4 bg-black">
+        <h3 className="font-semibold text-white mb-2 line-clamp-1">{video.server}</h3>
+        <div className="flex items-center justify-between text-sm text-gray-400">
+          <span>{video.quality} • {translateLanguage(video.lang)}</span>
+          <span className={video.hasAds ? 'text-red-400' : 'text-green-400'}>
+            {video.hasAds ? 'Avec pub' : 'Sans pub'}
           </span>
         </div>
       </div>
-      
-      <button
-        onClick={handleWatchNow}
-        className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-300 flex items-center justify-center space-x-2"
-      >
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M8 5v14l11-7z"/>
-        </svg>
-        <span>{movieId ? 'Regarder' : 'Lire maintenant'}</span>
-      </button>
     </div>
   )
 }

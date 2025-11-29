@@ -8,6 +8,8 @@ import LatestSeries from '../../components/latest-series'
 import StreamingDisclaimer from '../../components/streaming-disclaimer'
 import DonationCta from '../../components/donation-cta'
 import HistoryCarousel from '../../components/history-carousel'
+import Top10Movies from '../../components/top-10-movies'
+import Top10Series from '../../components/top-10-series'
 
 export default function Browse() {
   return (
@@ -17,10 +19,12 @@ export default function Browse() {
         <DonationCta />
         <HistoryCarousel />
         <Countdown />
+        <Top10Movies />
         <LatestMovies />
         <StreamingDisclaimer />
         <LatestAnimes />
         <DiscordInvite />
+        <Top10Series />
         <LatestSeries />
       </div>
     </main>

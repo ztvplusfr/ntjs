@@ -86,6 +86,12 @@ interface SerieDetails {
       profile_path?: string
     }>
   }
+  images?: {
+    logos: Array<{
+      file_path: string
+      iso_639_1?: string
+    }>
+  }
 }
 
 async function getSerieDetails(id: string): Promise<SerieDetails | null> {
@@ -93,7 +99,7 @@ async function getSerieDetails(id: string): Promise<SerieDetails | null> {
   
   try {
     const response = await fetch(
-      `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=fr-FR&append_to_response=credits,videos,recommendations`
+      `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=fr-FR&append_to_response=credits,videos,recommendations,images`
     )
     
     if (!response.ok) return null
@@ -101,6 +107,42 @@ async function getSerieDetails(id: string): Promise<SerieDetails | null> {
     return await response.json()
   } catch (error) {
     console.error('Error fetching serie details:', error)
+    return null
+  }
+}
+
+// Fonction pour récupérer les logos de la série
+async function getSerieLogos(id: string): Promise<string | null> {
+  const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
+  
+  try {
+    const response = await fetch(
+      `https://api.themoviedb.org/3/tv/${id}/images?api_key=${apiKey}`
+    )
+    
+    if (!response.ok) return null
+    
+    const data = await response.json()
+    const logos = data.logos || []
+    
+    if (logos.length === 0) return null
+    
+    // Priorité: FR > EN > autre langue
+    const frLogo = logos.find((logo: any) => logo.iso_639_1 === 'fr')
+    if (frLogo) {
+      return `https://image.tmdb.org/t/p/original${frLogo.file_path}`
+    }
+    
+    const enLogo = logos.find((logo: any) => logo.iso_639_1 === 'en')
+    if (enLogo) {
+      return `https://image.tmdb.org/t/p/original${enLogo.file_path}`
+    }
+    
+    // Prendre le premier logo disponible
+    const firstLogo = logos[0]
+    return `https://image.tmdb.org/t/p/original${firstLogo.file_path}`
+  } catch (error) {
+    console.error('Error fetching serie logos:', error)
     return null
   }
 }
@@ -145,6 +187,8 @@ export default function SeriePage() {
   const [showAvailableOnly, setShowAvailableOnly] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [serieLogo, setSerieLogo] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
 
   // Charger le filtre depuis localStorage
   useEffect(() => {
@@ -163,6 +207,18 @@ export default function SeriePage() {
     }
   }, [showAvailableOnly])
 
+  // Détecter si c'est mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   useEffect(() => {
     const loadSerie = async () => {
       setLoading(true)
@@ -176,6 +232,10 @@ export default function SeriePage() {
       }
       
       setSerie(serieData)
+      
+      // Charger le logo de la série
+      const logo = await getSerieLogos(id)
+      setSerieLogo(logo)
       
       // Créer la liste des saisons
       if (serieData.number_of_seasons) {
@@ -348,7 +408,7 @@ export default function SeriePage() {
                 <h2 className="text-xl font-bold text-white">Paramètres</h2>
                 <button
                   onClick={() => setShowSettings(false)}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-900 rounded-lg transition-colors"
                 >
                   ×
                 </button>
@@ -441,6 +501,7 @@ export default function SeriePage() {
           >
             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
           </div>
         )}
         
@@ -450,27 +511,38 @@ export default function SeriePage() {
             <div className="flex flex-col gap-8 items-start max-w-5xl">
               {/* Info */}
               <div className="pb-4 lg:pb-8">
-                <h1 className="text-4xl lg:text-6xl font-bold mb-4">
-                  {serie.name}
-                </h1>
+                {/* Logo ou Titre */}
+                {serieLogo ? (
+                  <div className="mb-4">
+                    <img 
+                      src={serieLogo} 
+                      alt={serie.name}
+                      className="h-20 lg:h-32 object-contain"
+                    />
+                  </div>
+                ) : (
+                  <h1 className="text-4xl lg:text-6xl font-bold mb-4">
+                    {serie.name}
+                  </h1>
+                )}
                 
                 {/* Meta Info */}
-                <div className="flex flex-wrap items-center gap-3 mb-6">
-                  <span className="px-3 py-1 bg-gray-800/80 backdrop-blur rounded-full text-sm">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4 max-h-16 sm:max-h-none overflow-hidden">
+                  <span className="px-3 py-1 bg-black border border-white/30 rounded-full text-xs sm:text-sm">
                     {serie.first_air_date?.split('-')[0]}
                   </span>
                   {serie.number_of_seasons && (
-                    <span className="px-3 py-1 bg-gray-800/80 backdrop-blur rounded-full text-sm">
+                    <span className="px-3 py-1 bg-black border border-white/30 rounded-full text-xs sm:text-sm">
                       {serie.number_of_seasons} saison{serie.number_of_seasons > 1 ? 's' : ''}
                     </span>
                   )}
                   {serie.episode_run_time && serie.episode_run_time[0] && (
-                    <span className="px-3 py-1 bg-gray-800/80 backdrop-blur rounded-full text-sm">
+                    <span className="px-3 py-1 bg-black border border-white/30 rounded-full text-xs sm:text-sm">
                       {serie.episode_run_time[0]}min
                     </span>
                   )}
-                  <span className="flex items-center px-3 py-1 bg-gray-800/80 backdrop-blur rounded-full text-sm">
-                    <Star className="text-yellow-400 mr-1" size={16} />
+                  <span className="flex items-center px-3 py-1 bg-black border border-white/30 rounded-full text-xs sm:text-sm">
+                    <Star className="text-yellow-400 mr-1" size={14} />
                     <span className="font-medium">{serie.vote_average?.toFixed(1)}</span>
                   </span>
                   <ShareButton 
@@ -483,15 +555,20 @@ export default function SeriePage() {
                 
                 {/* Genres */}
                 {serie.genres && serie.genres.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {serie.genres.map((genre) => (
+                  <div className="flex flex-wrap gap-1 sm:gap-2 mb-3 sm:mb-4 max-h-12 sm:max-h-none overflow-hidden">
+                    {serie.genres.slice(0, isMobile ? 2 : serie.genres.length).map((genre) => (
                       <span
                         key={genre.id}
-                        className="px-3 py-1 bg-gray-700/60 backdrop-blur rounded-full text-sm border border-gray-600"
+                        className="px-2 py-1 bg-black border border-white/30 rounded-full text-xs sm:px-3 sm:py-1 sm:text-sm"
                       >
                         {genre.name}
                       </span>
                     ))}
+                    {isMobile && serie.genres.length > 2 && (
+                      <span className="px-2 py-1 bg-black border border-white/30 rounded-full text-xs">
+                        +{serie.genres.length - 2}
+                      </span>
+                    )}
                   </div>
                 )}
                 
@@ -562,10 +639,10 @@ export default function SeriePage() {
                   <select
                     value={selectedSeason}
                     onChange={(e) => handleSeasonChange(parseInt(e.target.value))}
-                    className="appearance-none bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 pr-10 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 cursor-pointer hover:bg-gray-700 transition-colors"
+                    className="appearance-none bg-black border border-white/30 rounded-full px-4 py-2 pr-10 text-white focus:outline-none focus:border-white focus:ring-2 focus:ring-white/20 cursor-pointer hover:bg-gray-900 transition-all duration-200"
                   >
                     {seasons.map((season) => (
-                      <option key={season.id} value={season.season_number}>
+                      <option key={season.id} value={season.season_number} className="bg-gray-900 text-white">
                         {season.name}
                       </option>
                     ))}
@@ -573,7 +650,7 @@ export default function SeriePage() {
                   
                   {/* Custom Arrow */}
                   <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </div>
@@ -582,10 +659,10 @@ export default function SeriePage() {
                 {/* Filter Button */}
                 <button
                   onClick={() => setShowAvailableOnly(!showAvailableOnly)}
-                  className={`p-2 rounded-lg transition-colors ${
+                  className={`p-2 rounded-full border transition-all duration-200 ${
                     showAvailableOnly 
-                      ? 'bg-sky-600 text-white hover:bg-sky-700' 
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
+                      ? 'bg-black border-white text-white hover:bg-gray-900 shadow-lg shadow-white/10' 
+                      : 'bg-black border-white/30 text-gray-400 hover:bg-gray-900 hover:border-white/50 hover:text-white'
                   }`}
                   title={showAvailableOnly ? "Afficher tous les épisodes" : "Afficher uniquement les épisodes disponibles"}
                 >
@@ -606,7 +683,7 @@ export default function SeriePage() {
                 {episodes
                   .filter(episode => !showAvailableOnly || hasVideos(episode.episode_number))
                   .map((episode) => (
-                  <div key={episode.id} className="bg-gray-900 rounded-lg overflow-hidden border border-gray-800">
+                  <div key={episode.id} className="bg-black rounded-lg overflow-hidden border border-white/20">
                     <div className="p-4">
                       {/* Mobile Layout: Image on top */}
                       <div className="sm:hidden">
@@ -618,7 +695,7 @@ export default function SeriePage() {
                             className="w-full h-48 object-cover rounded-lg mb-4"
                           />
                         ) : (
-                          <div className="w-full h-48 bg-gray-800 rounded-lg flex items-center justify-center mb-4">
+                          <div className="w-full h-48 bg-gray-900 rounded-lg flex items-center justify-center mb-4">
                             <Tv size={32} className="text-gray-600" />
                           </div>
                         )}
@@ -663,7 +740,7 @@ export default function SeriePage() {
                               
                               <button
                                 onClick={() => toggleEpisode(episode.id)}
-                                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                                className="p-2 text-gray-400 hover:text-white hover:bg-gray-900 rounded-lg transition-colors"
                               >
                                 {expandedEpisode === episode.id ? (
                                   <ChevronUp size={20} />
@@ -707,7 +784,7 @@ export default function SeriePage() {
                             className="w-32 h-20 object-cover rounded-lg"
                           />
                         ) : (
-                          <div className="w-32 h-20 bg-gray-800 rounded-lg flex items-center justify-center">
+                          <div className="w-32 h-20 bg-gray-900 rounded-lg flex items-center justify-center">
                             <Tv size={24} className="text-gray-600" />
                           </div>
                         )}
@@ -771,7 +848,7 @@ export default function SeriePage() {
                               
                               <button
                                 onClick={() => toggleEpisode(episode.id)}
-                                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                                className="p-2 text-gray-400 hover:text-white hover:bg-gray-900 rounded-lg transition-colors"
                               >
                                 {expandedEpisode === episode.id ? (
                                   <ChevronUp size={20} />
@@ -787,7 +864,7 @@ export default function SeriePage() {
                       
                       {/* Expanded Content */}
                       {expandedEpisode === episode.id && episode.overview && (
-                        <div className="mt-4 pt-4 border-t border-gray-800">
+                        <div className="mt-4 pt-4 border-t border-white/20">
                           <p className="text-gray-300 leading-relaxed">
                             {episode.overview}
                           </p>
@@ -800,8 +877,8 @@ export default function SeriePage() {
               {/* Message quand aucun épisode disponible avec le filtre */}
               {showAvailableOnly && episodes.filter(episode => hasVideos(episode.episode_number)).length === 0 && (
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Filter size={32} className="text-gray-600" />
+                  <div className="w-16 h-16 bg-black border border-white/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Filter size={32} className="text-white/60" />
                   </div>
                   <h3 className="text-xl font-medium mb-2 text-white">Aucun épisode disponible</h3>
                   <p className="text-gray-400">Aucun épisode de cette saison n'est disponible en streaming pour le moment.</p>
@@ -821,7 +898,7 @@ export default function SeriePage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
                 {serie.credits.cast.slice(0, 12).map((person) => (
                   <div key={person.id} className="text-center group">
-                    <div className="w-full aspect-square bg-gray-800 rounded-lg mb-3 overflow-hidden">
+                    <div className="w-full aspect-square bg-black border border-white/20 rounded-full mb-3 overflow-hidden">
                       {person.profile_path ? (
                         <img
                           src={`https://image.tmdb.org/t/p/w200${person.profile_path}`}

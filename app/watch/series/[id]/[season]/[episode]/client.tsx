@@ -61,6 +61,12 @@ interface SerieDetails {
   number_of_seasons?: number
   vote_average?: number
   genres?: Array<{ id: number; name: string }>
+  images?: {
+    logos: Array<{
+      file_path: string
+      iso_639_1?: string
+    }>
+  }
 }
 
 interface VideoSource {
@@ -78,24 +84,56 @@ async function getSerieDetails(id: string): Promise<SerieDetails | null> {
   const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
   
   if (!apiKey || apiKey === 'your_api_key_here') {
-    console.error('TMDB API key is not configured')
     return null
   }
   
   try {
     const response = await fetch(
-      `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=fr-FR`
+      `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=fr-FR&append_to_response=images`
     )
     
     if (!response.ok) {
-      console.error(`TMDB API error: ${response.status} ${response.statusText}`)
       return null
     }
     
     const data = await response.json()
     return data
   } catch (error) {
-    console.error('Error fetching serie details:', error)
+    return null
+  }
+}
+
+// Fonction pour récupérer les logos de la série
+async function getSerieLogos(id: string): Promise<string | null> {
+  const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
+  
+  try {
+    const response = await fetch(
+      `https://api.themoviedb.org/3/tv/${id}/images?api_key=${apiKey}`
+    )
+    
+    if (!response.ok) return null
+    
+    const data = await response.json()
+    const logos = data.logos || []
+    
+    if (logos.length === 0) return null
+    
+    // Priorité: FR > EN > autre langue
+    const frLogo = logos.find((logo: any) => logo.iso_639_1 === 'fr')
+    if (frLogo) {
+      return `https://image.tmdb.org/t/p/original${frLogo.file_path}`
+    }
+    
+    const enLogo = logos.find((logo: any) => logo.iso_639_1 === 'en')
+    if (enLogo) {
+      return `https://image.tmdb.org/t/p/original${enLogo.file_path}`
+    }
+    
+    // Prendre le premier logo disponible
+    const firstLogo = logos[0]
+    return `https://image.tmdb.org/t/p/original${firstLogo.file_path}`
+  } catch (error) {
     return null
   }
 }
@@ -104,7 +142,6 @@ async function getEpisodeDetails(serieId: string, seasonNumber: number, episodeN
   const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
   
   if (!apiKey || apiKey === 'your_api_key_here') {
-    console.error('TMDB API key is not configured')
     return null
   }
   
@@ -114,14 +151,12 @@ async function getEpisodeDetails(serieId: string, seasonNumber: number, episodeN
     )
     
     if (!response.ok) {
-      console.error(`TMDB API error: ${response.status} ${response.statusText}`)
       return null
     }
     
     const data = await response.json()
     return data
   } catch (error) {
-    console.error('Error fetching episode details:', error)
     return null
   }
 }
@@ -129,7 +164,6 @@ async function getEpisodeDetails(serieId: string, seasonNumber: number, episodeN
 async function getVideoSources(url: string): Promise<VideoSource[] | null> {
   try {
     if (!url) {
-      console.error('getVideoSources: URL is empty or undefined')
       return null
     }
     
@@ -141,14 +175,12 @@ async function getVideoSources(url: string): Promise<VideoSource[] | null> {
     })
     
     if (!response.ok) {
-      console.error(`Video sources API error: ${response.status} ${response.statusText}`)
       return null
     }
     
     const data: VideoSourcesResponse = await response.json()
     return data.sources || []
   } catch (error) {
-    console.error('Error fetching video sources:', error)
     return null
   }
 }
@@ -158,14 +190,12 @@ async function getSeriesVideos(id: string): Promise<SeriesVideosData | null> {
     const response = await fetch(`/api/series/${id}`)
     
     if (!response.ok) {
-      console.error(`API error: ${response.status} ${response.statusText}`)
       return null
     }
     
     const data = await response.json()
     return data
   } catch (error) {
-    console.error('Error fetching series videos:', error)
     return null
   }
 }
@@ -204,13 +234,13 @@ export default function WatchSeriesPage() {
   const [currentUrl, setCurrentUrl] = useState('')
   const [embedUrl, setEmbedUrl] = useState<string>('')
   const [isLoadingVideo, setIsLoadingVideo] = useState(true)
+  const [serieLogo, setSerieLogo] = useState<string | null>(null)
+  const [isRefreshingSources, setIsRefreshingSources] = useState(false)
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
       setError('')
-      
-      console.log('Loading data for:', { id, season, episode })
       
       try {
         // Définir l'URL actuelle pour les métadonnées
@@ -226,6 +256,10 @@ export default function WatchSeriesPage() {
           return
         }
         setSerie(serieData)
+        
+        // Charger le logo de la série
+        const logo = await getSerieLogos(id)
+        setSerieLogo(logo)
         
         // Charger les détails de l'épisode
         const episodeData = await getEpisodeDetails(id, parseInt(season), parseInt(episode))
@@ -348,7 +382,6 @@ export default function WatchSeriesPage() {
         
       } catch (error) {
         setError('Erreur lors du chargement')
-        console.error(error)
       } finally {
         setLoading(false)
       }
@@ -414,6 +447,146 @@ export default function WatchSeriesPage() {
     }
   }, [selectedServer, id])
 
+  // Fonction pour vérifier si un épisode a des vidéos disponibles
+  const hasEpisodeVideos = (seasonNum: string, episodeNum: string) => {
+    return videosData?.season[seasonNum]?.episodes[episodeNum]?.videos?.length > 0
+  }
+
+  // Fonction pour trouver le prochain épisode disponible (y compris dans les saisons suivantes)
+  const findNextAvailableEpisode = (currentSeason: number, currentEpisode: number) => {
+    // D'abord vérifier les épisodes suivants dans la même saison
+    for (let ep = currentEpisode + 1; ep <= 50; ep++) { // Limite raisonnable
+      if (hasEpisodeVideos(currentSeason.toString(), ep.toString())) {
+        return { season: currentSeason, episode: ep }
+      }
+    }
+    
+    // Si rien trouvé, vérifier les saisons suivantes
+    for (let season = currentSeason + 1; season <= 20; season++) { // Limite raisonnable
+      for (let ep = 1; ep <= 50; ep++) {
+        if (hasEpisodeVideos(season.toString(), ep.toString())) {
+          return { season, episode: ep }
+        }
+      }
+    }
+    
+    return null
+  }
+
+  // Fonction pour trouver l'épisode précédent disponible (y compris dans les saisons précédentes)
+  const findPreviousAvailableEpisode = (currentSeason: number, currentEpisode: number) => {
+    // D'abord vérifier les épisodes précédents dans la même saison
+    for (let ep = currentEpisode - 1; ep >= 1; ep--) {
+      if (hasEpisodeVideos(currentSeason.toString(), ep.toString())) {
+        return { season: currentSeason, episode: ep }
+      }
+    }
+    
+    // Si rien trouvé, vérifier les saisons précédentes
+    for (let season = currentSeason - 1; season >= 1; season--) {
+      // Commencer par la fin de la saison précédente
+      for (let ep = 50; ep >= 1; ep--) {
+        if (hasEpisodeVideos(season.toString(), ep.toString())) {
+          return { season, episode: ep }
+        }
+      }
+    }
+    
+    return null
+  }
+
+  // Fonction pour rafraîchir les sources
+  const refreshSources = async () => {
+    setIsRefreshingSources(true)
+    
+    try {
+      // Recharger les vidéos disponibles
+      const videos = await getSeriesVideos(id)
+      if (videos) {
+        setVideosData(videos)
+        
+        // Traiter les vidéos comme dans le chargement initial
+        const episodeVideos = videos.season[season]?.episodes[episode]
+        if (episodeVideos?.videos?.length > 0) {
+          // Traiter les vidéos avec play=1 pour récupérer les vraies sources
+          const processedVideos = await Promise.all(
+            episodeVideos.videos.map(async (video, index) => {
+              if (video.play === 1 && video.url) {
+                try {
+                  // Récupérer les vraies sources
+                  const sources = await getVideoSources(video.url)
+                  if (sources && sources.length > 0) {
+                    // Transformer chaque source en une vidéo distincte
+                    return sources.map((source, sourceIndex) => ({
+                      id: `${id}-s${season}e${episode}-video-${index}-source-${sourceIndex}`,
+                      name: video.name,
+                      url: source.m3u8,
+                      lang: source.language.toLowerCase().includes('french') || source.language === 'French' ? 'vf' : 
+                           source.language.toLowerCase().includes('multi') ? 'vostfr' : 
+                           source.language.toLowerCase(),
+                      quality: source.quality,
+                      pub: video.pub,
+                      play: 1,
+                      hasAds: video.pub === 1,
+                      server: video.name,
+                      serverIndex: index + 1,
+                      originalSrc: source.src
+                    }))
+                  } else {
+                    // Si aucune source trouvée, garder la vidéo originale
+                    return [{
+                      ...video,
+                      id: video.id || `${id}-s${season}e${episode}-video-${index}`,
+                      hasAds: video.pub === 1,
+                      server: video.name,
+                      serverIndex: index + 1
+                    }]
+                  }
+                } catch (error) {
+                  // Garder la vidéo originale en cas d'erreur
+                  return [{
+                    ...video,
+                    id: video.id || `${id}-s${season}e${episode}-video-${index}`,
+                    hasAds: video.pub === 1,
+                    server: video.name,
+                    serverIndex: index + 1
+                  }]
+                }
+              }
+              // Vidéo normale, la garder telle quelle
+              return [{
+                ...video,
+                id: video.id || `${id}-s${season}e${episode}-video-${index}`,
+                hasAds: video.pub === 1,
+                server: video.name,
+                serverIndex: index + 1
+              }]
+            })
+          )
+          
+          // Aplatir le tableau de vidéos
+          const videosWithIds = processedVideos.flat()
+          
+          // Mettre à jour les données avec les IDs
+          const updatedVideosData = { ...videos }
+          if (updatedVideosData.season[season]?.episodes[episode]) {
+            updatedVideosData.season[season].episodes[episode].videos = videosWithIds
+          }
+          setVideosData(updatedVideosData)
+          
+          // Sélectionner la première vidéo si aucune n'est sélectionnée
+          if (!selectedServer && videosWithIds.length > 0) {
+            setSelectedServer(videosWithIds[0])
+          }
+        }
+      }
+    } catch (error) {
+      // Erreur silencieuse lors du rafraîchissement
+    } finally {
+      setIsRefreshingSources(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -432,7 +605,7 @@ export default function WatchSeriesPage() {
           <p className="text-red-400 text-lg mb-4">{error}</p>
           <Link 
             href={`/series/${id}-${serie?.name?.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]/g, '') || id}`}
-            className="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
+            className="px-4 py-2 bg-black border border-white/30 text-white rounded-lg hover:bg-gray-900 transition-colors"
           >
             Retour à la série
           </Link>
@@ -497,7 +670,7 @@ export default function WatchSeriesPage() {
           <div className="flex items-center space-x-4">
             <Link 
               href={`/series/${id}-${serie.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}?season=${season}`}
-              className="text-gray-300 hover:text-white transition-colors"
+              className="px-4 py-2 bg-black border border-white/30 text-white rounded-lg hover:bg-gray-900 hover:border-white/50 transition-colors"
             >
               ← Retour à la série
             </Link>
@@ -530,7 +703,7 @@ export default function WatchSeriesPage() {
               {/* Video Player - 2/3 width */}
               <div className="lg:col-span-2 w-full">
                 {selectedServer ? (
-                  <div className="relative w-full bg-black rounded-lg overflow-hidden">
+                  <div className="relative w-full bg-black border border-white/20 rounded-lg overflow-hidden">
                     {selectedServer.play === 1 ? (
                       // Lecteur vidéo natif pour play=1
                       <video
@@ -576,10 +749,10 @@ export default function WatchSeriesPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="bg-gray-900 rounded-lg aspect-video flex items-center justify-center w-full">
+                  <div className="bg-black border border-white/20 rounded-lg aspect-video flex items-center justify-center w-full">
                     <div className="text-center">
-                      <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Tv className="w-8 h-8 text-gray-600" />
+                      <div className="w-16 h-16 bg-black border border-white/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Tv className="w-8 h-8 text-white/60" />
                       </div>
                       <h2 className="text-xl font-medium mb-2">Aucune vidéo disponible</h2>
                       <p className="text-gray-400">Cet épisode n'est pas disponible en streaming pour le moment.</p>
@@ -588,46 +761,50 @@ export default function WatchSeriesPage() {
                 )}
                 
                 {/* Navigation Buttons */}
-                <div className="flex flex-wrap items-center justify-between gap-2 mt-4">
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/watch/series/${id}/${season}/${parseInt(episode) - 1}`}
-                      className={`p-2 rounded-lg transition-colors ${
-                        parseInt(episode) > 1
-                          ? 'bg-gray-800 hover:bg-gray-700 text-white'
-                          : 'bg-gray-900 text-gray-600 cursor-not-allowed pointer-events-none'
-                      }`}
-                      aria-disabled={parseInt(episode) <= 1}
-                    >
-                      <ChevronLeft size={20} className="sm:hidden" />
-                      <span className="hidden sm:flex items-center gap-2">
-                        <ChevronLeft size={20} />
-                        Épisode précédent
-                      </span>
-                    </Link>
+                <div className="flex flex-row items-center gap-2 mt-4 w-full">
+                  <div className="flex items-center gap-2 w-full">
+                    {(() => {
+                      const prevEpisode = findPreviousAvailableEpisode(parseInt(season), parseInt(episode))
+                      return prevEpisode ? (
+                        <Link
+                          href={`/watch/series/${id}/${prevEpisode.season}/${prevEpisode.episode}`}
+                          className="p-2 rounded-lg border transition-colors bg-black border-white/30 hover:bg-gray-900 hover:border-white/50 text-white flex-1 flex justify-center items-center"
+                        >
+                          <ChevronLeft size={20} className="mr-1" />
+                          <span className="text-sm">Précédent</span>
+                        </Link>
+                      ) : (
+                        <div className="p-2 rounded-lg border bg-black border-white/10 text-gray-600 cursor-not-allowed flex-1 flex justify-center items-center">
+                          <ChevronLeft size={20} className="mr-1" />
+                          <span className="text-sm">Précédent</span>
+                        </div>
+                      )
+                    })()}
                     
                     <Link
                       href={`/series/${id}-${serie.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}?season=${season}`}
-                      className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                      className="px-4 py-2 bg-black border border-white/30 hover:bg-gray-900 hover:border-white/50 text-white rounded-lg transition-colors flex-1 flex justify-center items-center text-sm"
                     >
                       Épisodes
                     </Link>
                     
-                    <Link
-                      href={`/watch/series/${id}/${season}/${parseInt(episode) + 1}`}
-                      className={`p-2 rounded-lg transition-colors ${
-                        videosData?.season[season]?.episodes[(parseInt(episode) + 1).toString()]
-                          ? 'bg-sky-500 hover:bg-sky-600 text-white'
-                          : 'bg-gray-900 text-gray-600 cursor-not-allowed pointer-events-none'
-                      }`}
-                      aria-disabled={!videosData?.season[season]?.episodes[(parseInt(episode) + 1).toString()]}
-                    >
-                      <ChevronRight size={20} className="sm:hidden" />
-                      <span className="hidden sm:flex items-center gap-2">
-                        Épisode suivant
-                        <ChevronRight size={20} />
-                      </span>
-                    </Link>
+                    {(() => {
+                      const nextEpisode = findNextAvailableEpisode(parseInt(season), parseInt(episode))
+                      return nextEpisode ? (
+                        <Link
+                          href={`/watch/series/${id}/${nextEpisode.season}/${nextEpisode.episode}`}
+                          className="p-2 rounded-lg border transition-colors bg-black border-white/30 hover:bg-gray-900 hover:border-white/50 text-white flex-1 flex justify-center items-center"
+                        >
+                          <span className="text-sm mr-1">Suivant</span>
+                          <ChevronRight size={20} />
+                        </Link>
+                      ) : (
+                        <div className="p-2 rounded-lg border bg-black border-white/10 text-gray-600 cursor-not-allowed flex-1 flex justify-center items-center">
+                          <span className="text-sm mr-1">Suivant</span>
+                          <ChevronRight size={20} />
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
               </div>
@@ -635,18 +812,18 @@ export default function WatchSeriesPage() {
               {/* Video Sources Sidebar - 1/3 width */}
               <div className="lg:col-span-1 w-full">
                 {loading && !videosData?.season[season]?.episodes[episode]?.videos ? (
-                  <div className="bg-gray-900 rounded-lg p-4 w-full">
+                  <div className="bg-black border border-white/20 rounded-lg p-4 w-full">
                     <div className="animate-pulse space-y-4">
-                      <div className="h-6 bg-gray-800 rounded w-1/3"></div>
+                      <div className="h-6 bg-black/50 border border-white/10 rounded w-1/3"></div>
                       <div className="space-y-3">
                         {[1, 2, 3].map((i) => (
-                          <div key={i} className="h-20 bg-gray-800 rounded"></div>
+                          <div key={i} className="h-20 bg-black/50 border border-white/10 rounded"></div>
                         ))}
                       </div>
                     </div>
                   </div>
                 ) : videosData?.season[season]?.episodes[episode]?.videos && videosData.season[season].episodes[episode].videos.length > 0 ? (
-                  <div className="bg-gray-900 rounded-lg p-4 w-full">
+                  <div className="bg-black border border-white/20 rounded-lg p-4 w-full">
                     <h3 className="text-lg font-semibold mb-4 text-white">Sources disponibles</h3>
                     <div className="space-y-3 max-h-[600px] overflow-y-auto">
                       {videosData.season[season].episodes[episode].videos.map((video: VideoServer, index: number) => {
@@ -662,8 +839,8 @@ export default function WatchSeriesPage() {
                             key={video.id}
                             className={`block p-3 rounded-lg border transition-all w-full cursor-pointer ${
                               isSelected 
-                                ? 'bg-red-600/30 border-red-500 shadow-lg shadow-red-500/20' 
-                                : 'bg-gray-800 border-gray-700 hover:border-gray-600 hover:bg-gray-750'
+                                ? 'bg-black border-white text-white shadow-lg shadow-white/10' 
+                                : 'bg-black border-white/20 hover:border-white/30 hover:bg-gray-900'
                             }`}
                             onClick={handleClick}
                           >
@@ -671,33 +848,33 @@ export default function WatchSeriesPage() {
                               <div className="flex items-center space-x-2">
                                 {isSelected && (
                                   <div className="flex items-center">
-                                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                                    <span className="text-xs text-red-400 font-medium">EN COURS</span>
+                                    <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
+                                    <span className="text-xs text-white font-medium">EN COURS</span>
                                   </div>
                                 )}
-                                <div className={`font-medium text-sm ${isSelected ? 'text-red-400' : 'text-white'}`}>
+                                <div className={`font-medium text-sm ${isSelected ? 'text-white' : 'text-white'}`}>
                                   {video.name}
                                 </div>
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-2 mb-2">
                               <span className={`px-2 py-1 rounded text-xs ${
-                                video.quality === '1080p' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
+                                video.quality === '1080p' ? 'bg-black border border-white/30 text-white' : 'bg-black border border-white/20 text-white'
                               }`}>
                                 {video.quality}
                               </span>
-                              <span className="px-2 py-1 bg-gray-700 rounded text-xs text-gray-300">
+                              <span className="px-2 py-1 bg-black border border-white/20 rounded text-xs text-white">
                                 {video.lang === 'vf' ? 'Version Française' : video.lang === 'vostfr' ? 'Version Originale Sous-titrée' : video.lang.toUpperCase()}
                               </span>
                               <span className={`px-2 py-1 rounded text-xs ${
-                                video.pub === 1 ? 'bg-red-600/20 text-red-400' : 'bg-green-600/20 text-green-400'
+                                video.pub === 1 ? 'bg-black border border-white/30 text-white' : 'bg-black border border-white/20 text-white'
                               }`}>
                                 {video.pub === 1 ? 'Ads' : 'No Ads'}
                               </span>
                             </div>
                             {isSelected && (
                               <div className="flex items-center justify-between">
-                                <div className="text-xs text-red-400 font-medium flex items-center">
+                                <div className="text-xs text-white font-medium flex items-center">
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M8 5v14l11-7z"/>
                                   </svg>
@@ -714,13 +891,32 @@ export default function WatchSeriesPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-gray-900 rounded-lg p-4 w-full">
+                  <div className="bg-black border border-white/20 rounded-lg p-4 w-full">
                     <h3 className="text-lg font-semibold mb-4 text-white">Sources disponibles</h3>
                     <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Tv className="w-8 h-8 text-gray-600" />
+                      <div className="w-16 h-16 bg-black border border-white/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Tv className="w-8 h-8 text-white/60" />
                       </div>
-                      <p className="text-gray-400">Aucune source disponible</p>
+                      <p className="text-gray-400 mb-4">Aucune source disponible</p>
+                      <button
+                        onClick={refreshSources}
+                        disabled={isRefreshingSources}
+                        className="px-4 py-2 bg-black border border-white/30 hover:bg-gray-900 hover:border-white/50 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+                      >
+                        {isRefreshingSources ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Recherche en cours...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Rafraîchir les sources
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 )}
@@ -731,27 +927,42 @@ export default function WatchSeriesPage() {
           {/* Episode Info */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
             {/* Main Info */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-3">
+              {/* Logo ou Titre de la série */}
+              {serieLogo ? (
+                <div className="mb-4">
+                  <img 
+                    src={serieLogo} 
+                    alt={serie.name}
+                    className="h-16 lg:h-24 object-contain"
+                  />
+                </div>
+              ) : (
+                <h1 className="text-2xl lg:text-3xl font-bold mb-4 text-white">
+                  {serie.name}
+                </h1>
+              )}
+              
               <h2 className="text-2xl font-bold mb-4">
-                Épisode {episode}: {episodeDetails?.name || `Épisode ${episode}`}
+                S{season}E{episode}: {episodeDetails?.name || `Épisode ${episode}`}
               </h2>
               
               {/* Meta */}
               <div className="flex flex-wrap items-center gap-3 mb-6">
-                <span className="px-3 py-1 bg-gray-800 rounded-full text-sm">
+                <span className="px-3 py-1 bg-black border border-white/30 rounded-full text-sm">
                   S{parseInt(season).toString().padStart(2, '0')}E{parseInt(episode).toString().padStart(2, '0')}
                 </span>
                 {episodeDetails?.air_date && (
-                  <span className="px-3 py-1 bg-gray-800 rounded-full text-sm">
+                  <span className="px-3 py-1 bg-black border border-white/30 rounded-full text-sm">
                     {new Date(episodeDetails.air_date).toLocaleDateString('fr-FR')}
                   </span>
                 )}
                 {episodeDetails?.runtime && (
-                  <span className="px-3 py-1 bg-gray-800 rounded-full text-sm">
+                  <span className="px-3 py-1 bg-black border border-white/30 rounded-full text-sm">
                     {episodeDetails.runtime}min
                   </span>
                 )}
-                <span className="flex items-center px-3 py-1 bg-gray-800 rounded-full text-sm">
+                <span className="flex items-center px-3 py-1 bg-black border border-white/30 rounded-full text-sm">
                   <span className="text-yellow-400 mr-1">★</span>
                   <span className="font-medium">{serie.vote_average?.toFixed(1)}</span>
                 </span>
@@ -765,27 +976,6 @@ export default function WatchSeriesPage() {
                   <p className="text-gray-300 leading-relaxed">
                     {episodeDetails.overview}
                   </p>
-                </div>
-              )}
-            </div>
-
-            {/* Sidebar - Empty or additional info */}
-            <div>
-              {loading && !serie ? (
-                <div className="animate-pulse space-y-4">
-                  <div className="h-32 bg-gray-800 rounded"></div>
-                  <div className="h-20 bg-gray-800 rounded"></div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="bg-gray-900 rounded-lg p-4">
-                    <h4 className="font-semibold mb-2">Informations</h4>
-                    <div className="space-y-2 text-sm text-gray-400">
-                      <p>Série: {serie.name}</p>
-                      <p>Saison: {season}</p>
-                      <p>Épisode: {episode}</p>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>

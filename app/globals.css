@@ -66,4 +66,33 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Style personnalisé pour les barres de défilement */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: rgb(0 0 0); /* fond noir */
+    border: 1px solid rgb(255 255 255 / 0.3); /* contour fin blanc transparent */
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background-color: rgb(255 255 255 / 0.5); /* curseur blanc semi-transparent */
+    border: 1px solid rgb(255 255 255 / 0.8); /* contour fin blanc */
+    border-radius: 3px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(255 255 255 / 0.7); /* curseur plus visible au survol */
+    border: 1px solid rgb(255 255 255); /* contour blanc plein au survol */
+  }
+  
+  /* Pour Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.5) rgb(0 0 0);
+  }
 }

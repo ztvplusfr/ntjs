@@ -24,20 +24,43 @@ interface VideoResponse {
   videos: Video[]
 }
 
-async function getMovieVideos(id: string) {
+async function getStreamingVideos(id: string) {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/videos?id=${id}`,
-      {
-        cache: 'no-store',
-      }
-    )
+    // Utiliser l'URL du blob storage depuis les variables d'environnement
+    const blobBaseUrl = process.env.BLOB_PUBLIC_URL
     
-    if (!response.ok) return null
+    if (!blobBaseUrl) {
+      console.error('BLOB_PUBLIC_URL environment variable is not set')
+      return null
+    }
     
-    return await response.json()
+    const blobUrl = `${blobBaseUrl}/movies/${id}.json`
+    
+    console.log('Tentative de connexion au blob storage:', blobUrl)
+    
+    const response = await fetch(blobUrl)
+    
+    if (!response.ok) {
+      console.log('Blob storage response not ok:', response.status)
+      return null
+    }
+    
+    const data = await response.json()
+    console.log('Blob storage data received:', data)
+    
+    // Transformer les données pour ajouter les propriétés manquantes
+    if (data && data.videos) {
+      const transformedVideos = data.videos.map((video: any) => ({
+        ...video,
+        hasAds: video.hasAds ?? video.pub === 1,
+        server: video.server ?? video.name
+      }))
+      return { videos: transformedVideos }
+    }
+    
+    return data
   } catch (error) {
-    console.error('Error fetching movie videos:', error)
+    console.error('Error fetching streaming videos:', error)
     return null
   }
 }
@@ -140,11 +163,19 @@ export async function generateMetadata({ params }: MoviePageProps): Promise<Meta
 export default async function MoviePage({ params }: MoviePageProps) {
   const [id] = (await params)['id-title'].split('-')
   
+  console.log('MoviePage - Récupération des données pour le film ID:', id)
+  
   const [movie, videos, imagesData] = await Promise.all([
     getMovieDetails(id),
-    getMovieVideos(id),
+    getStreamingVideos(id),
     getMovieImages(id)
   ])
+
+  console.log('MoviePage - Données récupérées :', {
+    movie: movie ? movie.title : 'non trouvé',
+    videos: videos ? `${videos.videos?.length || 0} vidéos de streaming` : 'null',
+    imagesData: imagesData ? `${imagesData.posters?.length || 0} posters, ${imagesData.backdrops?.length || 0} backdrops` : 'absent'
+  })
 
   if (!movie) {
     notFound()

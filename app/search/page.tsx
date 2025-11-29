@@ -111,7 +111,7 @@ function SearchContent() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Rechercher des films et séries..."
-                className="w-full bg-gray-900 text-white pl-10 pr-4 py-3 rounded-xl border border-gray-700 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all"
+                className="w-full bg-black text-white pl-10 pr-4 py-3 rounded-xl border border-white/20 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/10 transition-all"
               />
             </div>
           </div>
@@ -156,7 +156,7 @@ function SearchContent() {
                 >
                   <div className="group cursor-pointer">
                     {/* Movie Poster */}
-                    <div className="relative aspect-[2/3] overflow-hidden rounded-lg mb-3">
+                    <div className="relative aspect-[2/3] overflow-hidden rounded-lg mb-3 border border-white/20 group-hover:border-white/30 transition-colors">
                       {item.poster_path ? (
                         <img
                           src={`https://image.tmdb.org/t/p/w500${item.poster_path}`}
@@ -164,24 +164,24 @@ function SearchContent() {
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-900 flex items-center justify-center">
+                        <div className="w-full h-full bg-black border border-white/20 flex items-center justify-center">
                           {item.media_type === 'tv' ? (
-                            <Tv size={48} className="text-gray-600" />
+                            <Tv size={48} className="text-white/60" />
                           ) : (
-                            <Film size={48} className="text-gray-600" />
+                            <Film size={48} className="text-white/60" />
                           )}
                         </div>
                       )}
                       
                       {/* Media Type Badge */}
-                      <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-sm px-2 py-1 rounded-lg">
+                      <div className="absolute top-2 left-2 bg-black border border-white/30 backdrop-blur-sm px-2 py-1 rounded-full">
                         <span className="text-xs text-white font-medium">
                           {item.media_type === 'tv' ? 'SÉRIE' : 'FILM'}
                         </span>
                       </div>
                       
                       {/* Rating Badge */}
-                      <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
+                      <div className="absolute top-2 right-2 bg-black border border-white/30 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
                         <Star size={12} className="text-yellow-400 fill-yellow-400" />
                         <span className="text-xs text-white font-medium">
                           {item.vote_average.toFixed(1)}

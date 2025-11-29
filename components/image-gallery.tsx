@@ -30,7 +30,7 @@ export default function ImageGallery({ images, movieTitle }: ImageGalleryProps) 
     <>
       <div className="mb-12">
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-1 h-8 bg-blue-600 rounded-full"></div>
+          <div className="w-1 h-8 bg-red-600 rounded-full"></div>
           <h2 className="text-3xl font-bold">Images</h2>
         </div>
         
@@ -38,7 +38,7 @@ export default function ImageGallery({ images, movieTitle }: ImageGalleryProps) 
           {images.map((image, index) => (
             <div 
               key={index}
-              className="relative aspect-[2/3] md:aspect-[3/2] lg:aspect-[2/3] group cursor-pointer overflow-hidden rounded-lg bg-gray-800"
+              className="relative aspect-[2/3] md:aspect-[3/2] lg:aspect-[2/3] group cursor-pointer overflow-hidden rounded-lg bg-gray-800 border border-white/20"
               onClick={() => openLightbox(image)}
             >
               <img
@@ -54,7 +54,7 @@ export default function ImageGallery({ images, movieTitle }: ImageGalleryProps) 
                 </div>
               </div>
               <div className="absolute bottom-2 left-2">
-                <span className="px-2 py-1 bg-black/60 backdrop-blur rounded text-xs text-white">
+                <span className="px-2 py-1 bg-black border border-white/20 rounded text-xs text-white">
                   {image.type === 'poster' ? 'Poster' : 'Backdrop'}
                 </span>
               </div>

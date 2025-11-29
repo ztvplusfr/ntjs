@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import useEmblaCarousel from 'embla-carousel-react'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { cookieUtils, WatchHistoryItem } from '@/lib/cookies'
@@ -283,34 +283,47 @@ export default function HistoryCarousel() {
         <div className="w-1 h-8 bg-blue-500"></div>
         <h2 className="text-2xl font-bold text-white">Historique</h2>
         <span className="text-sm text-gray-400">
-          ({history.length} {history.length === 1 ? 'contenu' : 'contenus'})
+          {history.length}
         </span>
         <div className="flex-1"></div>
         <div className="flex items-center gap-4">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={clearHistory}
-            className="text-red-400 hover:text-red-300 transition-colors text-sm"
+            className="hidden md:flex rounded-full bg-black/80 border border-gray-300/30 hover:bg-black/60 transition-colors backdrop-blur-sm text-gray-400 hover:text-red-500 px-4"
+            title="Effacer tout l'historique"
           >
-            Effacer tout
-          </button>
-          <div className="flex gap-2">
+            <Trash2 className="h-4 w-4 mr-2" />
+            <span className="text-sm">Effacer tout</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={clearHistory}
+            className="md:hidden rounded-full bg-black/80 border border-gray-300/30 hover:bg-black/60 transition-colors backdrop-blur-sm text-gray-400 hover:text-red-500"
+            title="Effacer tout l'historique"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <div className="flex gap-2 mr-4 md:mr-6">
             <Button
               variant="outline"
               size="icon"
               onClick={scrollPrev}
               disabled={!canScrollPrev}
-              className="rounded-full bg-black border-gray-700 text-white hover:bg-gray-900"
+              className="rounded-full bg-black/80 border border-gray-300/30 hover:bg-black/60 transition-colors backdrop-blur-sm"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4 text-white" />
             </Button>
             <Button
               variant="outline"
               size="icon"
               onClick={scrollNext}
               disabled={!canScrollNext}
-              className="rounded-full bg-black border-gray-700 text-white hover:bg-gray-900"
+              className="rounded-full bg-black/80 border border-gray-300/30 hover:bg-black/60 transition-colors backdrop-blur-sm"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4 text-white" />
             </Button>
           </div>
         </div>
@@ -334,9 +347,9 @@ export default function HistoryCarousel() {
               className="flex-[0_0_calc(25%_-_0.75rem)] min-w-[280px] group cursor-pointer"
               aria-label={`Regarder ${item.title}`}
             >
-              <div className="relative overflow-hidden rounded-lg">
+              <div className="relative overflow-hidden rounded-lg border border-gray-300/30 bg-black/80 backdrop-blur-sm hover:border-gray-100/50 transition-colors">
                 {/* Backdrop/Poster en format paysage */}
-                <div className="aspect-video relative bg-gray-200">
+                <div className="aspect-video relative bg-gray-200 overflow-hidden">
                   {item.backdrop && item.backdrop !== '/placeholder-backdrop.jpg' ? (
                     <Image
                       src={item.backdrop}
@@ -361,10 +374,10 @@ export default function HistoryCarousel() {
                   
                   {/* Type badge */}
                   <div className="absolute top-2 left-2">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
                       item.type === 'movie' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-purple-600 text-white'
+                        ? 'bg-blue-600/80 border-blue-400/50 text-white' 
+                        : 'bg-purple-600/80 border-purple-400/50 text-white'
                     }`}>
                       {item.type === 'movie' ? 'Film' : 'Série'}
                     </span>
@@ -386,7 +399,7 @@ export default function HistoryCarousel() {
                 </div>
 
                 {/* Info - Aligné en bas */}
-                <div className="mt-3">
+                <div className="mt-3 px-3 pb-3">
                   <p className="text-sm font-medium text-white line-clamp-1 mb-1">
                     {item.title}
                   </p>

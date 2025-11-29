@@ -56,16 +56,16 @@ export default function ShareButton({ title, url, type, className }: ShareButton
       {/* Main Share Button */}
       <button
         onClick={handleNativeShare}
-        className={`flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors ${className || ''}`}
+        className={`flex items-center gap-2 px-3 py-1 bg-black rounded-full text-sm border border-white/20 hover:bg-gray-900 transition-colors ${className || ''}`}
       >
         {copied ? (
           <>
-            <Check size={18} />
+            <Check size={14} />
             <span>Copié!</span>
           </>
         ) : (
           <>
-            <Share2 size={18} />
+            <Share2 size={14} />
             <span>Partager</span>
           </>
         )}
