@@ -26,37 +26,18 @@ interface VideoResponse {
 
 async function getStreamingVideos(id: string) {
   try {
-    // Utiliser l'URL du blob storage depuis les variables d'environnement
-    const blobBaseUrl = process.env.BLOB_PUBLIC_URL
-    
-    if (!blobBaseUrl) {
-      console.error('BLOB_PUBLIC_URL environment variable is not set')
-      return null
-    }
-    
-    const blobUrl = `${blobBaseUrl}/movies/${id}.json`
-    
-    console.log('Tentative de connexion au blob storage:', blobUrl)
-    
-    const response = await fetch(blobUrl)
+    // Utiliser l'API interne comme pour les séries
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/movies/${id}`, {
+      cache: 'no-store',
+    })
     
     if (!response.ok) {
-      console.log('Blob storage response not ok:', response.status)
+      console.log('API response not ok:', response.status)
       return null
     }
     
     const data = await response.json()
-    console.log('Blob storage data received:', data)
-    
-    // Transformer les données pour ajouter les propriétés manquantes
-    if (data && data.videos) {
-      const transformedVideos = data.videos.map((video: any) => ({
-        ...video,
-        hasAds: video.hasAds ?? video.pub === 1,
-        server: video.server ?? video.name
-      }))
-      return { videos: transformedVideos }
-    }
+    console.log('API data received:', data)
     
     return data
   } catch (error) {

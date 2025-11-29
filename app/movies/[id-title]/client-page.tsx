@@ -43,8 +43,8 @@ interface MoviePageProps {
 
 async function getStreamingVideos(id: string) {
   try {
-    // Utiliser l'API interne côté client
-    const response = await fetch(`/api/movies/${id}`, {
+    // Utiliser l'API interne avec NEXT_PUBLIC_BASE_URL
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/movies/${id}`, {
       cache: 'no-store',
     })
     
@@ -52,7 +52,6 @@ async function getStreamingVideos(id: string) {
     
     return await response.json()
   } catch (error) {
-    console.error('Error fetching streaming videos:', error)
     return null
   }
 }
