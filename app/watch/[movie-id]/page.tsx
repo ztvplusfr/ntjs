@@ -329,7 +329,7 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
               )}
 
               {/* Overview */}
-              <div>
+              <div className="bg-black border border-white/20 rounded-lg p-6">
                 <h3 className="text-xl font-semibold mb-3">Synopsis</h3>
                 <p className="text-gray-300 leading-relaxed">
                   {movie.overview || 'Aucun synopsis disponible.'}
