@@ -536,11 +536,16 @@ export default function WatchSeriesPage() {
                       <video
                         key={selectedServer.url}
                         controls
-                        className="w-full aspect-video"
+                        controlsList="nodownload noremoteplayback"
+                        className="w-full aspect-video select-none"
                         poster={episodeStillUrl || undefined}
                         preload="metadata"
                         onLoadedData={() => setIsLoadingVideo(false)}
                         onError={() => setIsLoadingVideo(false)}
+                        onContextMenu={(event) => event.preventDefault()}
+                        onCopy={(event) => event.preventDefault()}
+                        onCut={(event) => event.preventDefault()}
+                        onPaste={(event) => event.preventDefault()}
                       >
                         <source src={selectedServer.url} type="application/x-mpegURL" />
                         <source src={selectedServer.url} type="video/mp4" />
