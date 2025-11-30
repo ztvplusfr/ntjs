@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, Search, User, LogOut, HeadphonesIcon, Settings } from 'lucide-react'
+import { Home, Search, Calendar, User, LogOut, HeadphonesIcon, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
@@ -58,36 +58,18 @@ export default function BottomBar() {
             <span className="text-xs mt-1">Support</span>
           </button>
           
-          {/* Profile/Logout */}
-          {session ? (
-            <button
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="flex flex-col items-center p-2 rounded-lg transition-all duration-200 text-gray-400 hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoggingOut ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-500"></div>
-              ) : (
-                <>
-                  {session.user?.image ? (
-                    <img
-                      src={session.user.image}
-                      alt={session.user.name || 'Profile'}
-                      className="w-5 h-5 rounded-full"
-                    />
-                  ) : (
-                    <User size={20} />
-                  )}
-                  <span className="text-xs mt-1">Profile</span>
-                </>
-              )}
-            </button>
-          ) : (
-            <div className="flex flex-col items-center p-2 rounded-lg text-gray-400">
-              <User size={20} />
-              <span className="text-xs mt-1">Profil</span>
-            </div>
-          )}
+          {/* Agenda */}
+          <Link
+            href="/agenda"
+            className={`flex flex-col items-center p-2 rounded-lg transition-all duration-200 ${
+              pathname === '/agenda' 
+                ? 'text-sky-400' 
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Calendar size={20} />
+            <span className="text-xs mt-1">Agenda</span>
+          </Link>
         </div>
       </div>
       

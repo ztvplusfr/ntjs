@@ -5,6 +5,8 @@ import { notFound } from 'next/navigation'
 import VideoCard from '@/components/video-card'
 import ImageGallery from '../../../components/image-gallery'
 import ShareButton from '@/components/share-button'
+import SimilarMovies from '@/components/similar-movies'
+import Actors from '@/components/actors'
 import { Play } from 'lucide-react'
 
 interface Video {
@@ -39,6 +41,8 @@ interface MoviePageProps {
   movie: Movie
   videos: VideoResponse | null
   imagesData: any
+  similarMovies: any
+  castData: any
 }
 
 async function getStreamingVideos(id: string) {
@@ -126,7 +130,7 @@ async function getMovieDetails(id: string) {
   }
 }
 
-export default function MovieClientPage({ movie, videos, imagesData }: MoviePageProps) {
+export default function MovieClientPage({ movie, videos, imagesData, similarMovies, castData }: MoviePageProps) {
   const [currentUrl, setCurrentUrl] = useState('')
   const [logos, setLogos] = useState<any[]>([])
   const [tmdbVideos, setTmdbVideos] = useState<any[]>([])
@@ -394,6 +398,9 @@ export default function MovieClientPage({ movie, videos, imagesData }: MoviePage
             })()}
           </div>
 
+          {/* Actors */}
+          <Actors actors={castData?.cast || []} />
+
           {/* Videos Section */}
           {sortedVideos.length > 0 && (
             <div className="mb-12">
@@ -443,6 +450,9 @@ export default function MovieClientPage({ movie, videos, imagesData }: MoviePage
               <ImageGallery images={movieImages} movieTitle={movie.title} />
             </div>
           )}
+
+          {/* Similar Movies */}
+          <SimilarMovies movies={similarMovies?.results || []} />
         </div>
       </div>
     </div>

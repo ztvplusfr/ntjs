@@ -8,6 +8,7 @@ import HistoryTracker from '@/components/history-tracker'
 import PageHead from '@/components/page-head'
 import ViewCounter from '@/components/view-counter'
 import { cookieUtils } from '@/lib/cookies'
+import { supabase } from '@/lib/supabase'
 
 interface VideoServer {
   id: string
@@ -200,6 +201,87 @@ async function getSeriesVideos(id: string): Promise<SeriesVideosData | null> {
   }
 }
 
+// Fonction pour récupérer les informations de l'épisode depuis Supabase
+async function getEpisodeRelease(tmdbId: number, seasonNumber: number, episodeNumber: number): Promise<any | null> {
+  try {
+    const { data, error } = await supabase
+      .from('series_releases')
+      .select('*')
+      .eq('tmdb_id', tmdbId)
+      .eq('season_number', seasonNumber)
+      .eq('episode_number', episodeNumber)
+      .single()
+
+    if (error) {
+      return null
+    }
+
+    return data
+  } catch (error) {
+    return null
+  }
+}
+
+// Fonction pour calculer le compte à rebours
+function getCountdown(releaseDate: Date, releaseTime?: string): string {
+  const now = new Date()
+  const target = new Date(releaseDate)
+  
+  if (releaseTime) {
+    const [hours, minutes] = releaseTime.split(':')
+    // Convert from UTC+4 (Ocean Indian) to user's timezone
+    target.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+    
+    // Convert UTC+4 time to UTC
+    const utcTime = target.getTime() - (4 * 60 * 60 * 1000)
+    
+    // Convert to user's local timezone
+    const userTime = new Date(utcTime + (now.getTimezoneOffset() * -60 * 1000))
+    target.setTime(userTime.getTime())
+  } else {
+    target.setHours(0, 0, 0, 0)
+  }
+  
+  const diff = target.getTime() - now.getTime()
+  
+  if (diff <= 0) {
+    return 'Maintenant'
+  }
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+  
+  if (days > 0) {
+    return `${days}j ${hours}h ${minutes}min ${seconds}s`
+  } else if (hours > 0) {
+    return `${hours}h ${minutes}min ${seconds}s`
+  } else if (minutes > 0) {
+    return `${minutes}min ${seconds}s`
+  } else {
+    return `${seconds}s`
+  }
+}
+
+// Fonction pour formater l'heure locale pour l'affichage
+function formatLocalTime(releaseTime: string): string {
+  const now = new Date()
+  const [hours, minutes] = releaseTime.split(':')
+  
+  // Create date in UTC+4
+  const utc4Date = new Date()
+  utc4Date.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+  
+  // Convert UTC+4 to UTC
+  const utcTime = utc4Date.getTime() - (4 * 60 * 60 * 1000)
+  
+  // Convert to user's local timezone
+  const userTime = new Date(utcTime + (now.getTimezoneOffset() * -60 * 1000))
+  
+  return `${String(userTime.getHours()).padStart(2, '0')}h${String(userTime.getMinutes()).padStart(2, '0')}`
+}
+
 // Generate embed URL based on video URL
 function getEmbedUrl(url: string): string {
   // Handle different video providers
@@ -236,6 +318,8 @@ export default function WatchSeriesPage() {
   const [isLoadingVideo, setIsLoadingVideo] = useState(true)
   const [serieLogo, setSerieLogo] = useState<string | null>(null)
   const [isRefreshingSources, setIsRefreshingSources] = useState(false)
+  const [episodeRelease, setEpisodeRelease] = useState<any | null>(null)
+  const [countdown, setCountdown] = useState<string>('')
 
   useEffect(() => {
     const loadData = async () => {
@@ -265,6 +349,12 @@ export default function WatchSeriesPage() {
         const episodeData = await getEpisodeDetails(id, parseInt(season), parseInt(episode))
         if (episodeData) {
           setEpisodeDetails(episodeData)
+        }
+        
+        // Charger les informations de sortie depuis Supabase
+        if (serieData) {
+          const releaseData = await getEpisodeRelease(serieData.id, parseInt(season), parseInt(episode))
+          setEpisodeRelease(releaseData)
         }
         
         // Charger les vidéos disponibles
@@ -391,6 +481,22 @@ export default function WatchSeriesPage() {
       loadData()
     }
   }, [id, season, episode])
+
+  // Update countdown every second
+  useEffect(() => {
+    if (!episodeRelease) return
+
+    const updateCountdown = () => {
+      const releaseDate = new Date(episodeRelease.release_date)
+      const countdownText = getCountdown(releaseDate, episodeRelease.release_time)
+      setCountdown(countdownText)
+    }
+
+    updateCountdown()
+    const interval = setInterval(updateCountdown, 1000)
+
+    return () => clearInterval(interval)
+  }, [episodeRelease])
 
   // Mettre à jour la sélection de vidéo basée sur les paramètres d'URL (sans relancer le chargement)
   useEffect(() => {
@@ -754,8 +860,45 @@ export default function WatchSeriesPage() {
                       <div className="w-16 h-16 bg-black border border-white/30 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Tv className="w-8 h-8 text-white/60" />
                       </div>
-                      <h2 className="text-xl font-medium mb-2">Aucune vidéo disponible</h2>
-                      <p className="text-gray-400">Cet épisode n'est pas disponible en streaming pour le moment.</p>
+                      
+                      {episodeRelease ? (
+                        <>
+                          <h2 className="text-lg sm:text-xl font-medium mb-2 sm:mb-2 text-blue-400">
+                            Compte à rebours
+                          </h2>
+                          <div className="mb-3 sm:mb-4">
+                            <div className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-sky-600/20 to-blue-600/20 border border-sky-500/30 rounded-full text-base sm:text-lg font-medium text-blue-400 mb-2">
+                              {countdown}
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                              <span className="text-gray-300">
+                                S{String(episodeRelease.season_number).padStart(2, '0')}E{String(episodeRelease.episode_number).padStart(2, '0')}
+                              </span>
+                              {episodeRelease.release_time && (
+                                <>
+                                  <span className="text-gray-400 hidden sm:inline">•</span>
+                                  <span className="text-gray-300">
+                                    à {formatLocalTime(episodeRelease.release_time)}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            {episodeRelease.episode_title && (
+                              <p className="text-gray-400 text-xs mt-1 line-clamp-1">
+                                "{episodeRelease.episode_title}"
+                              </p>
+                            )}
+                          </div>
+                          <p className="text-gray-500 text-xs sm:text-sm">
+                            Revenez à la diffusion pour regarder !
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <h2 className="text-xl font-medium mb-2">Aucune vidéo disponible</h2>
+                          <p className="text-gray-400">Cet épisode n'est pas disponible en streaming pour le moment.</p>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

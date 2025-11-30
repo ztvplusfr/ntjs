@@ -18,6 +18,37 @@ interface WatchPlayerProps {
   allVideos: Video[]
 }
 
+// Translation function with flags for language codes
+const translateLanguageWithFlag = (lang: string): string => {
+  const translations: { [key: string]: string } = {
+    'vf': '🇫🇷 VF',
+    'vostfr': '🇫🇷 VOSTFR',
+    'vo': '🌍 VO',
+    'fr': '🇫🇷 FR',
+    'en': '🇬🇧 EN',
+    'es': '🇪🇸 ES',
+    'de': '🇩🇪 DE',
+    'it': '🇮🇹 IT',
+    'pt': '🇵🇹 PT',
+    'nl': '🇳🇱 NL',
+    'sv': '🇸🇪 SV',
+    'no': '🇳🇴 NO',
+    'da': '🇩🇰 DA',
+    'fi': '🇫🇮 FI',
+    'pl': '🇵🇱 PL',
+    'tr': '🇹🇷 TR',
+    'ru': '🇷🇺 RU',
+    'ja': '🇯🇵 JP',
+    'ko': '🇰🇷 KR',
+    'zh': '🇨🇳 CN',
+    'ar': '🇸🇦 AR',
+    'hi': '🇮🇳 HI',
+    'th': '🇹🇭 TH',
+    'vi': '🇻🇳 VN'
+  }
+  return translations[lang.toLowerCase()] || `🌍 ${lang.toUpperCase()}`
+}
+
 export default function WatchPlayer({ video, movie, allVideos }: WatchPlayerProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -79,7 +110,7 @@ export default function WatchPlayer({ video, movie, allVideos }: WatchPlayerProp
   return (
     <div className="space-y-4">
       {/* Video Container */}
-      <div className="relative w-full bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}
+      <div className="relative w-full bg-black rounded-lg overflow-hidden border border-white/20" style={{ aspectRatio: '16/9' }}
            onContextMenu={(e: React.MouseEvent) => e.preventDefault()}
            onCopy={(e: React.ClipboardEvent) => e.preventDefault()}
            onCut={(e: React.ClipboardEvent) => e.preventDefault()}
@@ -147,35 +178,37 @@ export default function WatchPlayer({ video, movie, allVideos }: WatchPlayerProp
         )}
       </div>
 
-      {/* Video Info Bar - Simplified for faster render */}
-      <div className="bg-gray-900 rounded-lg p-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 bg-red-600 rounded flex items-center justify-center">
-                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+      {/* Video Info Bar - Modern design */}
+      <div className="bg-black/60 backdrop-blur-sm border border-white/10 rounded-lg p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z"/>
                 </svg>
               </div>
-              <span className="font-medium text-sm">{video.name}</span>
+              <span className="font-medium text-white">{video.name}</span>
             </div>
             
-            <div className="flex items-center space-x-2 text-xs">
-              <span className={`px-2 py-1 rounded ${
-                video.quality === '1080p' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
-              }`}>
+            <div className="flex items-center space-x-2">
+              <span className="px-3 py-1 bg-black border border-white/20 rounded-full text-xs text-white font-medium">
                 {video.quality}
               </span>
-              <span className="px-2 py-1 bg-gray-700 rounded text-gray-300">
-                {video.lang}
+              <span className="px-3 py-1 bg-black border border-white/20 rounded-full text-xs text-white font-medium">
+                {translateLanguageWithFlag(video.lang)}
               </span>
-              <span className={`px-2 py-1 rounded ${
-                video.pub === 1 ? 'bg-red-600/20 text-red-400' : 'bg-green-600/20 text-green-400'
+              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                video.pub === 1 
+                  ? 'bg-red-600/20 text-red-400 border-red-600/40' 
+                  : 'bg-green-600/20 text-green-400 border-green-600/40'
               }`}>
                 {video.pub === 1 ? 'Avec pub' : 'Sans pub'}
               </span>
-              <span className={`px-2 py-1 rounded ${
-                video.play === 1 ? 'bg-blue-600/20 text-blue-400' : 'bg-purple-600/20 text-purple-400'
+              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                video.play === 1 
+                  ? 'bg-blue-600/20 text-blue-400 border-blue-600/40' 
+                  : 'bg-purple-600/20 text-purple-400 border-purple-600/40'
               }`}>
                 {video.play === 1 ? 'Natif' : 'Externe'}
               </span>
@@ -184,8 +217,8 @@ export default function WatchPlayer({ video, movie, allVideos }: WatchPlayerProp
 
           {/* Quick Quality Switcher */}
           {allVideos.length > 1 && (
-            <div className="flex items-center space-x-2">
-              <span className="text-xs text-gray-400">Qualité:</span>
+            <div className="flex items-center space-x-3">
+              <span className="text-xs text-gray-400 font-medium">Qualité:</span>
               <div className="flex space-x-1">
                 {allVideos
                   .filter(v => v !== video)
@@ -194,7 +227,7 @@ export default function WatchPlayer({ video, movie, allVideos }: WatchPlayerProp
                     <a
                       key={index}
                       href={`/watch/${movie.id}?server=${encodeURIComponent(otherVideo.name)}&quality=${otherVideo.quality}&lang=${otherVideo.lang}`}
-                      className="px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded text-xs transition-colors"
+                      className="px-3 py-1 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 rounded-full text-xs text-white font-medium transition-all duration-200"
                     >
                       {otherVideo.quality}
                     </a>

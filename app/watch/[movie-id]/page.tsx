@@ -34,6 +34,24 @@ interface VideoResponse {
   videos: Video[]
 }
 
+async function getMovieLogos(id: string) {
+  const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
+  
+  try {
+    const response = await fetch(
+      `https://api.themoviedb.org/3/movie/${id}/images?api_key=${apiKey}`
+    )
+    
+    if (!response.ok) return null
+    
+    const data = await response.json()
+    return data?.logos || []
+  } catch (error) {
+    console.error('Error fetching movie logos:', error)
+    return null
+  }
+}
+
 async function getMovieVideos(id: string): Promise<VideoResponse | null> {
   try {
     const response = await fetch(
@@ -133,10 +151,11 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
   const movieId = (await params)['movie-id']
   const search = await searchParams
   
-  // Fetch movie details and videos
-  const [movie, videosData] = await Promise.all([
+  // Fetch movie details, videos and logos
+  const [movie, videosData, logosData] = await Promise.all([
     getMovieDetails(movieId),
-    getMovieVideos(movieId)
+    getMovieVideos(movieId),
+    getMovieLogos(movieId)
   ])
   
   if (!movie) {
@@ -183,6 +202,33 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
     ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}`
     : null
 
+  // Find best logo with priority: FR > EN > other languages > any
+  const getBestLogo = () => {
+    if (!logosData || logosData.length === 0) return null
+    
+    // Try to find French logo first
+    const frLogo = logosData.find((logo: any) => logo.iso_639_1 === 'fr')
+    if (frLogo) {
+      return `https://image.tmdb.org/t/p/w500${frLogo.file_path}`
+    }
+    
+    // Try to find English logo
+    const enLogo = logosData.find((logo: any) => logo.iso_639_1 === 'en')
+    if (enLogo) {
+      return `https://image.tmdb.org/t/p/w500${enLogo.file_path}`
+    }
+    
+    // Use any available logo
+    const anyLogo = logosData[0]
+    if (anyLogo) {
+      return `https://image.tmdb.org/t/p/w500${anyLogo.file_path}`
+    }
+    
+    return null
+  }
+  
+  const bestLogo = getBestLogo()
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Background */}
@@ -208,7 +254,15 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
               ← Retour au film
             </Link>
             <span className="text-gray-500">|</span>
-            <h1 className="text-xl font-bold">{movie.title}</h1>
+            {bestLogo ? (
+              <img 
+                src={bestLogo} 
+                alt={movie.title}
+                className="h-8 object-contain"
+              />
+            ) : (
+              <h1 className="text-xl font-bold">{movie.title}</h1>
+            )}
             <ViewCounter id={movieId} type="movie" className="ml-auto" />
           </div>
         </div>
@@ -296,7 +350,17 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
             {/* Main Info */}
             <div className="lg:col-span-2">
-              <h2 className="text-2xl font-bold mb-4">{movie.title}</h2>
+              {bestLogo ? (
+                <div className="mb-4">
+                  <img 
+                    src={bestLogo} 
+                    alt={movie.title}
+                    className="h-16 lg:h-20 object-contain"
+                  />
+                </div>
+              ) : (
+                <h2 className="text-2xl font-bold mb-4">{movie.title}</h2>
+              )}
               
               {/* Meta */}
               <div className="flex flex-wrap gap-3 mb-6">

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import ShareButton from '@/components/share-button'
 import PageHead from '@/components/page-head'
 import StreamingDisclaimer from '@/components/streaming-disclaimer'
+import { supabase } from '@/lib/supabase'
 
 // Interface pour les données vidéos (correspond à l'API locale)
 interface VideoServer {
@@ -165,6 +166,89 @@ async function getSeasonDetails(serieId: string, seasonNumber: number): Promise<
   }
 }
 
+// Fonction pour calculer le compte à rebours
+function getCountdown(releaseDate: Date, releaseTime?: string): string {
+  const now = new Date()
+  const target = new Date(releaseDate)
+  
+  if (releaseTime) {
+    const [hours, minutes] = releaseTime.split(':')
+    // Convert from UTC+4 (Ocean Indian) to user's timezone
+    target.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+    
+    // Convert UTC+4 time to UTC
+    const utcTime = target.getTime() - (4 * 60 * 60 * 1000)
+    
+    // Convert to user's local timezone
+    const userTime = new Date(utcTime + (now.getTimezoneOffset() * -60 * 1000))
+    target.setTime(userTime.getTime())
+  } else {
+    target.setHours(0, 0, 0, 0)
+  }
+  
+  const diff = target.getTime() - now.getTime()
+  
+  if (diff <= 0) {
+    return 'Maintenant'
+  }
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+  
+  if (days > 0) {
+    return `${days}j ${hours}h ${minutes}min`
+  } else if (hours > 0) {
+    return `${hours}h ${minutes}min ${seconds}s`
+  } else if (minutes > 0) {
+    return `${minutes}min ${seconds}s`
+  } else {
+    return `${seconds}s`
+  }
+}
+
+// Fonction pour formater l'heure locale pour l'affichage
+function formatLocalTime(releaseTime: string): string {
+  const now = new Date()
+  const [hours, minutes] = releaseTime.split(':')
+  
+  // Create date in UTC+4
+  const utc4Date = new Date()
+  utc4Date.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+  
+  // Convert UTC+4 to UTC
+  const utcTime = utc4Date.getTime() - (4 * 60 * 60 * 1000)
+  
+  // Convert to user's local timezone
+  const userTime = new Date(utcTime + (now.getTimezoneOffset() * -60 * 1000))
+  
+  return `${String(userTime.getHours()).padStart(2, '0')}h${String(userTime.getMinutes()).padStart(2, '0')}`
+}
+
+// Fonction pour récupérer les prochains épisodes depuis Supabase
+async function getUpcomingEpisodes(tmdbId: number): Promise<any[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('series_releases')
+      .select('*')
+      .eq('tmdb_id', tmdbId)
+      .gte('release_date', new Date().toISOString().split('T')[0])
+      .order('release_date', { ascending: true })
+      .limit(5)
+
+    if (error) {
+      console.error('Error fetching upcoming episodes:', error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error fetching upcoming episodes:', error)
+    return null
+  }
+}
+
 export default function SeriePage() {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -189,6 +273,8 @@ export default function SeriePage() {
   const [error, setError] = useState<string | null>(null)
   const [serieLogo, setSerieLogo] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [upcomingEpisodes, setUpcomingEpisodes] = useState<any[]>([])
+  const [countdowns, setCountdowns] = useState<{ [key: string]: string }>({})
 
   // Charger le filtre depuis localStorage
   useEffect(() => {
@@ -290,6 +376,38 @@ export default function SeriePage() {
       loadEpisodes()
     }
   }, [serie, selectedSeason, id])
+
+  useEffect(() => {
+    const loadUpcomingEpisodes = async () => {
+      if (!serie) return
+      
+      const upcoming = await getUpcomingEpisodes(serie.id)
+      setUpcomingEpisodes(upcoming || [])
+    }
+    
+    if (serie) {
+      loadUpcomingEpisodes()
+    }
+  }, [serie])
+
+  // Update countdowns every second
+  useEffect(() => {
+    const updateCountdowns = () => {
+      const newCountdowns: { [key: string]: string } = {}
+      
+      upcomingEpisodes.forEach((episode) => {
+        const releaseDate = new Date(episode.release_date)
+        newCountdowns[episode.id] = getCountdown(releaseDate, episode.release_time)
+      })
+      
+      setCountdowns(newCountdowns)
+    }
+
+    updateCountdowns()
+    const interval = setInterval(updateCountdowns, 1000)
+
+    return () => clearInterval(interval)
+  }, [upcomingEpisodes])
 
   if (loading) {
     return (
@@ -572,6 +690,57 @@ export default function SeriePage() {
                   </div>
                 )}
                 
+                {/* Upcoming Episodes Badges */}
+                {upcomingEpisodes.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {upcomingEpisodes.slice(0, 3).map((episode) => {
+                      const releaseDate = new Date(episode.release_date)
+                      const today = new Date()
+                      const daysUntil = Math.ceil((releaseDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+                      
+                      return (
+                        <div key={episode.id}>
+                          <div 
+                            className="px-3 py-2 bg-gradient-to-r from-sky-600/20 to-blue-600/20 border border-sky-500/30 rounded-full text-xs sm:text-sm backdrop-blur-sm"
+                          >
+                            <div className="flex items-center gap-1">
+                              <span className="text-blue-400 font-medium">
+                                S{String(episode.season_number).padStart(2, '0')}E{String(episode.episode_number).padStart(2, '0')}
+                              </span>
+                              <span className="text-blue-400">
+                                sort
+                              </span>
+                              <span className="text-blue-400 font-medium">
+                                {daysUntil === 0 ? 'aujourd\'hui' : 
+                                 daysUntil === 1 ? 'demain' : 
+                                 daysUntil <= 7 ? `dans ${daysUntil}j` : 
+                                 releaseDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                              </span>
+                              {episode.release_time && (
+                                <>
+                                  <span className="text-blue-400">
+                                    à
+                                  </span>
+                                  <span className="text-blue-400 font-medium">
+                                    {formatLocalTime(episode.release_time)}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {upcomingEpisodes.length > 3 && (
+                      <div className="px-3 py-2 bg-black/40 border border-white/20 rounded-full text-xs sm:text-sm">
+                        <span className="text-white/60">
+                          +{upcomingEpisodes.length - 3} épisode{upcomingEpisodes.length - 3 > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 {/* Overview */}
                 <div className="max-w-4xl">
                   <p className="text-gray-200 leading-relaxed text-base sm:text-lg mb-4 line-clamp-2 sm:line-clamp-none">
@@ -718,6 +887,23 @@ export default function SeriePage() {
                                   Épisode {episode.episode_number}: {episode.name}
                                 </h3>
                               )}
+                              
+                              {/* Countdown Timer for this episode */}
+                              {(() => {
+                                const upcomingEpisode = upcomingEpisodes.find(
+                                  ue => ue.season_number === selectedSeason && ue.episode_number === episode.episode_number
+                                )
+                                if (upcomingEpisode && countdowns[upcomingEpisode.id]) {
+                                  return (
+                                    <div className="mt-2">
+                                      <span className="px-2 py-1 bg-black/40 border border-white/20 rounded-full text-xs text-blue-400 font-medium">
+                                        {countdowns[upcomingEpisode.id]}
+                                      </span>
+                                    </div>
+                                  )
+                                }
+                                return null
+                              })()}
                             </div>
                             
                             <div className="flex items-center gap-2 ml-4">
@@ -807,6 +993,24 @@ export default function SeriePage() {
                                   Épisode {episode.episode_number}: {episode.name}
                                 </h3>
                               )}
+                              
+                              {/* Countdown Timer for this episode */}
+                              {(() => {
+                                const upcomingEpisode = upcomingEpisodes.find(
+                                  ue => ue.season_number === selectedSeason && ue.episode_number === episode.episode_number
+                                )
+                                if (upcomingEpisode && countdowns[upcomingEpisode.id]) {
+                                  return (
+                                    <div className="mb-2">
+                                      <span className="px-2 py-1 bg-black/40 border border-white/20 rounded-full text-xs text-blue-400 font-medium">
+                                        {countdowns[upcomingEpisode.id]}
+                                      </span>
+                                    </div>
+                                  )
+                                }
+                                return null
+                              })()}
+                              
                               <div className="flex items-center gap-4 text-sm text-gray-400 mb-2">
                                 {episode.air_date && (
                                   <div className="flex items-center gap-1">

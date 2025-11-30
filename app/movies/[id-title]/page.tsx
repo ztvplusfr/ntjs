@@ -27,7 +27,7 @@ interface VideoResponse {
 async function getStreamingVideos(id: string) {
   try {
     // Utiliser l'API interne comme pour les séries
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/movies/${id}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/movies/${id}`, {
       cache: 'no-store',
     })
     
@@ -59,6 +59,55 @@ async function getMovieImages(id: string) {
     return await response.json()
   } catch (error) {
     console.error('Error fetching movie images:', error)
+    return null
+  }
+}
+
+async function getMovieCast(id: string) {
+  const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
+  
+  try {
+    const response = await fetch(
+      `https://api.themoviedb.org/3/movie/${id}/credits?api_key=${apiKey}&language=fr-FR`
+    )
+    
+    if (!response.ok) return null
+    
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error fetching movie cast:', error)
+    return null
+  }
+}
+
+async function getSimilarMovies(id: string) {
+  const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
+  
+  try {
+    // Use recommendations instead of similar movies for better relevance
+    const response = await fetch(
+      `https://api.themoviedb.org/3/movie/${id}/recommendations?api_key=${apiKey}&language=fr-FR&page=1`
+    )
+    
+    if (!response.ok) return null
+    
+    const data = await response.json()
+    
+    // If no recommendations, fallback to similar movies
+    if (!data.results || data.results.length === 0) {
+      const similarResponse = await fetch(
+        `https://api.themoviedb.org/3/movie/${id}/similar?api_key=${apiKey}&language=fr-FR&page=1`
+      )
+      if (similarResponse.ok) {
+        const similarData = await similarResponse.json()
+        return similarData
+      }
+    }
+    
+    return data
+  } catch (error) {
+    console.error('Error fetching movie recommendations:', error)
     return null
   }
 }
@@ -146,21 +195,25 @@ export default async function MoviePage({ params }: MoviePageProps) {
   
   console.log('MoviePage - Récupération des données pour le film ID:', id)
   
-  const [movie, videos, imagesData] = await Promise.all([
+  const [movie, videos, imagesData, similarMovies, castData] = await Promise.all([
     getMovieDetails(id),
     getStreamingVideos(id),
-    getMovieImages(id)
+    getMovieImages(id),
+    getSimilarMovies(id),
+    getMovieCast(id)
   ])
 
   console.log('MoviePage - Données récupérées :', {
     movie: movie ? movie.title : 'non trouvé',
     videos: videos ? `${videos.videos?.length || 0} vidéos de streaming` : 'null',
-    imagesData: imagesData ? `${imagesData.posters?.length || 0} posters, ${imagesData.backdrops?.length || 0} backdrops` : 'absent'
+    imagesData: imagesData ? `${imagesData.posters?.length || 0} posters, ${imagesData.backdrops?.length || 0} backdrops` : 'absent',
+    similarMovies: similarMovies ? `${similarMovies.results?.length || 0} films similaires` : 'null',
+    cast: castData ? `${castData.cast?.length || 0} acteurs` : 'null'
   })
 
   if (!movie) {
     notFound()
   }
 
-  return <MovieClientPage movie={movie} videos={videos} imagesData={imagesData} />
+  return <MovieClientPage movie={movie} videos={videos} imagesData={imagesData} similarMovies={similarMovies} castData={castData} />
 }
