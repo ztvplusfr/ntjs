@@ -555,7 +555,7 @@ export default function WatchSeriesPage() {
 
   // Fonction pour vérifier si un épisode a des vidéos disponibles
   const hasEpisodeVideos = (seasonNum: string, episodeNum: string) => {
-    return videosData?.season[seasonNum]?.episodes[episodeNum]?.videos?.length > 0
+    return videosData?.season?.[seasonNum]?.episodes?.[episodeNum]?.videos?.length > 0
   }
 
   // Fonction pour trouver le prochain épisode disponible (y compris dans les saisons suivantes)
@@ -822,7 +822,7 @@ export default function WatchSeriesPage() {
                     {selectedServer.play === 1 ? (
                       // Lecteur vidéo natif pour play=1
                       <video
-                        key={selectedServer.url}
+                        key={`video-episode-${season}-${episode}-${selectedServer.id}`}
                         controls
                         controlsList="nodownload noremoteplayback"
                         className="w-full aspect-video select-none"
@@ -849,6 +849,7 @@ export default function WatchSeriesPage() {
                         )}
                         {embedUrl && (
                           <iframe
+                            key={`episode-${season}-${episode}-${selectedServer.id}`}
                             src={embedUrl}
                             className={`w-full aspect-video border-0 ${isLoadingVideo ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
                             allowFullScreen
