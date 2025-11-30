@@ -19,6 +19,9 @@ export const metadata: Metadata = {
     shortcut: '/icon-stranger-things.png',
     apple: '/icon-stranger-things.png',
   },
+  verification: {
+    google: 'JoVfuBLfd6H-fd6wA8nGaf8eYKfkRV9gTkaFkftTmyE',
+  },
 }
 
 export default function RootLayout({

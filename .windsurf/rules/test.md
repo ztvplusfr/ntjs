@@ -2,30 +2,44 @@
 trigger: always_on
 ---
 
-# Windsurfer Guidelines
+Windsurfer Guidelines
+Vérification systématique des erreurs
 
-## Vérification systématique des erreurs
+Toujours vérifier les erreurs juste après avoir modifié un fichier.
 
-* Toujours vérifier les erreurs **immédiatement après chaque modification de fichier**.
-* Contrôler le terminal, les logs, et les messages de build.
-* Ne jamais ignorer un warning ou une erreur.
+Utiliser une commande locale comme :
 
-## Approche Mobile-First
+npx tsc --noEmit chemin/du/fichier
 
-* Toujours commencer par le design et le layout pour **écrans mobiles**.
-* Étendre ensuite progressivement vers les tablettes puis les écrans larges.
-* Utiliser des media queries simples et claires.
 
-## Rédaction et structure du code
+pour détecter immédiatement les erreurs.
 
-* Écrire du code **simple, clair et lisible**.
-* Nommer les variables, composants et fichiers de manière logique.
-* Éviter les structures complexes inutiles.
-* Privilégier les solutions courtes et maintenables.
+Contrôler en parallèle le terminal, les logs et les messages de build.
 
-## Intelligence dans la conception
+Ne jamais ignorer un warning ou un message d’erreur.
 
-* Concevoir chaque fonction ou composant pour être **facile à comprendre** et réutilisable.
-* Garder un code prévisible et cohérent.
-* Limiter les dépendances inutiles.
-* Commencer toujours par la solution la plus simple avant de complexifier.
+Approche Mobile-First
+
+Construire l’UI en commençant par les écrans mobiles.
+
+Étendre ensuite vers les tablettes et les écrans larges.
+
+Utiliser des media queries simples et progressives.
+
+Structure et clarté du code
+
+Garder un code clair, propre et lisible.
+
+Nommer fichiers, composants et variables de façon logique et explicite.
+
+Éviter les structures complexes ou la sur-abstraction.
+
+Choisir systématiquement la solution la plus simple et maintenable.
+
+Conception intelligente
+
+Chaque fonction ou composant doit être prévisible, compréhensible et réutilisable.
+
+Limiter les dépendances et éviter le surpoids dans l’architecture.
+
+Maintenir une cohérence globale dans la logique et le style.

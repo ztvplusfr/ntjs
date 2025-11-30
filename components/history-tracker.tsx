@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { cookieUtils, WatchHistoryItem } from '@/lib/cookies'
@@ -45,6 +45,7 @@ export default function HistoryTracker({
 }: HistoryTrackerProps) {
   const { data: session } = useSession()
   const searchParams = useSearchParams()
+  const [hasTracked, setHasTracked] = useState(false)
 
   const sendHistoryToSupabase = async (payload: {
     contentId: string
@@ -174,12 +175,20 @@ export default function HistoryTracker({
       const existingHistory = cookieUtils.getWatchHistory()
       
       // Filtrer les doublons et ajouter le nouvel élément au début
-      const filteredHistory = existingHistory.filter(item => 
-        !(item.type === historyItem.type && 
-          item.id === historyItem.id && 
-          item.episode?.season === historyItem.episode?.season && 
-          item.episode?.episode === historyItem.episode?.episode)
-      )
+      // Pour les films: vérifier uniquement id et type
+      // Pour les séries: vérifier id, type, season et episode
+      const filteredHistory = existingHistory.filter(item => {
+        if (historyItem.type === 'movie') {
+          // Pour les films, vérifier uniquement id et type
+          return !(item.type === historyItem.type && item.id === historyItem.id)
+        } else {
+          // Pour les séries, vérifier id, type, season et episode
+          return !(item.type === historyItem.type && 
+            item.id === historyItem.id && 
+            item.episode?.season === historyItem.episode?.season && 
+            item.episode?.episode === historyItem.episode?.episode)
+        }
+      })
       
       const newHistory = [historyItem, ...filteredHistory].slice(0, 50) // Limiter à 50 éléments
       
@@ -204,9 +213,16 @@ export default function HistoryTracker({
   }
 
   useEffect(() => {
+    // Ne pas tracker si déjà fait ou si pas de session
+    if (hasTracked || !session) {
+      return
+    }
+    
     try {
-      // Récupérer les infos vidéo depuis l'URL si pas de video prop
+      // Récupérer les infos vidéo depuis la prop video d'abord (plus fiable)
       let videoInfo = video
+      
+      // Si pas de video prop, essayer de récupérer depuis l'URL
       if (!videoInfo && searchParams) {
         const urlServer = searchParams.get('server')
         const urlLang = searchParams.get('lang') || searchParams.get('language')
@@ -227,19 +243,36 @@ export default function HistoryTracker({
         }
       }
       
+      // Si toujours pas de videoInfo, créer une entrée basique sans infos vidéo
+      if (!videoInfo && (movie || series)) {
+        console.log('HistoryTracker: No video info available, creating basic history entry')
+        videoInfo = {
+          id: 'default-video',
+          server: 'default',
+          lang: 'unknown',
+          quality: 'unknown',
+          url: '',
+          hasAds: false,
+          pub: 0,
+          serverIndex: 0
+        }
+      }
+      
       const processHistory = async () => {
         if (type === 'movie' && movie) {
           await addToHistory('movie', movie, undefined, undefined, undefined, videoInfo)
         } else if (type === 'series' && series) {
           await addToHistory('series', series, season, episode, episodeTitle, videoInfo)
         }
+        // Marquer comme tracker pour éviter les doublons
+        setHasTracked(true)
       }
       
       processHistory().catch(console.error)
     } catch (error) {
       console.error('Error in HistoryTracker useEffect:', error)
     }
-  }, [type, movie, series, season, episode, episodeTitle, video, searchParams])
+  }, [type, movie, series, season, episode, episodeTitle, video, searchParams, session, hasTracked])
 
   // Ce composant ne rend rien visuellement
   return null

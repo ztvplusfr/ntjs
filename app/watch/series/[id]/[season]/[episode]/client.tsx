@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, notFound, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Tv, Calendar, Clock, Star, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Tv, Calendar, Clock, Star, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import HistoryTracker from '@/components/history-tracker'
 import PageHead from '@/components/page-head'
 import ViewCounter from '@/components/view-counter'
+import DiscordMessageModal from '@/components/discord-message-modal'
 import { cookieUtils } from '@/lib/cookies'
-import { supabase } from '@/lib/supabase'
+import { supabase, getEpisodeVideos } from '@/lib/supabase'
 import VideoPlayer from '@/components/video-player'
 
 interface VideoServer {
@@ -187,17 +188,32 @@ async function getVideoSources(url: string): Promise<VideoSource[] | null> {
   }
 }
 
-async function getSeriesVideos(id: string): Promise<SeriesVideosData | null> {
+async function getSeriesVideos(tmdbId: number, seasonNumber: number, episodeNumber: number): Promise<VideoServer[] | null> {
   try {
-    const response = await fetch(`/api/series/${id}`)
+    // Utiliser Supabase pour récupérer les vidéos de l'épisode
+    const videos = await getEpisodeVideos(tmdbId, seasonNumber, episodeNumber)
     
-    if (!response.ok) {
+    if (!videos || videos.length === 0) {
       return null
     }
-    
-    const data = await response.json()
-    return data
+
+    // Transformer les données de Supabase au format VideoServer
+    const videoServers: VideoServer[] = videos.map((video, index) => ({
+      id: video.id.toString(),
+      name: video.name || `Server ${index + 1}`,
+      url: video.url,
+      lang: video.lang,
+      quality: video.quality,
+      pub: video.pub,
+      play: video.play,
+      hasAds: video.pub === 1,
+      server: video.name || `Server ${index + 1}`,
+      serverIndex: index + 1
+    }))
+
+    return videoServers
   } catch (error) {
+    console.error('Error fetching series videos:', error)
     return null
   }
 }
@@ -312,7 +328,8 @@ export default function WatchSeriesPage() {
   const [error, setError] = useState('')
   const [serie, setSerie] = useState<SerieDetails | null>(null)
   const [episodeDetails, setEpisodeDetails] = useState<EpisodeDetails | null>(null)
-  const [videosData, setVideosData] = useState<SeriesVideosData | null>(null)
+  const [videosData, setVideosData] = useState<VideoServer[] | null>(null)
+  const [seriesVideosData, setSeriesVideosData] = useState<any | null>(null) // Pour la navigation
   const [selectedServer, setSelectedServer] = useState<VideoServer | null>(null)
   const [currentUrl, setCurrentUrl] = useState('')
   const [embedUrl, setEmbedUrl] = useState<string>('')
@@ -321,6 +338,7 @@ export default function WatchSeriesPage() {
   const [isRefreshingSources, setIsRefreshingSources] = useState(false)
   const [episodeRelease, setEpisodeRelease] = useState<any | null>(null)
   const [countdown, setCountdown] = useState<string>('')
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false)
 
   useEffect(() => {
     const loadData = async () => {
@@ -358,117 +376,56 @@ export default function WatchSeriesPage() {
           setEpisodeRelease(releaseData)
         }
         
-        // Charger les vidéos disponibles
-        const videos = await getSeriesVideos(id)
-        if (videos) {
-          setVideosData(videos)
+        // Charger les vidéos disponibles depuis Supabase
+        // Charger toutes les vidéos de la série pour la navigation
+        const seriesResponse = await fetch(`/api/series/${serieData.id}`)
+        const seriesData = await seriesResponse.json()
+        
+        // Charger les vidéos de l'épisode actuel
+        const episodeResponse = await fetch(`/api/series/${serieData.id}/${season}/${episode}`)
+        const episodeVideosData = await episodeResponse.json()
+        
+        if (episodeVideosData.videos && episodeVideosData.videos.length > 0) {
+          setVideosData(episodeVideosData.videos)
           
-          // Ajouter des IDs uniques à toutes les vidéos si elles n'en ont pas
-          const episodeVideos = videos.season[season]?.episodes[episode]
-          if (episodeVideos?.videos?.length > 0) {
-            // Traiter les vidéos avec play=1 pour récupérer les vraies sources
-            const processedVideos = await Promise.all(
-              episodeVideos.videos.map(async (video, index) => {
-                if (video.play === 1 && video.url) {
-                  try {
-                    // Récupérer les vraies sources
-                    const sources = await getVideoSources(video.url)
-                    if (sources && sources.length > 0) {
-                      // Transformer chaque source en une vidéo distincte
-                      return sources.map((source, sourceIndex) => ({
-                        id: `${id}-s${season}e${episode}-video-${index}-source-${sourceIndex}`,
-                        name: video.name,
-                        url: source.m3u8,
-                        lang: source.language.toLowerCase().includes('french') || source.language === 'French' ? 'vf' : 
-                             source.language.toLowerCase().includes('multi') ? 'vostfr' : 
-                             source.language.toLowerCase(),
-                        quality: source.quality,
-                        pub: video.pub,
-                        play: 1,
-                        hasAds: video.pub === 1,
-                        server: video.name,
-                        serverIndex: index + 1,
-                        originalSrc: source.src
-                      }))
-                    } else {
-                      // Si aucune source trouvée, garder la vidéo originale
-                      return [{
-                        ...video,
-                        id: video.id || `${id}-s${season}e${episode}-video-${index}`,
-                        hasAds: video.pub === 1,
-                        server: video.name,
-                        serverIndex: index + 1
-                      }]
-                    }
-                  } catch (error) {
-                    console.error(`Failed to fetch sources for video ${video.name}:`, error)
-                    // Garder la vidéo originale en cas d'erreur
-                    return [{
-                      ...video,
-                      id: video.id || `${id}-s${season}e${episode}-video-${index}`,
-                      hasAds: video.pub === 1,
-                      server: video.name,
-                      serverIndex: index + 1
-                    }]
-                  }
-                }
-                // Vidéo normale, la garder telle quelle
-                return [{
-                  ...video,
-                  id: video.id || `${id}-s${season}e${episode}-video-${index}`,
-                  hasAds: video.pub === 1,
-                  server: video.name,
-                  serverIndex: index + 1
-                }]
-              })
+          // Stocker les données de la série pour la navigation
+          setSeriesVideosData(seriesData)
+          
+          // Récupérer les préférences depuis les cookies
+          const savedPreferences = cookieUtils.getSeriesPreferences(id)
+          let selectedVideo = episodeVideosData.videos[0] // Par défaut, première vidéo
+          
+          // Priorité 1: Paramètres d'URL
+          const urlServer = searchParams.get('server')
+          const urlLang = searchParams.get('lang')
+          const urlQuality = searchParams.get('quality')
+          const urlVideoId = searchParams.get('videoId')
+          
+          if (urlServer && urlLang && urlQuality) {
+            const urlVideo = episodeVideosData.videos.find(video => 
+              video.server === urlServer && 
+              video.lang === urlLang && 
+              video.quality === urlQuality &&
+              (!urlVideoId || video.id === urlVideoId)
+            )
+            if (urlVideo) {
+              selectedVideo = urlVideo
+            }
+          } else if (savedPreferences) {
+            // Priorité 2: Préférences sauvegardées
+            // Chercher une vidéo qui correspond aux préférences sauvegardées
+            const preferredVideo = episodeVideosData.videos.find(video => 
+              video.server === savedPreferences.server && 
+              video.lang === savedPreferences.language && 
+              video.quality === savedPreferences.quality
             )
             
-            // Aplatir le tableau de vidéos
-            const videosWithIds = processedVideos.flat()
-            
-            // Mettre à jour les données avec les IDs
-            const updatedVideosData = { ...videos }
-            if (updatedVideosData.season[season]?.episodes[episode]) {
-              updatedVideosData.season[season].episodes[episode].videos = videosWithIds
+            if (preferredVideo) {
+              selectedVideo = preferredVideo
             }
-            setVideosData(updatedVideosData)
-            
-            // Récupérer les préférences depuis les cookies
-            const savedPreferences = cookieUtils.getSeriesPreferences(id)
-            let selectedVideo = videosWithIds[0] // Par défaut, première vidéo
-            
-            // Priorité 1: Paramètres d'URL
-            const urlServer = searchParams.get('server')
-            const urlLang = searchParams.get('lang')
-            const urlQuality = searchParams.get('quality')
-            const urlVideoId = searchParams.get('videoId')
-            
-            if (urlServer && urlLang && urlQuality) {
-              const urlVideo = videosWithIds.find(video => 
-                video.server === urlServer && 
-                video.lang === urlLang && 
-                video.quality === urlQuality &&
-                (!urlVideoId || video.id === urlVideoId)
-              )
-              if (urlVideo) {
-                selectedVideo = urlVideo
-              }
-            } else if (savedPreferences) {
-              // Priorité 2: Préférences sauvegardées
-              // Chercher une vidéo qui correspond aux préférences sauvegardées
-              const preferredVideo = videosWithIds.find(video => 
-                video.server === savedPreferences.server && 
-                video.lang === savedPreferences.language && 
-                video.quality === savedPreferences.quality
-              )
-              
-              if (preferredVideo) {
-                selectedVideo = preferredVideo
-              }
-            }
-            
-            setSelectedServer(selectedVideo)
           }
+          
+          setSelectedServer(selectedVideo)
         }
         
       } catch (error) {
@@ -501,15 +458,14 @@ export default function WatchSeriesPage() {
 
   // Mettre à jour la sélection de vidéo basée sur les paramètres d'URL (sans relancer le chargement)
   useEffect(() => {
-    if (!loading && videosData?.season[season]?.episodes[episode]?.videos) {
-      const videosWithIds = videosData.season[season].episodes[episode].videos
+    if (!loading && videosData && videosData.length > 0) {
       const urlServer = searchParams.get('server')
       const urlLang = searchParams.get('lang')
       const urlQuality = searchParams.get('quality')
       const urlVideoId = searchParams.get('videoId')
       
       if (urlServer && urlLang && urlQuality) {
-        const urlVideo = videosWithIds.find(video => 
+        const urlVideo = videosData.find(video => 
           video.server === urlServer && 
           video.lang === urlLang && 
           video.quality === urlQuality &&
@@ -560,11 +516,19 @@ export default function WatchSeriesPage() {
 
   // Fonction pour vérifier si un épisode a des vidéos disponibles
   const hasEpisodeVideos = (seasonNum: string, episodeNum: string) => {
-    return videosData?.season?.[seasonNum]?.episodes?.[episodeNum]?.videos?.length > 0
+    if (!seriesVideosData || !seriesVideosData.season) return false
+    
+    const seasonData = seriesVideosData.season[seasonNum]
+    if (!seasonData || !seasonData.episodes) return false
+    
+    const episodeData = seasonData.episodes[episodeNum]
+    return episodeData && episodeData.videos && episodeData.videos.length > 0
   }
 
   // Fonction pour trouver le prochain épisode disponible (y compris dans les saisons suivantes)
   const findNextAvailableEpisode = (currentSeason: number, currentEpisode: number) => {
+    if (!seriesVideosData || !seriesVideosData.season) return null
+    
     // D'abord vérifier les épisodes suivants dans la même saison
     for (let ep = currentEpisode + 1; ep <= 50; ep++) { // Limite raisonnable
       if (hasEpisodeVideos(currentSeason.toString(), ep.toString())) {
@@ -586,6 +550,8 @@ export default function WatchSeriesPage() {
 
   // Fonction pour trouver l'épisode précédent disponible (y compris dans les saisons précédentes)
   const findPreviousAvailableEpisode = (currentSeason: number, currentEpisode: number) => {
+    if (!seriesVideosData || !seriesVideosData.season) return null
+    
     // D'abord vérifier les épisodes précédents dans la même saison
     for (let ep = currentEpisode - 1; ep >= 1; ep--) {
       if (hasEpisodeVideos(currentSeason.toString(), ep.toString())) {
@@ -611,84 +577,16 @@ export default function WatchSeriesPage() {
     setIsRefreshingSources(true)
     
     try {
-      // Recharger les vidéos disponibles
-      const videos = await getSeriesVideos(id)
-      if (videos) {
-        setVideosData(videos)
+      // Recharger les vidéos de l'épisode actuel depuis l'API
+      const response = await fetch(`/api/series/${serie?.id}/${season}/${episode}`)
+      const episodeVideosData = await response.json()
+      
+      if (episodeVideosData.videos && episodeVideosData.videos.length > 0) {
+        setVideosData(episodeVideosData.videos)
         
-        // Traiter les vidéos comme dans le chargement initial
-        const episodeVideos = videos.season[season]?.episodes[episode]
-        if (episodeVideos?.videos?.length > 0) {
-          // Traiter les vidéos avec play=1 pour récupérer les vraies sources
-          const processedVideos = await Promise.all(
-            episodeVideos.videos.map(async (video, index) => {
-              if (video.play === 1 && video.url) {
-                try {
-                  // Récupérer les vraies sources
-                  const sources = await getVideoSources(video.url)
-                  if (sources && sources.length > 0) {
-                    // Transformer chaque source en une vidéo distincte
-                    return sources.map((source, sourceIndex) => ({
-                      id: `${id}-s${season}e${episode}-video-${index}-source-${sourceIndex}`,
-                      name: video.name,
-                      url: source.m3u8,
-                      lang: source.language.toLowerCase().includes('french') || source.language === 'French' ? 'vf' : 
-                           source.language.toLowerCase().includes('multi') ? 'vostfr' : 
-                           source.language.toLowerCase(),
-                      quality: source.quality,
-                      pub: video.pub,
-                      play: 1,
-                      hasAds: video.pub === 1,
-                      server: video.name,
-                      serverIndex: index + 1,
-                      originalSrc: source.src
-                    }))
-                  } else {
-                    // Si aucune source trouvée, garder la vidéo originale
-                    return [{
-                      ...video,
-                      id: video.id || `${id}-s${season}e${episode}-video-${index}`,
-                      hasAds: video.pub === 1,
-                      server: video.name,
-                      serverIndex: index + 1
-                    }]
-                  }
-                } catch (error) {
-                  // Garder la vidéo originale en cas d'erreur
-                  return [{
-                    ...video,
-                    id: video.id || `${id}-s${season}e${episode}-video-${index}`,
-                    hasAds: video.pub === 1,
-                    server: video.name,
-                    serverIndex: index + 1
-                  }]
-                }
-              }
-              // Vidéo normale, la garder telle quelle
-              return [{
-                ...video,
-                id: video.id || `${id}-s${season}e${episode}-video-${index}`,
-                hasAds: video.pub === 1,
-                server: video.name,
-                serverIndex: index + 1
-              }]
-            })
-          )
-          
-          // Aplatir le tableau de vidéos
-          const videosWithIds = processedVideos.flat()
-          
-          // Mettre à jour les données avec les IDs
-          const updatedVideosData = { ...videos }
-          if (updatedVideosData.season[season]?.episodes[episode]) {
-            updatedVideosData.season[season].episodes[episode].videos = videosWithIds
-          }
-          setVideosData(updatedVideosData)
-          
-          // Sélectionner la première vidéo si aucune n'est sélectionnée
-          if (!selectedServer && videosWithIds.length > 0) {
-            setSelectedServer(videosWithIds[0])
-          }
+        // Sélectionner la première vidéo si aucune n'est sélectionnée
+        if (!selectedServer && episodeVideosData.videos.length > 0) {
+          setSelectedServer(episodeVideosData.videos[0])
         }
       }
     } catch (error) {
@@ -740,7 +638,7 @@ export default function WatchSeriesPage() {
   return (
     <>
       <PageHead
-        title={`${serie.name} S${season}E${episode} - ${episodeDetails?.name || `Épisode ${episode}`} en streaming HD gratuit`}
+        title={`${serie.name} S${season}E${episode} - ${episodeDetails?.name || `Épisode ${episode}`} en streaming sur ZTVPLus`}
         description={episodeDetails?.overview || `Regarder ${serie.name} Saison ${season} Épisode ${episode} en streaming HD gratuit sur ZTVPlus. ${serie.number_of_seasons ? `${serie.number_of_seasons} saison${serie.number_of_seasons > 1 ? 's' : ''}.` : ''} ${serie.genres?.map((g: { id: number; name: string }) => g.name).slice(0, 3).join(', ') || ''}`}
         keywords={[
           serie.name,
@@ -923,7 +821,7 @@ export default function WatchSeriesPage() {
                       ) : (
                         <>
                           <h2 className="text-xl font-medium mb-2">Aucune vidéo disponible</h2>
-                          <p className="text-gray-400">Cet épisode n'est pas disponible en streaming pour le moment.</p>
+                          <p className="text-gray-400">Cet épisode n'est pas disponible - ZTVPlus</p>
                         </>
                       )}
                     </div>
@@ -977,11 +875,22 @@ export default function WatchSeriesPage() {
                     })()}
                   </div>
                 </div>
+
+                {/* Bouton Signaler un problème */}
+                <div className="mt-4">
+                  <button
+                    onClick={() => setIsSupportModalOpen(true)}
+                    className="w-full p-3 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <AlertTriangle size={16} />
+                    <span className="text-sm font-medium">Signaler un problème</span>
+                  </button>
+                </div>
               </div>
 
               {/* Video Sources Sidebar - 1/3 width */}
               <div className="lg:col-span-1 w-full">
-                {loading && !videosData?.season[season]?.episodes[episode]?.videos ? (
+                {loading && !videosData ? (
                   <div className="bg-black border border-white/20 rounded-lg p-4 w-full">
                     <div className="animate-pulse space-y-4">
                       <div className="h-6 bg-black/50 border border-white/10 rounded w-1/3"></div>
@@ -992,11 +901,11 @@ export default function WatchSeriesPage() {
                       </div>
                     </div>
                   </div>
-                ) : videosData?.season[season]?.episodes[episode]?.videos && videosData.season[season].episodes[episode].videos.length > 0 ? (
+                ) : videosData && videosData.length > 0 ? (
                   <div className="bg-black border border-white/20 rounded-lg p-4 w-full">
                     <h3 className="text-lg font-semibold mb-4 text-white">Sources disponibles</h3>
                     <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                      {videosData.season[season].episodes[episode].videos.map((video: VideoServer, index: number) => {
+                      {videosData.map((video: VideoServer, index: number) => {
                         const isSelected = Boolean(selectedServer && video.id === selectedServer.id)
                         
                         const handleClick = () => {
@@ -1014,43 +923,31 @@ export default function WatchSeriesPage() {
                         return (
                           <div
                             key={video.id}
-                            className={`block p-3 rounded-lg border transition-all w-full cursor-pointer ${
-                              isSelected 
-                                ? 'bg-black border-white text-white shadow-lg shadow-white/10' 
-                                : 'bg-black border-white/20 hover:border-white/30 hover:bg-gray-900'
-                            }`}
                             onClick={handleClick}
+                            className={`p-3 border rounded-lg cursor-pointer transition-all hover:scale-[1.02] ${
+                              isSelected 
+                                ? 'bg-sky-600/20 border-sky-500' 
+                                : 'bg-black/50 border-white/20 hover:border-white/40'
+                            }`}
                           >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center space-x-2">
-                                {isSelected && (
-                                  <div className="flex items-center">
-                                    <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-2"></div>
-                                    <span className="text-xs text-white font-medium">EN COURS</span>
-                                  </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-2 h-2 rounded-full ${
+                                  video.play === 1 ? 'bg-green-500' : 'bg-blue-500'
+                                }`} />
+                                <span className="font-medium">{video.server}</span>
+                                {video.pub === 1 && (
+                                  <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded">Ads</span>
                                 )}
-                                <div className={`font-medium text-sm ${isSelected ? 'text-white' : 'text-white'}`}>
-                                  {video.name}
-                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-gray-400">
+                                <span className="uppercase">{video.lang}</span>
+                                <span>•</span>
+                                <span>{video.quality}</span>
                               </div>
                             </div>
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              <span className={`px-2 py-1 rounded text-xs ${
-                                video.quality === '1080p' ? 'bg-black border border-white/30 text-white' : 'bg-black border border-white/20 text-white'
-                              }`}>
-                                {video.quality}
-                              </span>
-                              <span className="px-2 py-1 bg-black border border-white/20 rounded text-xs text-white">
-                                {video.lang === 'vf' ? 'Version Française' : video.lang === 'vostfr' ? 'Version Originale Sous-titrée' : video.lang.toUpperCase()}
-                              </span>
-                              <span className={`px-2 py-1 rounded text-xs ${
-                                video.pub === 1 ? 'bg-black border border-white/30 text-white' : 'bg-black border border-white/20 text-white'
-                              }`}>
-                                {video.pub === 1 ? 'Ads' : 'No Ads'}
-                              </span>
-                            </div>
                             {isSelected && (
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between mt-2">
                                 <div className="text-xs text-white font-medium flex items-center">
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M8 5v14l11-7z"/>
@@ -1078,12 +975,12 @@ export default function WatchSeriesPage() {
                       <button
                         onClick={refreshSources}
                         disabled={isRefreshingSources}
-                        className="px-4 py-2 bg-black border border-white/30 hover:bg-gray-900 hover:border-white/50 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+                        className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 mx-auto"
                       >
                         {isRefreshingSources ? (
                           <>
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Recherche en cours...
+                            Actualisation...
                           </>
                         ) : (
                           <>
@@ -1160,6 +1057,12 @@ export default function WatchSeriesPage() {
         </div>
       </div>
       </div>
+      
+      {/* Modale de support Discord */}
+      <DiscordMessageModal 
+        isOpen={isSupportModalOpen}
+        onClose={() => setIsSupportModalOpen(false)}
+      />
     </>
   )
 }

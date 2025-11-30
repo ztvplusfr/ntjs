@@ -52,43 +52,50 @@ export async function POST(request: NextRequest) {
     const userId = token.sub // Discord user ID
     
     // Vérifier si une entrée existe déjà
-    const existingEntry = await supabase
+    // Pour les films: vérifier uniquement content_id et content_type
+    // Pour les séries: vérifier content_id, content_type, season et episode
+    let existingEntryQuery = supabase
       .from('history')
       .select('*')
       .eq('user_id', userId)
       .eq('content_id', content_id)
       .eq('content_type', content_type)
-      .eq('season', season || null)
-      .eq('episode', episode || null)
-      .single()
+    
+    if (content_type === 'series') {
+      existingEntryQuery = existingEntryQuery
+        .eq('season', season || null)
+        .eq('episode', episode || null)
+    }
+    
+    const existingEntry = await existingEntryQuery.single()
 
     let result
 
     if (existingEntry.data) {
       // Mettre à jour l'entrée existante
-      result = await supabase
-        .from('history')
-        .update({
-          title,
-          poster,
-          backdrop,
-          episode_title,
-          video_id,
-          video_has_ads,
-          video_lang,
-          video_pub,
-          video_quality,
-          video_server,
-          video_url,
-          video_server_index,
-          progress_seconds,
-          duration_seconds,
-          metadata: metadata || existingEntry.data.metadata,
-          updated_at: getReunionDateTime()
-        })
-        .eq('id', existingEntry.data.id)
-        .select()
-        .single()
+    let updateQuery = supabase
+      .from('history')
+      .update({
+        title,
+        poster,
+        backdrop,
+        episode_title,
+        video_id,
+        video_has_ads,
+        video_lang,
+        video_pub,
+        video_quality,
+        video_server,
+        video_url,
+        video_server_index,
+        progress_seconds,
+        duration_seconds,
+        metadata: metadata || existingEntry.data.metadata,
+        updated_at: getReunionDateTime()
+      })
+      .eq('id', existingEntry.data.id)
+    
+    result = await updateQuery.select().single()
     } else {
       // Créer une nouvelle entrée
       const newEntry = {
@@ -190,7 +197,9 @@ export async function PUT(request: NextRequest) {
     const userId = token.sub // Discord user ID
 
     // Mettre à jour l'entrée existante
-    const updateResult = await supabase
+    // Pour les films: mettre à jour uniquement par content_id et content_type
+    // Pour les séries: mettre à jour par content_id, content_type, season et episode
+    let updateQuery = supabase
       .from('history')
       .update({
         title,
@@ -213,10 +222,14 @@ export async function PUT(request: NextRequest) {
       .eq('user_id', userId)
       .eq('content_id', content_id)
       .eq('content_type', content_type)
-      .eq('season', season || null)
-      .eq('episode', episode || null)
-      .select()
-      .single()
+    
+    if (content_type === 'series') {
+      updateQuery = updateQuery
+        .eq('season', season || null)
+        .eq('episode', episode || null)
+    }
+    
+    const updateResult = await updateQuery.select().single()
 
     if (updateResult.error) {
       return NextResponse.json({ 

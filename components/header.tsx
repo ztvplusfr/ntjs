@@ -34,7 +34,7 @@ export default function Header() {
       </div>
       
       <div className="hidden lg:flex items-center gap-4">
-        <Link href="/">
+        <Link href="/browse">
           <img 
             src="/logo-stranger-things.png" 
             alt="ZTVPlus" 
@@ -86,7 +86,7 @@ export default function Header() {
       
       {/* Mobile: Logo centré */}
       <div className="absolute left-1/2 transform -translate-x-1/2 lg:hidden">
-        <Link href="/">
+        <Link href="/browse">
           <img 
             src="/logo-stranger-things.png" 
             alt="ZTVPlus" 

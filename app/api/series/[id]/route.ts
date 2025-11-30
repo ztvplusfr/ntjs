@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { head } from '@vercel/blob'
+import { supabase, getSeriesVideos } from '@/lib/supabase'
 
 interface VideoServer {
+  id: string
   name: string
   url: string
   lang: string
   quality: string
   pub: number
+  play: number
 }
 
 interface EpisodeVideos {
@@ -33,101 +35,71 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    const tmdbId = parseInt(id)
 
-    // Vérifier d'abord si le fichier existe avec le SDK Vercel Blob
-    const blobPathname = `series/${id}.json`
-
-    try {
-      // Vérifier si le blob existe
-      const blobInfo = await head(blobPathname, {
-        token: process.env.BLOB_READ_WRITE_TOKEN
-      })
-
-      if (!blobInfo) {
-        console.error(`Blob not found for series ${id}`)
-        return NextResponse.json(
-          { error: 'Vidéos non disponibles pour cette série' },
-          { status: 404 }
-        )
-      }
-
-      // Récupérer les données depuis l'URL du blob avec le token d'autorisation
-      const response = await fetch(blobInfo.url, {
-        headers: {
-          'Authorization': `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
-        }
-      })
-
-      if (!response.ok) {
-        console.error(`Failed to fetch videos for series ${id}: ${response.status}`)
-        return NextResponse.json(
-          { error: 'Vidéos non disponibles pour cette série' },
-          { status: 404 }
-        )
-      }
-
-      const videosData: SeriesVideosData = await response.json()
-
-      // Valider la structure des données
-      if (!videosData || !videosData.season) {
-        console.error(`Invalid videos data structure for series ${id}`)
-        return NextResponse.json(
-          { error: 'Format de données invalide' },
-          { status: 500 }
-        )
-      }
-
-      // Logger les données récupérées pour debug
-      console.log(`Videos data for series ${id}:`, JSON.stringify(videosData, null, 2))
-
-      return NextResponse.json(videosData, {
-        status: 200,
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        }
-      })
-
-    } catch (blobError) {
-      console.error(`Blob access error for series ${id}:`, blobError)
-
-      // Fallback: essayer l'ancienne méthode au cas où
-      const videosUrl = `https://owpcw6r7bvjk25ny.public.blob.vercel-storage.com/series/${id}.json`
-      const response = await fetch(videosUrl)
-
-      if (!response.ok) {
-        console.error(`Failed to fetch videos for series ${id}: ${response.status}`)
-        return NextResponse.json(
-          { error: 'Vidéos non disponibles pour cette série' },
-          { status: 404 }
-        )
-      }
-
-      const videosData: SeriesVideosData = await response.json()
-
-      // Valider la structure des données
-      if (!videosData || !videosData.season) {
-        console.error(`Invalid videos data structure for series ${id}`)
-        return NextResponse.json(
-          { error: 'Format de données invalide' },
-          { status: 500 }
-        )
-      }
-
-      console.log(`Videos data for series ${id} (fallback):`, JSON.stringify(videosData, null, 2))
-
-      return NextResponse.json(videosData, {
-        status: 200,
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        }
-      })
+    if (isNaN(tmdbId)) {
+      return NextResponse.json(
+        { error: 'ID de série invalide' },
+        { status: 400 }
+      )
     }
+
+    // Récupérer toutes les vidéos de la série depuis Supabase
+    const videos = await getSeriesVideos(tmdbId)
+
+    if (!videos || videos.length === 0) {
+      return NextResponse.json(
+        { error: 'Vidéos non disponibles pour cette série' },
+        { status: 404 }
+      )
+    }
+
+    // Organiser les vidéos par saison et épisode
+    const seriesData: SeriesVideosData = {
+      season: {}
+    }
+
+    videos.forEach(video => {
+      const seasonNum = video.season_number?.toString() || '1'
+      const episodeNum = video.episode_number?.toString() || '1'
+
+      // Initialiser la saison si elle n'existe pas
+      if (!seriesData.season[seasonNum]) {
+        seriesData.season[seasonNum] = {
+          episodes: {}
+        }
+      }
+
+      // Initialiser l'épisode s'il n'existe pas
+      if (!seriesData.season[seasonNum].episodes[episodeNum]) {
+        seriesData.season[seasonNum].episodes[episodeNum] = {
+          videos: []
+        }
+      }
+
+      // Ajouter la vidéo à l'épisode
+      seriesData.season[seasonNum].episodes[episodeNum].videos.push({
+        id: video.id.toString(), // Ajout de l'ID de la vidéo
+        name: video.name || `Server ${video.id}`,
+        url: video.url,
+        lang: video.lang,
+        quality: video.quality,
+        pub: video.pub,
+        play: video.play
+      })
+    })
+
+    console.log(`Videos data for series ${id}:`, JSON.stringify(seriesData, null, 2))
+
+    return NextResponse.json(seriesData, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      }
+    })
 
   } catch (error) {
     console.error('Error fetching series videos:', error)

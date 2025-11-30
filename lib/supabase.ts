@@ -16,3 +16,85 @@ export interface SeriesRelease {
   status: string
   seriesDetails?: any // Added to store TMDB data
 }
+
+export interface Video {
+  id: number
+  tmdb_id: number
+  type: 'movie' | 'series'
+  season_number?: number
+  episode_number?: number
+  name?: string
+  url: string
+  lang: string
+  quality: string
+  pub: number
+  play: number
+}
+
+// Fonctions pour récupérer les vidéos depuis Supabase
+export async function getMovieVideos(tmdbId: number): Promise<Video[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .eq('tmdb_id', tmdbId)
+      .eq('type', 'movie')
+      .order('quality', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching movie videos:', error)
+      return null
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Error fetching movie videos:', error)
+    return null
+  }
+}
+
+export async function getSeriesVideos(tmdbId: number): Promise<Video[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .eq('tmdb_id', tmdbId)
+      .eq('type', 'series')
+      .order('season_number', { ascending: true })
+      .order('episode_number', { ascending: true })
+      .order('quality', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching series videos:', error)
+      return null
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Error fetching series videos:', error)
+    return null
+  }
+}
+
+export async function getEpisodeVideos(tmdbId: number, seasonNumber: number, episodeNumber: number): Promise<Video[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .eq('tmdb_id', tmdbId)
+      .eq('type', 'series')
+      .eq('season_number', seasonNumber)
+      .eq('episode_number', episodeNumber)
+      .order('quality', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching episode videos:', error)
+      return null
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Error fetching episode videos:', error)
+    return null
+  }
+}
