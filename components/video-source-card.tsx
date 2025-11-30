@@ -42,7 +42,7 @@ interface VideoSourceCardProps {
 
 export default function VideoSourceCard({ video, isSelected, movieId, videoIndex }: VideoSourceCardProps) {
   const handleClick = () => {
-    window.location.href = `/watch/${movieId}?server=${videoIndex + 1}&quality=${video.quality}&language=${video.lang}`
+    window.location.href = `/watch/${movieId}?server=${videoIndex + 1}&quality=${video.quality}&language=${video.lang}&videoId=${video.id}`
   }
 
   return (

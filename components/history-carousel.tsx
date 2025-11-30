@@ -81,16 +81,23 @@ export default function HistoryCarousel() {
       const cookieHistory = cookieUtils.getWatchHistory()
 
       if (cookieHistory.length === 0) {
-        console.log('No history found in cookies')
         setHistory([])
         setLoading(false)
         return
       }
 
-      console.log('History loaded from cookies:', cookieHistory.length, 'items')
-
       const convertedHistory: HistoryItem[] = cookieHistory.map(item => {
-        const watchedDate = new Date(item.watchedAt)
+        // Le watchedAt est maintenant au format DD-MM-YYYY HH:MM:SS
+        const watchedDateStr = item.watchedAt
+        
+        // Parser la date au format DD-MM-YYYY HH:MM:SS
+        const [datePart, timePart] = watchedDateStr.split(' ')
+        const [day, month, year] = datePart.split('-').map(Number)
+        const [hours, minutes, seconds] = timePart.split(':').map(Number)
+        
+        // Créer l'objet Date (les mois sont 0-indexés)
+        const watchedDate = new Date(year, month - 1, day, hours, minutes, seconds)
+        
         return {
           type: item.type,
           id: item.id,
@@ -98,8 +105,8 @@ export default function HistoryCarousel() {
           poster: item.poster || '/placeholder-poster.jpg',
           backdrop: undefined,
           timestamp: watchedDate.getTime(),
-          date: watchedDate.toLocaleDateString('fr-FR'),
-          time: watchedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          date: `${day.toString().padStart(2, '0')}-${month.toString().padStart(2, '0')}-${year}`,
+          time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
           season: item.episode?.season,
           episode: item.episode?.episode,
           episodeTitle: undefined,
@@ -156,27 +163,70 @@ export default function HistoryCarousel() {
     const loadFromSupabase = async () => {
       try {
         const response = await fetch('/api/history', { cache: 'no-store' })
+        
         if (!response.ok) {
+          const errorText = await response.text()
+          console.error('Supabase API error:', response.status, errorText)
           throw new Error('Erreur récupération historique')
         }
 
         const data = await response.json()
         const supabaseHistory: HistoryItem[] = (data.history || []).map((item: any) => {
-          const lastWatched = item.last_watched_at ? new Date(item.last_watched_at) : new Date()
-          const metadata = item.metadata || {}
+          // Utiliser directement les champs de la base de données
+          let dateStr = ''
+          let timeStr = ''
+          let timestamp = Date.now()
+          
+          if (item.last_watched_at) {
+            try {
+              // Format ISO de Supabase (UTC) : 2025-11-30T07:57:43.352305+00:00
+              const lastWatched = new Date(item.last_watched_at)
+              
+              // Convertir en heure locale de l'appareil utilisateur
+              dateStr = lastWatched.toLocaleDateString(undefined, {
+                day: '2-digit',
+                month: '2-digit', 
+                year: 'numeric'
+              }).replace(/\//g, '-') // DD-MM-YYYY selon locale appareil
+              
+              timeStr = lastWatched.toLocaleTimeString(undefined, {
+                hour: '2-digit',
+                minute: '2-digit'
+              }) // HH:MM selon fuseau appareil
+              
+              timestamp = lastWatched.getTime()
+            } catch (error) {
+              console.error('Error parsing date:', item.last_watched_at, error)
+              dateStr = new Date().toLocaleDateString(undefined).replace(/\//g, '-')
+              timeStr = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+            }
+          } else {
+            dateStr = new Date().toLocaleDateString(undefined).replace(/\//g, '-')
+            timeStr = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+          }
+          
           return {
             type: item.content_type,
             id: item.content_id,
-            title: metadata.title || 'Titre inconnu',
-            poster: metadata.poster || '/placeholder-poster.jpg',
-            backdrop: metadata.backdrop,
-            timestamp: lastWatched.getTime(),
-            date: lastWatched.toLocaleDateString('fr-FR'),
-            time: lastWatched.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+            title: item.title || 'Titre inconnu',
+            poster: item.poster || '/placeholder-poster.jpg',
+            backdrop: item.backdrop,
+            timestamp: timestamp,
+            date: dateStr,
+            time: timeStr,
             season: item.season ?? undefined,
             episode: item.episode ?? undefined,
-            episodeTitle: metadata.episodeTitle,
-            video: metadata.video
+            episodeTitle: item.episode_title,
+            video: item.video_id ? {
+              id: item.video_id,
+              hasAds: item.video_has_ads || false,
+              lang: item.video_lang || '',
+              pub: item.video_pub || 0,
+              quality: item.video_quality || '',
+              server: item.video_server || '',
+              url: item.video_url || '',
+              serverIndex: item.video_server_index
+            } : undefined
           }
         })
 
@@ -215,6 +265,7 @@ export default function HistoryCarousel() {
   const removeFromHistory = async (id: string, season?: number, episode?: number) => {
     const targetItem = history.find(item => item.id === id && item.season === season && item.episode === episode)
 
+    // Supprimer de l'état local immédiatement pour une meilleure UX
     setHistory(prev => {
       const newHistory = prev.filter(item => 
         !(item.id === id && item.season === season && item.episode === episode)
@@ -224,22 +275,28 @@ export default function HistoryCarousel() {
       const episodeData = season && episode ? { season, episode } : undefined
       cookieUtils.removeFromWatchHistory(id, episodeData)
       
-      console.log('Item removed from history, new count:', newHistory.length)
       return newHistory
     })
 
-    if (session?.user?.id) {
+    // Supprimer de Supabase si l'utilisateur est connecté
+    if (session?.user?.id && targetItem) {
       try {
         const params = new URLSearchParams({
           contentId: id,
-          contentType: targetItem?.type || 'movie'
+          contentType: targetItem.type
         })
         if (typeof season === 'number') params.append('season', season.toString())
         if (typeof episode === 'number') params.append('episode', episode.toString())
 
-        await fetch(`/api/history?${params.toString()}`, {
+        const response = await fetch(`/api/history?${params.toString()}`, {
           method: 'DELETE'
         })
+
+        if (!response.ok) {
+          console.error('Erreur suppression entrée Supabase:', response.status)
+          // Optionnel: restaurer l'item si la suppression échoue
+          // setHistory(prev => [...prev, targetItem])
+        }
       } catch (error) {
         console.error('Erreur suppression entrée Supabase:', error)
       }
@@ -270,11 +327,8 @@ export default function HistoryCarousel() {
   }
 
   if (history.length === 0) {
-    console.log('History is empty, not rendering carousel')
     return null
   }
-
-  console.log('Rendering carousel with', history.length, 'items')
 
   return (
     <div className="w-full py-8 pl-4 sm:pl-6 lg:pl-8">
@@ -390,11 +444,10 @@ export default function HistoryCarousel() {
                       e.stopPropagation()
                       removeFromHistory(item.id, item.season, item.episode)
                     }}
-                    className="absolute top-2 right-2 w-6 h-6 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-700 z-10"
+                    className="absolute top-2 right-2 w-7 h-7 bg-black/80 border border-white/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-red-600 hover:border-red-400 hover:scale-110 z-10"
+                    title="Supprimer de l'historique"
                   >
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                    </svg>
+                    <Trash2 className="w-3.5 h-3.5 text-white" />
                   </button>
                 </div>
 
@@ -410,16 +463,21 @@ export default function HistoryCarousel() {
                     </p>
                   )}
                   {item.video && (
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        item.video.quality === '1080p' || item.video.quality === 'HD' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 bg-black text-white rounded text-xs border border-white">
+                        {item.type === 'movie' ? 'FILM' : 'SÉRIE'}
+                      </span>
+                      <span className={`px-2 py-1 rounded text-xs border ${
+                        item.video.quality === '1080p' || item.video.quality === 'HD' 
+                          ? 'bg-black text-white border-white' 
+                          : 'bg-black text-gray-300 border-white'
                       }`}>
                         {item.video.quality}
                       </span>
-                      <span className="px-2 py-1 bg-gray-700 rounded text-xs text-gray-300">
+                      <span className="px-2 py-1 bg-black text-gray-300 rounded text-xs border border-white">
                         {item.video.lang === 'vf' ? 'VF' : item.video.lang === 'vostfr' ? 'VOSTFR' : item.video.lang.toUpperCase()}
                       </span>
-                      <span className="px-2 py-1 bg-gray-600 rounded text-xs text-gray-300">
+                      <span className="px-2 py-1 bg-black text-gray-300 rounded text-xs border border-white">
                         {item.video.server}
                       </span>
                     </div>

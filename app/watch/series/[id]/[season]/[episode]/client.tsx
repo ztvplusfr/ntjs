@@ -801,7 +801,16 @@ export default function WatchSeriesPage() {
             season={parseInt(season)}
             episode={parseInt(episode)}
             episodeTitle={episodeDetails?.name}
-            video={selectedServer || undefined}
+            video={selectedServer ? {
+              id: selectedServer.id,
+              hasAds: selectedServer.hasAds,
+              lang: selectedServer.lang,
+              pub: selectedServer.pub,
+              quality: selectedServer.quality,
+              server: selectedServer.server,
+              url: selectedServer.url,
+              serverIndex: selectedServer.serverIndex
+            } : undefined}
           />
           {/* Video Player Section */}
           <div className="mb-8">
@@ -973,7 +982,14 @@ export default function WatchSeriesPage() {
                         const isSelected = Boolean(selectedServer && video.id === selectedServer.id)
                         
                         const handleClick = () => {
-                          // Garder la même URL de base mais changer de source via le state
+                          // Mettre à jour l'URL avec les paramètres vidéo
+                          const newUrl = new URL(window.location.href)
+                          newUrl.searchParams.set('server', video.server)
+                          newUrl.searchParams.set('lang', video.lang)
+                          newUrl.searchParams.set('quality', video.quality)
+                          newUrl.searchParams.set('videoId', video.id)
+                          
+                          window.history.pushState({}, '', newUrl.toString())
                           setSelectedServer(video)
                         }
                         

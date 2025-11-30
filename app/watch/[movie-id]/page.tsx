@@ -280,7 +280,16 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
               poster_path: movie.poster_path,
               backdrop_path: movie.backdrop_path
             }}
-            video={selectedVideo || undefined}
+            video={selectedVideo ? {
+              id: selectedVideo.id,
+              hasAds: selectedVideo.hasAds,
+              lang: selectedVideo.lang,
+              pub: selectedVideo.pub,
+              quality: selectedVideo.quality,
+              server: selectedVideo.server,
+              url: selectedVideo.url,
+              serverIndex: selectedVideo.serverIndex
+            } : undefined}
           />
 
           {/* Video Player Section */}
