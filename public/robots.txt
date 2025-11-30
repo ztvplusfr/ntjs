@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Priorité des pages importantes
+Crawl-delay: 1
+
+# Sitemap
+Sitemap: https://ztvplus.fr/sitemap.xml
+
+# Interdire les pages d'administration
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /favicon.ico
