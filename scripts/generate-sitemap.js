@@ -21,7 +21,7 @@ async function generateDynamicPages() {
   
   try {
     // Récupérer les films depuis votre API
-    const moviesResponse = await fetch('https://ztvplus.fr/api/movies');
+    const moviesResponse = await fetch('https://ztvplus.site/api/movies');
     if (moviesResponse.ok) {
       const movies = await moviesResponse.json();
       movies.forEach(movie => {
@@ -41,7 +41,7 @@ async function generateDynamicPages() {
     }
 
     // Récupérer les séries depuis votre API
-    const seriesResponse = await fetch('https://ztvplus.fr/api/series');
+    const seriesResponse = await fetch('https://ztvplus.site/api/series');
     if (seriesResponse.ok) {
       const series = await seriesResponse.json();
       series.forEach(serie => {
