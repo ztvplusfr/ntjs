@@ -9,6 +9,7 @@ import PageHead from '@/components/page-head'
 import ViewCounter from '@/components/view-counter'
 import { cookieUtils } from '@/lib/cookies'
 import { supabase } from '@/lib/supabase'
+import VideoPlayer from '@/components/video-player'
 
 interface VideoServer {
   id: string
@@ -285,7 +286,7 @@ function formatLocalTime(releaseTime: string): string {
 // Generate embed URL based on video URL
 function getEmbedUrl(url: string): string {
   // Handle different video providers
-  if (url.includes('vidhideplus.com') || url.includes('doodstream')) {
+  if (url.includes('vidhideplus.com') || url.includes('doodstream') || url.includes('proxy.afterdark.click')) {
     // For these providers, use the direct URL in iframe
     return url
   } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
@@ -524,12 +525,16 @@ export default function WatchSeriesPage() {
   // Mettre à jour l'URL d'embed quand la vidéo sélectionnée change
   useEffect(() => {
     if (selectedServer) {
-      if (selectedServer.play === 1) {
-        // Lecteur natif, pas besoin d'embed URL
+      if (selectedServer.play === 1 && !(selectedServer.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent))) {
+        // Lecteur natif (VideoPlayer), pas besoin d'embed URL
+        setIsLoadingVideo(false)
+        setEmbedUrl('')
+      } else if (selectedServer.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)) {
+        // Lecteur vidéo natif HTML5 direct pour proxy.afterdark.click sur iOS, pas besoin d'embed URL
         setIsLoadingVideo(false)
         setEmbedUrl('')
       } else {
-        // Iframe embed, générer l'URL d'embed
+        // Iframe embed (play=0), générer l'URL d'embed
         setIsLoadingVideo(true)
         const url = getEmbedUrl(selectedServer.url)
         setEmbedUrl(url)
@@ -819,10 +824,22 @@ export default function WatchSeriesPage() {
               <div className="lg:col-span-2 w-full">
                 {selectedServer ? (
                   <div className="relative w-full bg-black border border-white/20 rounded-lg overflow-hidden">
-                    {selectedServer.play === 1 ? (
-                      // Lecteur vidéo natif pour play=1
-                      <video
+                    {selectedServer.play === 1 && !(selectedServer.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)) ? (
+                      // Lecteur vidéo natif pour play=1 (sauf proxy.afterdark.click sur iOS)
+                      <VideoPlayer
                         key={`video-episode-${season}-${episode}-${selectedServer.id}`}
+                        src={selectedServer.url}
+                        poster={episodeStillUrl || undefined}
+                        title={`${serie.name} - S${season}E${episode}`}
+                        controls={true}
+                        autoPlayWhenChanged={true}
+                        className="w-full aspect-video select-none"
+                        videoId={selectedServer.id}
+                      />
+                    ) : selectedServer.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) ? (
+                      // Lecteur vidéo natif HTML5 direct pour proxy.afterdark.click sur iOS
+                      <video
+                        key={`native-video-episode-${season}-${episode}-${selectedServer.id}`}
                         controls
                         controlsList="nodownload noremoteplayback"
                         className="w-full aspect-video select-none"

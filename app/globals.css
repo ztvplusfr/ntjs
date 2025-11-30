@@ -96,3 +96,35 @@
     scrollbar-color: rgb(255 255 255 / 0.5) rgb(0 0 0);
   }
 }
+
+/* Styles personnalisés pour les sliders (volume et progression) */
+.slider-volume::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: rgb(56 189 248); /* sky-400 */
+  border: 2px solid rgb(255 255 255);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slider-volume::-webkit-slider-thumb:hover {
+  background: rgb(14 165 233); /* sky-500 */
+  transform: scale(1.2);
+}
+
+.slider-volume::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: rgb(56 189 248); /* sky-400 */
+  border: 2px solid rgb(255 255 255);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slider-volume::-moz-range-thumb:hover {
+  background: rgb(14 165 233); /* sky-500 */
+  transform: scale(1.2);
+}

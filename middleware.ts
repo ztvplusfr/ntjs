@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // IP autorisées pour l'accès admin
-const ADMIN_IPS = ['165.169.45.189']
+const ADMIN_IPS = ['165.169.45.189', '192.168.1.3']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl

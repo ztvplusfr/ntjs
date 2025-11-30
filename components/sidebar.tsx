@@ -177,7 +177,7 @@ export default function Sidebar() {
             App
           </div>
           <div className="text-xs text-gray-500 font-bold">
-            v3.21.5
+            v4.10
           </div>  
         </div>
       </div>
