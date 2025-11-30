@@ -5,7 +5,7 @@ Allow: /
 Crawl-delay: 1
 
 # Sitemap
-Sitemap: https://ztvplus.fr/sitemap.xml
+Sitemap: https://ztvplus.site/sitemap.xml
 
 # Interdire les pages d'administration
 Disallow: /admin/

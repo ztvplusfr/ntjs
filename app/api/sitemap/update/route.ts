@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
 
     // Créer le stream sitemap
     const smStream = new SitemapStream({
-      hostname: process.env.NEXT_PUBLIC_SITE_URL || 'https://ztvplus.fr',
+      hostname: process.env.NEXT_PUBLIC_SITE_URL || 'https://ztvplus.site',
       xmlns: {
         news: false,
         xhtml: false,

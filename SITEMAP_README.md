@@ -49,12 +49,12 @@ npm run build:sitemap
 
 #### Récupérer le sitemap (GET)
 ```bash
-curl https://ztvplus.fr/api/sitemap
+curl https://ztvplus.site/api/sitemap
 ```
 
 #### Mettre à jour le sitemap (POST)
 ```bash
-curl -X POST https://ztvplus.fr/api/sitemap/update \
+curl -X POST https://ztvplus.site/api/sitemap/update \
   -H "Authorization: Bearer VOTRE_TOKEN_SECRET"
 ```
 
@@ -67,7 +67,7 @@ Ajoutez ces variables dans votre `.env.local` :
 SITEMAP_REGENERATION_TOKEN=votre_token_secret
 
 # URL de votre site
-NEXT_PUBLIC_SITE_URL=https://ztvplus.fr
+NEXT_PUBLIC_SITE_URL=https://ztvplus.site
 ```
 
 ## ⚙ Configuration Vercel
@@ -88,9 +88,9 @@ Le fichier `vercel.json` configure un Cron Job qui exécute `/api/sitemap` tous 
 ## 🌐 Accès au sitemap
 
 Une fois déployé, votre sitemap sera accessible à :
-- `https://ztvplus.fr/sitemap.xml`
-- `https://ztvplus.fr/robots.txt`
-- `https://ztvplus.fr/api/sitemap`
+- `https://ztvplus.site/sitemap.xml`
+- `https://ztvplus.site/robots.txt`
+- `https://ztvplus.site/api/sitemap`
 
 ## 📊 Contenu du sitemap
 
@@ -150,12 +150,12 @@ Vérifiez que le fichier `vercel.json` est bien présent et que le déploiement 
 
 ### Google Search Console
 1. Allez dans Google Search Console
-2. Ajoutez votre propriété `https://ztvplus.fr`
-3. Soumettez votre sitemap : `https://ztvplus.fr/sitemap.xml`
+2. Ajoutez votre propriété `https://ztvplus.site`
+3. Soumettez votre sitemap : `https://ztvplus.site/sitemap.xml`
 
 ### Autres moteurs de recherche
-- **Bing Webmaster Tools** : Soumettez `https://ztvplus.fr/sitemap.xml`
-- **Yandex Webmaster** : Soumettez `https://ztvplus.fr/sitemap.xml`
+- **Bing Webmaster Tools** : Soumettez `https://ztvplus.site/sitemap.xml`
+- **Yandex Webmaster** : Soumettez `https://ztvplus.site/sitemap.xml`
 
 ## 🔄 Mises à jour futures
 

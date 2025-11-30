@@ -135,7 +135,7 @@ async function generateSitemap() {
 
     // Créer le stream sitemap
     const smStream = new SitemapStream({
-      hostname: 'https://ztvplus.fr',
+      hostname: 'https://ztvplus.site',
       xmlns: {
         news: false,
         xhtml: false,
@@ -166,7 +166,7 @@ async function generateSitemap() {
 
     console.log('✅ Sitemap généré avec succès!');
     console.log(`📄 ${allPages.length} URLs ajoutées au sitemap`);
-    console.log('🌐 Disponible: https://ztvplus.fr/sitemap.xml');
+    console.log('🌐 Disponible: https://ztvplus.site/sitemap.xml');
     
   } catch (error) {
     console.error('❌ Erreur lors de la génération du sitemap:', error);
