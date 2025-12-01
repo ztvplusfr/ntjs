@@ -1,0 +1,178 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { AlertTriangle, X, Check, Shield, Users } from 'lucide-react'
+
+interface DiscordConsentModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onAccept: () => void
+}
+
+export default function DiscordConsentModal({ isOpen, onClose, onAccept }: DiscordConsentModalProps) {
+  const [hasConsented, setHasConsented] = useState(false)
+  const [isChecked, setIsChecked] = useState(false)
+
+  // Vérifier si le consentement a déjà été donné
+  useEffect(() => {
+    const consent = localStorage.getItem('discord_consent')
+    if (consent === 'true') {
+      setHasConsented(true)
+      setIsChecked(true) // Pré-cocher si déjà consenti
+    }
+  }, [])
+
+  const handleAccept = () => {
+    if (!isChecked) return
+    
+    localStorage.setItem('discord_consent', 'true')
+    setHasConsented(true)
+    onAccept()
+  }
+
+  const handleCheckboxChange = (checked: boolean) => {
+    setIsChecked(checked)
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+      <div className="bg-black border border-orange-500/30 rounded-2xl shadow-2xl shadow-orange-500/20 w-full max-w-md animate-in slide-in-from-bottom-10 fade-in-0 duration-300 overflow-hidden">
+        {/* Header */}
+        <div className="relative bg-gradient-to-r from-orange-600/20 to-red-500/20 p-6 border-b border-orange-500/20">
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-600/10 to-red-500/10"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-500/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-orange-400/40">
+                  <AlertTriangle size={20} className="text-orange-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg">Conditions requises</h3>
+                  <p className="text-orange-300 text-sm">Serveur Discord obligatoire</p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 bg-orange-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center hover:bg-orange-500/30 transition-colors border border-orange-400/40"
+              >
+                <X size={18} className="text-orange-400" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          <div className="space-y-4">
+            {/* Alert message */}
+            <div className="bg-orange-950/30 border border-orange-500/30 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle size={20} className="text-orange-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="text-orange-400 font-semibold text-sm mb-2">
+                    Important : Serveur Discord requis
+                  </h4>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    Pour que votre demande soit acceptée, vous devez être membre du serveur Discord officiel. 
+                    Les demandes des utilisateurs non-membres seront automatiquement refusées.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Benefits */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center border border-green-400/40">
+                  <Check size={16} className="text-green-400" />
+                </div>
+                <p className="text-gray-300 text-sm">
+                  Accès prioritaire aux nouvelles demandes
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center border border-green-400/40">
+                  <Check size={16} className="text-green-400" />
+                </div>
+                <p className="text-gray-300 text-sm">
+                  Suivi direct de vos demandes
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center border border-green-400/40">
+                  <Check size={16} className="text-green-400" />
+                </div>
+                <p className="text-gray-300 text-sm">
+                  Notifications des mises à jour
+                </p>
+              </div>
+            </div>
+
+            {/* Server info */}
+            <div className="bg-blue-950/20 border border-blue-500/30 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <Users size={20} className="text-blue-400" />
+                <div className="flex-1">
+                  <p className="text-blue-400 font-medium text-sm">Serveur Discord officiel</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Rejoignez notre communauté pour profiter de tous les avantages
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Limitation info */}
+            <div className="bg-yellow-950/20 border border-yellow-500/30 rounded-xl p-3">
+              <div className="flex items-center gap-2">
+                <Shield size={16} className="text-yellow-400" />
+                <p className="text-yellow-400 text-xs">
+                  Limitation : 1 demande par heure pour éviter les abus
+                </p>
+              </div>
+            </div>
+
+            {/* Checkbox consent */}
+            <div className="bg-black/50 border border-gray-600/30 rounded-xl p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={(e) => handleCheckboxChange(e.target.checked)}
+                  className="mt-1 w-4 h-4 bg-black border-orange-500/30 rounded focus:ring-2 focus:ring-orange-500/50 text-orange-500 focus:border-orange-400"
+                />
+                <div className="flex-1">
+                  <p className="text-white text-sm font-medium">
+                    Oui, j'ai pris conscience
+                  </p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Je comprends que je dois être membre du serveur Discord pour que ma demande soit traitée
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={onClose}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-4 rounded-xl transition-colors border border-gray-600/50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleAccept}
+                disabled={!isChecked}
+                className="flex-1 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 disabled:from-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition-all transform hover:scale-[1.02] disabled:scale-100 flex items-center justify-center gap-2 shadow-lg border border-orange-500/30"
+              >
+                <Check size={18} />
+                Continuer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
