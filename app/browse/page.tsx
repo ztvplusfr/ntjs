@@ -10,6 +10,7 @@ import DonationCta from '../../components/donation-cta'
 import HistoryCarousel from '../../components/history-carousel'
 import Top10Movies from '../../components/top-10-movies'
 import Top10Series from '../../components/top-10-series'
+import TodayReleasesCarousel from '../../components/today-releases-carousel'
 
 export default function Browse() {
   return (
@@ -17,6 +18,7 @@ export default function Browse() {
       <Hero />
       <div className="overflow-x-hidden">
         <DonationCta />
+        <TodayReleasesCarousel />
         <HistoryCarousel />
         <Countdown />
         <Top10Movies />

@@ -200,7 +200,10 @@ async function fetchTMDBData(tmdbId: string): Promise<any> {
 
     const response = await fetch(
       `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${apiKey}&language=fr-FR`,
-      { cache: 'force-cache' }
+      { 
+        cache: 'force-cache',
+        signal: AbortSignal.timeout(10000) // 10 seconds timeout
+      }
     );
 
     if (!response.ok) {

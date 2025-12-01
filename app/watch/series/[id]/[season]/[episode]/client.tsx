@@ -283,20 +283,22 @@ function getCountdown(releaseDate: Date, releaseTime?: string): string {
 
 // Fonction pour formater l'heure locale pour l'affichage
 function formatLocalTime(releaseTime: string): string {
-  const now = new Date()
   const [hours, minutes] = releaseTime.split(':')
   
-  // Create date in UTC+4
-  const utc4Date = new Date()
-  utc4Date.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+  // L'heure dans la BDD est en UTC+4 (La Réunion)
+  // Créer une date avec l'heure UTC+4
+  const today = new Date()
+  const releaseDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  releaseDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
   
-  // Convert UTC+4 to UTC
-  const utcTime = utc4Date.getTime() - (4 * 60 * 60 * 1000)
-  
-  // Convert to user's local timezone
-  const userTime = new Date(utcTime + (now.getTimezoneOffset() * -60 * 1000))
-  
-  return `${String(userTime.getHours()).padStart(2, '0')}h${String(userTime.getMinutes()).padStart(2, '0')}`
+  // La date est déjà en UTC+4, donc on la formate directement selon le fuseau de l'utilisateur
+  // Le navigateur convertira automatiquement l'heure UTC+4 vers l'heure locale
+  return releaseDate.toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+  }).replace(':', 'h')
 }
 
 // Generate embed URL based on video URL
@@ -319,6 +321,29 @@ function getEmbedUrl(url: string): string {
   return url
 }
 
+// Fonction pour vérifier si l'épisode est disponible (après la date/heure de sortie)
+function isEpisodeAvailable(releaseDate: Date, releaseTime?: string): boolean {
+  const now = new Date()
+  const target = new Date(releaseDate)
+  
+  if (releaseTime) {
+    const [hours, minutes] = releaseTime.split(':')
+    // Convert from UTC+4 (Ocean Indian) to user's timezone
+    target.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+    
+    // Convert UTC+4 time to UTC
+    const utcTime = target.getTime() - (4 * 60 * 60 * 1000)
+    
+    // Convert to user's local timezone
+    const userTime = new Date(utcTime + (now.getTimezoneOffset() * -60 * 1000))
+    target.setTime(userTime.getTime())
+  } else {
+    target.setHours(0, 0, 0, 0)
+  }
+  
+  return target.getTime() <= now.getTime()
+}
+
 export default function WatchSeriesPage() {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -339,6 +364,7 @@ export default function WatchSeriesPage() {
   const [episodeRelease, setEpisodeRelease] = useState<any | null>(null)
   const [countdown, setCountdown] = useState<string>('')
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false)
+  const [episodeAvailable, setEpisodeAvailable] = useState(true)
 
   useEffect(() => {
     const loadData = async () => {
@@ -402,7 +428,7 @@ export default function WatchSeriesPage() {
           const urlVideoId = searchParams.get('videoId')
           
           if (urlServer && urlLang && urlQuality) {
-            const urlVideo = episodeVideosData.videos.find(video => 
+            const urlVideo = episodeVideosData.videos.find((video: VideoServer) => 
               video.server === urlServer && 
               video.lang === urlLang && 
               video.quality === urlQuality &&
@@ -414,7 +440,7 @@ export default function WatchSeriesPage() {
           } else if (savedPreferences) {
             // Priorité 2: Préférences sauvegardées
             // Chercher une vidéo qui correspond aux préférences sauvegardées
-            const preferredVideo = episodeVideosData.videos.find(video => 
+            const preferredVideo = episodeVideosData.videos.find((video: VideoServer) => 
               video.server === savedPreferences.server && 
               video.lang === savedPreferences.language && 
               video.quality === savedPreferences.quality
@@ -442,12 +468,18 @@ export default function WatchSeriesPage() {
 
   // Update countdown every second
   useEffect(() => {
-    if (!episodeRelease) return
+    if (!episodeRelease) {
+      setEpisodeAvailable(true)
+      return
+    }
 
     const updateCountdown = () => {
       const releaseDate = new Date(episodeRelease.release_date)
       const countdownText = getCountdown(releaseDate, episodeRelease.release_time)
+      const available = isEpisodeAvailable(releaseDate, episodeRelease.release_time)
+      
       setCountdown(countdownText)
+      setEpisodeAvailable(available)
     }
 
     updateCountdown()
@@ -720,7 +752,7 @@ export default function WatchSeriesPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full">
               {/* Video Player - 2/3 width */}
               <div className="lg:col-span-2 w-full">
-                {selectedServer ? (
+                {selectedServer && episodeAvailable ? (
                   <div className="relative w-full bg-black border border-white/20 rounded-lg overflow-hidden">
                     {selectedServer.play === 1 && !(selectedServer.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)) ? (
                       // Lecteur vidéo natif pour play=1 (sauf proxy.afterdark.click sur iOS)
@@ -732,7 +764,6 @@ export default function WatchSeriesPage() {
                         controls={true}
                         autoPlayWhenChanged={true}
                         className="w-full aspect-video select-none"
-                        videoId={selectedServer.id}
                       />
                     ) : selectedServer.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) ? (
                       // Lecteur vidéo natif HTML5 direct pour proxy.afterdark.click sur iOS
@@ -786,7 +817,7 @@ export default function WatchSeriesPage() {
                         <Tv className="w-8 h-8 text-white/60" />
                       </div>
                       
-                      {episodeRelease ? (
+                      {episodeRelease && !episodeAvailable ? (
                         <>
                           <h2 className="text-lg sm:text-xl font-medium mb-2 sm:mb-2 text-blue-400">
                             Compte à rebours
@@ -901,7 +932,7 @@ export default function WatchSeriesPage() {
                       </div>
                     </div>
                   </div>
-                ) : videosData && videosData.length > 0 ? (
+                ) : videosData && videosData.length > 0 && episodeAvailable ? (
                   <div className="bg-black border border-white/20 rounded-lg p-4 w-full">
                     <h3 className="text-lg font-semibold mb-4 text-white">Sources disponibles</h3>
                     <div className="space-y-3 max-h-[600px] overflow-y-auto">
@@ -971,26 +1002,37 @@ export default function WatchSeriesPage() {
                       <div className="w-16 h-16 bg-black border border-white/30 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Tv className="w-8 h-8 text-white/60" />
                       </div>
-                      <p className="text-gray-400 mb-4">Aucune source disponible</p>
-                      <button
-                        onClick={refreshSources}
-                        disabled={isRefreshingSources}
-                        className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 mx-auto"
-                      >
-                        {isRefreshingSources ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Actualisation...
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            Rafraîchir les sources
-                          </>
-                        )}
-                      </button>
+                      {episodeRelease && !episodeAvailable ? (
+                        <>
+                          <p className="text-gray-400 mb-4">Les sources seront disponibles après la diffusion</p>
+                          <div className="px-3 py-1.5 bg-gradient-to-r from-sky-600/20 to-blue-600/20 border border-sky-500/30 rounded-full text-sm font-medium text-blue-400 mb-2">
+                            {countdown}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-gray-400 mb-4">Aucune source disponible</p>
+                          <button
+                            onClick={refreshSources}
+                            disabled={isRefreshingSources}
+                            className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 mx-auto"
+                          >
+                            {isRefreshingSources ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                Actualisation...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Rafraîchir les sources
+                              </>
+                            )}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

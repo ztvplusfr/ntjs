@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
-import { Play, Calendar, Clock, Star, ChevronDown, ChevronUp, Tv, Filter, Settings, Trash2, Info } from 'lucide-react'
+import { Play, Calendar, Clock, Star, ChevronDown, ChevronUp, Tv, Filter, Settings, Trash2, Info, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import ShareButton from '@/components/share-button'
 import PageHead from '@/components/page-head'
 import StreamingDisclaimer from '@/components/streaming-disclaimer'
+import SeriesRequestModal from '@/components/series-request-modal'
 import { supabase } from '@/lib/supabase'
 
 // Interface pour les données vidéos (correspond à l'API locale)
@@ -210,20 +211,22 @@ function getCountdown(releaseDate: Date, releaseTime?: string): string {
 
 // Fonction pour formater l'heure locale pour l'affichage
 function formatLocalTime(releaseTime: string): string {
-  const now = new Date()
   const [hours, minutes] = releaseTime.split(':')
   
-  // Create date in UTC+4
-  const utc4Date = new Date()
-  utc4Date.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+  // L'heure dans la BDD est en UTC+4 (La Réunion)
+  // Créer une date avec l'heure UTC+4
+  const today = new Date()
+  const releaseDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  releaseDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
   
-  // Convert UTC+4 to UTC
-  const utcTime = utc4Date.getTime() - (4 * 60 * 60 * 1000)
-  
-  // Convert to user's local timezone
-  const userTime = new Date(utcTime + (now.getTimezoneOffset() * -60 * 1000))
-  
-  return `${String(userTime.getHours()).padStart(2, '0')}h${String(userTime.getMinutes()).padStart(2, '0')}`
+  // La date est déjà en UTC+4, donc on la formate directement selon le fuseau de l'utilisateur
+  // Le navigateur convertira automatiquement l'heure UTC+4 vers l'heure locale
+  return releaseDate.toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+  }).replace(':', 'h')
 }
 
 // Fonction pour récupérer les prochains épisodes depuis Supabase
@@ -235,7 +238,7 @@ async function getUpcomingEpisodes(tmdbId: number): Promise<any[] | null> {
       .eq('tmdb_id', tmdbId)
       .gte('release_date', new Date().toISOString().split('T')[0])
       .order('release_date', { ascending: true })
-      .limit(5)
+      .limit(10)
 
     if (error) {
       console.error('Error fetching upcoming episodes:', error)
@@ -247,6 +250,80 @@ async function getUpcomingEpisodes(tmdbId: number): Promise<any[] | null> {
     console.error('Error fetching upcoming episodes:', error)
     return null
   }
+}
+
+// Fonction pour calculer le nombre d'épisodes à partir d'une plage
+function getEpisodeCount(episodeNumber: number, episodeRange?: string): number {
+  // Si episode_range est défini, calculer le nombre d'épisodes dans la plage
+  if (episodeRange) {
+    // Si c'est une plage comme "2-8", calculer le nombre d'épisodes
+    const match = episodeRange.match(/^(\d+)-(\d+)$/)
+    if (match) {
+      const start = parseInt(match[1])
+      const end = parseInt(match[2])
+      return end - start + 1
+    }
+    // Si c'est un seul numéro, retourner 1
+    return 1
+  }
+  // Sinon, c'est un seul épisode
+  return 1
+}
+
+// Fonction pour vérifier si c'est une plage avec plusieurs épisodes
+function isMultiEpisodeRange(episodeRange?: string): boolean {
+  if (!episodeRange) return false
+  // Vérifier si c'est une plage avec plusieurs épisodes (ex: "2-8")
+  const match = episodeRange.match(/^(\d+)-(\d+)$/)
+  if (match) {
+    const start = parseInt(match[1])
+    const end = parseInt(match[2])
+    return end > start
+  }
+  return false
+}
+
+// Fonction pour obtenir le premier épisode d'une plage
+function getFirstEpisodeFromRange(episodeRange?: string): number | null {
+  if (!episodeRange) return null
+  const match = episodeRange.match(/^(\d+)-(\d+)$/)
+  return match ? parseInt(match[1]) : parseInt(episodeRange)
+}
+
+// Fonction pour formater les informations d'épisode
+function formatEpisodeInfo(seasonNumber: number, episodeNumber: number, episodeRange?: string): string {
+  if (episodeRange) {
+    const match = episodeRange.match(/^(\d+)-(\d+)$/)
+    if (match) {
+      const start = parseInt(match[1])
+      const end = parseInt(match[2])
+      return `S${seasonNumber}E${start}-${end}`
+    }
+  }
+  return `S${seasonNumber}E${episodeNumber}`
+}
+
+// Fonction pour formater les informations d'épisode (version courte)
+function formatEpisodeInfoShort(seasonNumber: number, episodeNumber: number, episodeRange?: string): string {
+  if (episodeRange) {
+    const match = episodeRange.match(/^(\d+)-(\d+)$/)
+    if (match) {
+      const start = parseInt(match[1])
+      const end = parseInt(match[2])
+      return `E${start}-${end}`
+    }
+  }
+  return `E${episodeNumber}`
+}
+
+// Fonction pour créer un slug à partir du titre et de l'ID
+function createSlug(title: string, id: number): string {
+  const slug = title.toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return `${id}-${slug}`
 }
 
 export default function SeriePage() {
@@ -269,6 +346,7 @@ export default function SeriePage() {
   const [videosData, setVideosData] = useState<VideosData | null>(null)
   const [currentUrl, setCurrentUrl] = useState('')
   const [showAvailableOnly, setShowAvailableOnly] = useState(false)
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [serieLogo, setSerieLogo] = useState<string | null>(null)
@@ -453,6 +531,53 @@ export default function SeriePage() {
     if (!videosData || !videosData.season) return false
     const episodeVideos = videosData.season[selectedSeason]?.episodes[episodeNumber]?.videos
     return episodeVideos && episodeVideos.length > 0
+  }
+
+  // Fonction pour vérifier si un épisode doit être affiché selon le filtre
+  const shouldShowEpisode = (episode: Episode) => {
+    // Si le filtre n'est pas activé, afficher tous les épisodes
+    if (!showAvailableOnly) return true
+    
+    // Si le filtre est activé, afficher si:
+    // 1. L'épisode a des vidéos disponibles, OU
+    // 2. L'épisode fait partie d'une sortie à venir
+    const hasVideoAvailable = hasVideos(episode.episode_number)
+    const isUpcoming = upcomingEpisodes.some(
+      ue => ue.season_number === selectedSeason && 
+      (ue.episode_number === episode.episode_number || 
+       (ue.episode_range && isEpisodeInRange(episode.episode_number, ue.episode_range)))
+    )
+    
+    return hasVideoAvailable || isUpcoming
+  }
+
+  // Fonction pour vérifier si un épisode est à venir (pas encore disponible)
+  const isEpisodeUpcoming = (episode: Episode) => {
+    return upcomingEpisodes.some(
+      ue => ue.season_number === selectedSeason && 
+      (ue.episode_number === episode.episode_number || 
+       (ue.episode_range && isEpisodeInRange(episode.episode_number, ue.episode_range)))
+    )
+  }
+
+  // Fonction pour vérifier si un épisode est dans une plage
+  const isEpisodeInRange = (episodeNumber: number, episodeRange: string): boolean => {
+    const match = episodeRange.match(/^(\d+)-(\d+)$/)
+    if (match) {
+      const start = parseInt(match[1])
+      const end = parseInt(match[2])
+      return episodeNumber >= start && episodeNumber <= end
+    }
+    return episodeNumber === parseInt(episodeRange)
+  }
+
+  // Fonction pour obtenir la sortie à venir d'un épisode
+  const getEpisodeUpcomingRelease = (episode: Episode) => {
+    return upcomingEpisodes.find(
+      ue => ue.season_number === selectedSeason && 
+      (ue.episode_number === episode.episode_number || 
+       (ue.episode_range && isEpisodeInRange(episode.episode_number, ue.episode_range)))
+    )
   }
 
   // Mettre à jour l'URL quand la saison change
@@ -697,6 +822,8 @@ export default function SeriePage() {
                       const releaseDate = new Date(episode.release_date)
                       const today = new Date()
                       const daysUntil = Math.ceil((releaseDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+                      const episodeCount = getEpisodeCount(episode.episode_number, episode.episode_range)
+                      const episodeInfo = formatEpisodeInfoShort(episode.season_number, episode.episode_number, episode.episode_range)
                       
                       return (
                         <div key={episode.id}>
@@ -705,10 +832,10 @@ export default function SeriePage() {
                           >
                             <div className="flex items-center gap-1">
                               <span className="text-blue-400 font-medium">
-                                S{String(episode.season_number).padStart(2, '0')}E{String(episode.episode_number).padStart(2, '0')}
+                                {episodeInfo}
                               </span>
                               <span className="text-blue-400">
-                                sort
+                                {episodeCount > 1 ? `(${episodeCount} ép)` : 'sort'}
                               </span>
                               <span className="text-blue-400 font-medium">
                                 {daysUntil === 0 ? 'aujourd\'hui' : 
@@ -734,7 +861,7 @@ export default function SeriePage() {
                     {upcomingEpisodes.length > 3 && (
                       <div className="px-3 py-2 bg-black/40 border border-white/20 rounded-full text-xs sm:text-sm">
                         <span className="text-white/60">
-                          +{upcomingEpisodes.length - 3} épisode{upcomingEpisodes.length - 3 > 1 ? 's' : ''}
+                          +{upcomingEpisodes.length - 3} sortie{upcomingEpisodes.length - 3 > 1 ? 's' : ''}
                         </span>
                       </div>
                     )}
@@ -840,6 +967,20 @@ export default function SeriePage() {
               </div>
             </div>
 
+            {/* Bouton de demande - positionné haut */}
+            <div className="mb-6 text-center">
+              <div className="inline-flex items-center gap-2 bg-cyan-600/20 border border-cyan-500/50 rounded-xl p-4">
+                <MessageCircle size={18} className="text-cyan-400" />
+                <span className="text-cyan-300 text-sm">Il manque des épisodes ?</span>
+                <button
+                  onClick={() => setIsRequestModalOpen(true)}
+                  className="ml-2 bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition-all transform hover:scale-[1.02] border border-cyan-500/50"
+                >
+                  Demander les épisodes
+                </button>
+              </div>
+            </div>
+
             {/* Episodes List */}
             {episodesLoading ? (
               <div className="text-center py-12">
@@ -850,9 +991,17 @@ export default function SeriePage() {
               <>
               <div className="space-y-4">
                 {episodes
-                  .filter(episode => !showAvailableOnly || hasVideos(episode.episode_number))
-                  .map((episode) => (
-                  <div key={episode.id} className="bg-black rounded-lg overflow-hidden border border-white/20">
+                  .filter(episode => shouldShowEpisode(episode))
+                  .map((episode) => {
+                    // Obtenir la sortie à venir pour cet épisode
+                    const upcomingRelease = getEpisodeUpcomingRelease(episode)
+                    
+                    return (
+                  <div key={episode.id} className={`bg-black rounded-lg overflow-hidden border ${
+                    isEpisodeUpcoming(episode) 
+                      ? 'border-orange-500/30 bg-orange-950/20' 
+                      : 'border-white/20'
+                  }`}>
                     <div className="p-4">
                       {/* Mobile Layout: Image on top */}
                       <div className="sm:hidden">
@@ -883,9 +1032,34 @@ export default function SeriePage() {
                                   </h3>
                                 </Link>
                               ) : (
-                                <h3 className="text-lg font-semibold text-gray-500 mb-1 cursor-default">
+                                <h3 className={`text-lg font-semibold mb-1 cursor-default ${
+                                  isEpisodeUpcoming(episode) 
+                                    ? 'text-orange-400' 
+                                    : 'text-gray-500'
+                                }`}>
                                   Épisode {episode.episode_number}: {episode.name}
                                 </h3>
+                              )}
+                              
+                              {/* Badge pour épisode à venir */}
+                              {upcomingRelease && !hasVideos(episode.episode_number) && (
+                                <div className="mt-1">
+                                  <span className="px-2 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 font-medium">
+                                    À venir{upcomingRelease.release_time ? ` ${formatLocalTime(upcomingRelease.release_time)}` : ''}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {/* Multi-episode release info */}
+                              {upcomingRelease && upcomingRelease.episode_range && (
+                                <div className="mt-1">
+                                  <span className="px-2 py-1 bg-sky-600/20 border border-sky-500/30 rounded-full text-xs text-sky-400 font-medium">
+                                    Sortie {formatEpisodeInfoShort(upcomingRelease.season_number, upcomingRelease.episode_number, upcomingRelease.episode_range)}
+                                    {getEpisodeCount(upcomingRelease.episode_number, upcomingRelease.episode_range) > 1 && 
+                                      ` (${getEpisodeCount(upcomingRelease.episode_number, upcomingRelease.episode_range)} épisodes)`}
+                                    {upcomingRelease.release_time && ` à ${formatLocalTime(upcomingRelease.release_time)}`}
+                                  </span>
+                                </div>
                               )}
                               
                               {/* Countdown Timer for this episode */}
@@ -989,9 +1163,34 @@ export default function SeriePage() {
                                   </h3>
                                 </Link>
                               ) : (
-                                <h3 className="text-lg font-semibold text-gray-500 mb-1 cursor-default">
+                                <h3 className={`text-lg font-semibold mb-1 cursor-default ${
+                                  isEpisodeUpcoming(episode) 
+                                    ? 'text-orange-400' 
+                                    : 'text-gray-500'
+                                }`}>
                                   Épisode {episode.episode_number}: {episode.name}
                                 </h3>
+                              )}
+                              
+                              {/* Badge pour épisode à venir */}
+                              {upcomingRelease && !hasVideos(episode.episode_number) && (
+                                <div className="mb-2">
+                                  <span className="px-2 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 font-medium">
+                                    À venir{upcomingRelease.release_time ? ` ${formatLocalTime(upcomingRelease.release_time)}` : ''}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {/* Multi-episode release info */}
+                              {upcomingRelease && upcomingRelease.episode_range && (
+                                <div className="mb-2">
+                                  <span className="px-2 py-1 bg-sky-600/20 border border-sky-500/30 rounded-full text-xs text-sky-400 font-medium">
+                                    Sortie {formatEpisodeInfoShort(upcomingRelease.season_number, upcomingRelease.episode_number, upcomingRelease.episode_range)}
+                                    {getEpisodeCount(upcomingRelease.episode_number, upcomingRelease.episode_range) > 1 && 
+                                      ` (${getEpisodeCount(upcomingRelease.episode_number, upcomingRelease.episode_range)} épisodes)`}
+                                    {upcomingRelease.release_time && ` à ${formatLocalTime(upcomingRelease.release_time)}`}
+                                  </span>
+                                </div>
                               )}
                               
                               {/* Countdown Timer for this episode */}
@@ -1075,19 +1274,10 @@ export default function SeriePage() {
                         </div>
                       )}
                     </div>
-                ))}
+                    )
+                  })}
               </div>
               
-              {/* Message quand aucun épisode disponible avec le filtre */}
-              {showAvailableOnly && episodes.filter(episode => hasVideos(episode.episode_number)).length === 0 && (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-black border border-white/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Filter size={32} className="text-white/60" />
-                  </div>
-                  <h3 className="text-xl font-medium mb-2 text-white">Aucun épisode disponible</h3>
-                  <p className="text-gray-400">Aucun épisode de cette saison n'est disponible en streaming pour le moment.</p>
-                </div>
-              )}
               </>
             )}
           </div>
@@ -1124,7 +1314,16 @@ export default function SeriePage() {
           )}
         </div>
       </div>
+      
       </div>
+      
+      {/* Series Request Modal */}
+      <SeriesRequestModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        seriesTitle={serie.name}
+        seriesId={serie.id}
+      />
     </>
   )
 }

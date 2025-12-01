@@ -7,7 +7,8 @@ import ImageGallery from '../../../components/image-gallery'
 import ShareButton from '@/components/share-button'
 import SimilarMovies from '@/components/similar-movies'
 import Actors from '@/components/actors'
-import { Play } from 'lucide-react'
+import MovieRequestModal from '@/components/movie-request-modal'
+import { Play, MessageCircle } from 'lucide-react'
 
 interface Video {
   id?: string
@@ -134,6 +135,7 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
   const [currentUrl, setCurrentUrl] = useState('')
   const [logos, setLogos] = useState<any[]>([])
   const [tmdbVideos, setTmdbVideos] = useState<any[]>([])
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
 
   useEffect(() => {
     console.log('MovieClientPage - Données reçues :', {
@@ -391,7 +393,14 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
                         <path d="M8 5v14l11-7z"/>
                       </svg>
                     </div>
-                    <p className="text-gray-400">Aucune vidéo disponible pour ce film.</p>
+                    <p className="text-gray-400 mb-6">Aucune vidéo disponible pour ce film.</p>
+                    <button
+                      onClick={() => setIsRequestModalOpen(true)}
+                      className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-3 px-6 rounded-xl transition-all transform hover:scale-[1.02] shadow-lg border border-cyan-500/50"
+                    >
+                      <MessageCircle size={18} />
+                      Demander ce film
+                    </button>
                   </div>
                 )
               }
@@ -455,6 +464,14 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
           <SimilarMovies movies={similarMovies?.results || []} />
         </div>
       </div>
+      
+      {/* Movie Request Modal */}
+      <MovieRequestModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        movieTitle={movie.title}
+        movieId={movie.id}
+      />
     </div>
   )
 }

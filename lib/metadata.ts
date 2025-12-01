@@ -7,7 +7,8 @@ interface SeriesMetadataProps {
 export async function generateSeriesMetadata({ id }: SeriesMetadataProps): Promise<Metadata> {
   try {
     const response = await fetch(`https://api.themoviedb.org/3/tv/${id}?api_key=${process.env.TMDB_API_KEY}&language=fr-FR&append_to_response=keywords`, {
-      next: { revalidate: 3600 } // Cache for 1 hour
+      next: { revalidate: 3600 }, // Cache for 1 hour
+      signal: AbortSignal.timeout(10000) // 10 seconds timeout
     })
     
     if (!response.ok) {
@@ -72,7 +73,8 @@ interface MovieMetadataProps {
 export async function generateMovieMetadata({ id }: MovieMetadataProps): Promise<Metadata> {
   try {
     const response = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${process.env.TMDB_API_KEY}&language=fr-FR&append_to_response=keywords`, {
-      next: { revalidate: 3600 }
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(10000) // 10 seconds timeout
     })
     
     if (!response.ok) {
@@ -140,12 +142,14 @@ export async function generateEpisodeMetadata({ seriesId, season, episode }: Epi
   try {
     // Fetch series data
     const seriesResponse = await fetch(`https://api.themoviedb.org/3/tv/${seriesId}?api_key=${process.env.TMDB_API_KEY}&language=fr-FR`, {
-      next: { revalidate: 3600 }
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(10000) // 10 seconds timeout
     })
     
     // Fetch episode data
     const episodeResponse = await fetch(`https://api.themoviedb.org/3/tv/${seriesId}/season/${season}/episode/${episode}?api_key=${process.env.TMDB_API_KEY}&language=fr-FR`, {
-      next: { revalidate: 3600 }
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(10000) // 10 seconds timeout
     })
     
     if (!seriesResponse.ok || !episodeResponse.ok) {

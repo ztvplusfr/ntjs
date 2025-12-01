@@ -6,7 +6,7 @@ import { signIn } from 'next-auth/react'
 export default function DiscordAuthPage() {
   useEffect(() => {
     // Rediriger directement vers Discord
-    signIn('discord', { callbackUrl: '/' })
+    signIn('discord', { callbackUrl: '/browse' })
   }, [])
 
   return (

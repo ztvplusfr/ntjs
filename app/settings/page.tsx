@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Settings, Trash2, Info, Moon, Sun, Monitor, Globe, Volume2, Bell } from 'lucide-react'
 import PageHead from '@/components/page-head'
+import packageInfo from '../../package.json'
 
 export default function SettingsPage() {
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
@@ -10,6 +11,7 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState(true)
   const [sound, setSound] = useState(true)
   const [showAvailableOnly, setShowAvailableOnly] = useState(false)
+  const [appVersion, setAppVersion] = useState('')
 
   useEffect(() => {
     // Load settings from localStorage
@@ -25,6 +27,11 @@ export default function SettingsPage() {
       setNotifications(savedNotifications)
       setSound(savedSound)
       setShowAvailableOnly(savedFilter)
+    }
+
+    // Charger la version depuis package.json
+    if (packageInfo?.version) {
+      setAppVersion(packageInfo.version)
     }
   }, [])
 
@@ -183,7 +190,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Version:</span>
-                  <span className="text-white">2.0.0</span>
+                  <span className="text-white">{appVersion || 'Loading...'}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Build:</span>
@@ -191,7 +198,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Framework:</span>
-                  <span className="text-white">Next.js 15</span>
+                  <span className="text-white">Next.js 16</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Navigateur:</span>

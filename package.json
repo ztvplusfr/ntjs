@@ -1,7 +1,7 @@
 {
   "name": "nextjs-vite-tailwind",
   "private": true,
-  "version": "0.0.0",
+  "version": "5.10",
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "dev:https": "next dev -H 0.0.0.0 --experimental-https",
@@ -30,7 +30,7 @@
     "hls.js": "^1.6.15",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.554.0",
-    "next": "^15.1.6",
+    "next": "^16.0.5",
     "next-auth": "^4.24.13",
     "plyr": "^3.8.3",
     "prisma": "^7.0.1",

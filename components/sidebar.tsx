@@ -11,6 +11,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import DiscordMessageModal from './discord-message-modal'
 import SupportModal from './support-modal'
+import packageInfo from '../package.json'
 
 const sidebarItems = [
   { icon: Home, label: 'Home', href: '/browse' },
@@ -27,6 +28,7 @@ export default function Sidebar() {
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false)
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false)
   const [isAuthorizedIP, setIsAuthorizedIP] = useState(false)
+  const [appVersion, setAppVersion] = useState('')
   
   // Vérifier si l'IP est autorisée (côté client uniquement)
   useEffect(() => {
@@ -39,6 +41,13 @@ export default function Sidebar() {
     }
     
     checkAuthorization()
+  }, [])
+
+  // Charger la version depuis package.json
+  useEffect(() => {
+    if (packageInfo?.version) {
+      setAppVersion(packageInfo.version)
+    }
   }, [])
 
   const handleLogout = async () => {
@@ -177,7 +186,7 @@ export default function Sidebar() {
             App
           </div>
           <div className="text-xs text-gray-500 font-bold">
-            v4.30
+            v{appVersion || 'Loading...'}
           </div>  
         </div>
       </div>

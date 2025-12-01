@@ -4,6 +4,103 @@ import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
+// Fonctions pour formater les épisodes avec gestion des plages
+const formatEpisodeInfo = (season: number, episode: number, episodeRange?: string) => {
+  // Si episode_range est défini, l'utiliser
+  if (episodeRange) {
+    return `S${season.toString().padStart(2, '0')}E${episodeRange}`
+  }
+  // Sinon utiliser le format standard
+  return `S${season.toString().padStart(2, '0')}E${episode.toString().padStart(2, '0')}`
+}
+
+// Fonction pour calculer le nombre d'épisodes à partir d'une plage
+const getEpisodeCount = (episodeNumber: number, episodeRange?: string) => {
+  // Si episode_range est défini, calculer le nombre d'épisodes dans la plage
+  if (episodeRange) {
+    // Si c'est une plage comme "2-8", calculer le nombre d'épisodes
+    const match = episodeRange.match(/^(\d+)-(\d+)$/)
+    if (match) {
+      const start = parseInt(match[1])
+      const end = parseInt(match[2])
+      return end - start + 1
+    }
+    // Si c'est un seul numéro, retourner 1
+    return 1
+  }
+  // Sinon, c'est un seul épisode
+  return 1
+}
+
+const getFirstEpisodeFromRange = (episodeRange?: string) => {
+  if (!episodeRange) return null
+  // Si c'est une plage comme "1-6", extraire le premier numéro
+  const match = episodeRange.match(/^(\d+)-/)
+  return match ? parseInt(match[1]) : parseInt(episodeRange)
+}
+
+const formatTime = (time: string) => {
+  if (!time) return ''
+  
+  // Si le format est HH:MM, convertir selon l'heure locale de l'appareil
+  if (time.includes(':')) {
+    const [hours, minutes] = time.split(':')
+    
+    // L'heure dans la BDD est en UTC+4 (La Réunion)
+    // Créer une date avec l'heure UTC+4
+    const today = new Date()
+    const releaseDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    releaseDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+    
+    // La date est déjà en UTC+4, donc on la formate directement selon le fuseau de l'utilisateur
+    // Le navigateur convertira automatiquement l'heure UTC+4 vers l'heure locale
+    const localTime = releaseDate.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    })
+    
+    // Remplacer ':' par 'h' pour le format français
+    return localTime.replace(':', 'h')
+  }
+  
+  // Si pas de format d'heure, retourner tel quel
+  return time
+}
+
+// Fonction pour obtenir les dates de la semaine en fonction d'une date de référence
+function getWeekDates(referenceDate = new Date()) {
+  const today = new Date(referenceDate)
+  const currentDay = today.getDay()
+  const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay
+  const monday = new Date(today)
+  monday.setDate(today.getDate() + mondayOffset)
+  
+  const weekDates = []
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(monday)
+    date.setDate(monday.getDate() + i)
+    weekDates.push(date)
+  }
+  
+  return weekDates
+}
+
+// Fonction pour naviguer vers une autre semaine
+function navigateWeek(currentWeekDates: Date[], direction: 'prev' | 'next') {
+  const referenceMonday = currentWeekDates[0]
+  const newReferenceDate = new Date(referenceMonday)
+  
+  if (direction === 'prev') {
+    newReferenceDate.setDate(referenceMonday.getDate() - 7)
+  } else {
+    newReferenceDate.setDate(referenceMonday.getDate() + 7)
+  }
+  
+  return getWeekDates(newReferenceDate)
+}
+
 // Helper function to get series details
 async function getSeriesDetails(tmdbId: number) {
   const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
@@ -46,16 +143,31 @@ function isToday(date: Date) {
   return date.toDateString() === today.toDateString()
 }
 
-export default function AgendaClient({ seriesReleases, weekDates }: { seriesReleases: any[], weekDates: Date[] }) {
-  // Find current day index for mobile
-  const getCurrentDayIndex = () => {
+export default function AgendaClient({ seriesReleases, weekDates: initialWeekDates }: { seriesReleases: any[], weekDates: Date[] }) {
+  // État pour gérer les semaines dynamiquement
+  const [currentWeekDates, setCurrentWeekDates] = useState(initialWeekDates)
+  const [selectedDayIndex, setSelectedDayIndex] = useState(() => {
     const today = new Date()
-    return weekDates.findIndex(date => isToday(date))
-  }
-  
-  const [selectedDayIndex, setSelectedDayIndex] = useState(getCurrentDayIndex() >= 0 ? getCurrentDayIndex() : 0)
+    return currentWeekDates.findIndex(date => isToday(date))
+  })
   const [releasesByDate, setReleasesByDate] = useState(new Map())
   const [loading, setLoading] = useState(true)
+  
+  // Fonction pour naviguer entre les semaines
+  const handleWeekNavigation = (direction: 'prev' | 'next') => {
+    const newWeekDates = navigateWeek(currentWeekDates, direction)
+    setCurrentWeekDates(newWeekDates)
+    // Réinitialiser la sélection au premier jour de la nouvelle semaine
+    setSelectedDayIndex(0)
+  }
+  
+  // Fonction pour revenir à la semaine actuelle
+  const goToCurrentWeek = () => {
+    const currentWeek = getWeekDates(new Date())
+    setCurrentWeekDates(currentWeek)
+    const todayIndex = currentWeek.findIndex(date => isToday(date))
+    setSelectedDayIndex(todayIndex >= 0 ? todayIndex : 0)
+  }
   
   // Group releases by date and fetch series details
   useEffect(() => {
@@ -87,6 +199,21 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
           })
         }
         
+        // Trier les releases de chaque jour par heure (plus récentes en premier)
+        for (const [dateKey, releases] of newReleasesByDate.entries()) {
+          releases.sort((a: any, b: any) => {
+            // Si les deux ont une heure, comparer par heure
+            if (a.release_time && b.release_time) {
+              return a.release_time.localeCompare(b.release_time)
+            }
+            // Si seulement un a une heure, celui avec l'heure vient en premier
+            if (a.release_time && !b.release_time) return -1
+            if (!a.release_time && b.release_time) return 1
+            // Si aucun n'a d'heure, garder l'ordre original
+            return 0
+          })
+        }
+        
         console.log('Processed releases by date:', newReleasesByDate)
       }
       
@@ -97,7 +224,7 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
     processData()
   }, [seriesReleases])
   
-  const currentDay = weekDates[selectedDayIndex]
+  const currentDay = currentWeekDates[selectedDayIndex]
   const dateKey = currentDay.toISOString().split('T')[0]
   const dayReleases = releasesByDate.get(dateKey) || []
   const isCurrentDay = isToday(currentDay)
@@ -105,11 +232,23 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
   console.log('Current day:', currentDay, 'Releases:', dayReleases.length)
   
   const handlePreviousDay = () => {
-    setSelectedDayIndex(Math.max(0, selectedDayIndex - 1))
+    if (selectedDayIndex > 0) {
+      setSelectedDayIndex(selectedDayIndex - 1)
+    } else {
+      // Si on est au premier jour, naviguer vers la semaine précédente
+      handleWeekNavigation('prev')
+      setSelectedDayIndex(6) // Dernier jour de la semaine précédente
+    }
   }
   
   const handleNextDay = () => {
-    setSelectedDayIndex(Math.min(weekDates.length - 1, selectedDayIndex + 1))
+    if (selectedDayIndex < currentWeekDates.length - 1) {
+      setSelectedDayIndex(selectedDayIndex + 1)
+    } else {
+      // Si on est au dernier jour, naviguer vers la semaine suivante
+      handleWeekNavigation('next')
+      setSelectedDayIndex(0) // Premier jour de la semaine suivante
+    }
   }
   
   return (
@@ -125,16 +264,51 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
 
         {/* Week Header */}
         <div className="mb-6 sm:mb-8">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4">
-            Semaine {getWeekDateRange(weekDates)}
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => handleWeekNavigation('prev')}
+              className="p-2 rounded-full bg-black border border-white/20 text-white hover:bg-gray-900 transition-colors"
+              title="Semaine précédente"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            
+            <h2 className="text-lg sm:text-xl font-semibold text-center flex-1">
+              Semaine {getWeekDateRange(currentWeekDates)}
+            </h2>
+            
+            <button
+              onClick={() => handleWeekNavigation('next')}
+              className="p-2 rounded-full bg-black border border-white/20 text-white hover:bg-gray-900 transition-colors"
+              title="Semaine suivante"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+          
+          {/* Bouton pour revenir à la semaine actuelle si on n'y est pas */}
+          {!currentWeekDates.some(date => isToday(date)) && (
+            <div className="text-center mb-4">
+              <button
+                onClick={goToCurrentWeek}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Revenir à cette semaine
+              </button>
+            </div>
+          )}
           
           {/* Desktop Week View */}
           <div className="hidden sm:grid grid-cols-7 gap-2 mb-8">
-            {weekDates.map((date, index) => {
+            {currentWeekDates.map((date, index) => {
               const dateKey = date.toISOString().split('T')[0]
               const dayReleases = releasesByDate.get(dateKey) || []
               const isCurrentDay = isToday(date)
+              
+              // Calculer le nombre total d'épisodes en tenant compte des plages
+              const totalEpisodes = dayReleases.reduce((sum: number, release: any) => {
+                return sum + getEpisodeCount(release.episode_number, release.episode_range)
+              }, 0)
               
               return (
                 <div key={dateKey} className="text-center">
@@ -156,11 +330,11 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                       {date.getDate()}
                     </div>
                     <div className={`text-xs px-2 py-1 rounded-full mt-1 ${
-                      dayReleases.length > 0 
+                      totalEpisodes > 0 
                         ? 'bg-green-600/20 text-green-400 border border-green-600/40' 
                         : 'bg-gray-700/50 text-gray-500 border border-gray-600/40'
                     }`}>
-                      {dayReleases.length} épisode{dayReleases.length > 1 ? 's' : ''}
+                      {totalEpisodes} épisode{totalEpisodes > 1 ? 's' : ''}
                     </div>
                   </div>
                 </div>
@@ -207,7 +381,13 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                         ? 'bg-green-600/20 text-green-400 border border-green-600/40' 
                         : 'bg-gray-700/50 text-gray-500 border border-gray-600/40'
                     }`}>
-                      {dayReleases.length}
+                      {(() => {
+                        // Calculer le nombre total d'épisodes en tenant compte des plages
+                        const totalEpisodes = dayReleases.reduce((sum: number, release: any) => {
+                          return sum + getEpisodeCount(release.episode_number, release.episode_range)
+                        }, 0)
+                        return totalEpisodes
+                      })()}
                     </div>
                   )}
                 </div>
@@ -215,9 +395,9 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
               
               <button
                 onClick={handleNextDay}
-                disabled={selectedDayIndex === weekDates.length - 1}
+                disabled={selectedDayIndex === currentWeekDates.length - 1}
                 className={`p-2 rounded-full transition-colors ${
-                  selectedDayIndex === weekDates.length - 1
+                  selectedDayIndex === currentWeekDates.length - 1
                     ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
                     : 'bg-black border border-white/20 text-white hover:bg-gray-900'
                 }`}
@@ -264,17 +444,27 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                       </div>
                     </div>
                     <span className="px-2 py-0.5 bg-green-600/20 text-green-400 border border-green-600/40 rounded-full text-xs">
-                      {dayReleases.length}
+                      {(() => {
+                        // Calculer le nombre total d'épisodes en tenant compte des plages
+                        const totalEpisodes = dayReleases.reduce((sum: number, release: any) => {
+                          return sum + getEpisodeCount(release.episode_number, release.episode_range)
+                        }, 0)
+                        return totalEpisodes
+                      })()}
                     </span>
                   </div>
                 </div>
                 
                 <div className="p-3 pt-0">
                   <div className="grid grid-cols-2 gap-3">
-                    {dayReleases.map((release: any) => (
+                    {dayReleases.map((release: any) => {
+                      const episodeInfo = formatEpisodeInfo(release.season_number, release.episode_number, release.episode_range)
+                      const firstEpisode = getFirstEpisodeFromRange(release.episode_range) || release.episode_number
+                      
+                      return (
                       <Link 
                         key={release.id}
-                        href={`/series/${release.tmdb_id}-${(release.seriesDetails?.name || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`}
+                        href={`/watch/series/${release.tmdb_id}/${release.season_number}/${firstEpisode}`}
                         className="group cursor-pointer"
                       >
                         <div className="relative aspect-[2/3] bg-gray-900 rounded-lg overflow-hidden border border-white/20 hover:border-white/40 transition-colors duration-300">
@@ -292,7 +482,7 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                                     <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
                                   </svg>
                                 </div>
-                                <p className="text-white text-xs font-medium line-clamp-3">{release.seriesDetails?.name || 'Série'}</p>
+                                <p className="text-white text-xs font-medium line-clamp-3">{release.seriesDetails?.name || release.series_name || 'Série'}</p>
                               </div>
                             </div>
                           )}
@@ -300,7 +490,7 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                           {/* Episode info badge */}
                           <div className="absolute top-1.5 left-1.5">
                             <span className="px-1.5 py-0.5 bg-red-600 border border-red-600/40 rounded-full text-xs text-white font-medium">
-                              S{String(release.season_number).padStart(2, '0')}E{String(release.episode_number).padStart(2, '0')}
+                              {episodeInfo}
                             </span>
                           </div>
                           
@@ -308,7 +498,7 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                           {release.release_time && (
                             <div className="absolute top-1.5 right-1.5">
                               <span className="px-1.5 py-0.5 bg-black border border-white/20 rounded-full text-xs text-white">
-                                {release.release_time}
+                                {formatTime(release.release_time)}
                               </span>
                             </div>
                           )}
@@ -326,14 +516,14 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                         
                         <div className="mt-2">
                           <h3 className="font-medium text-white text-xs line-clamp-1 group-hover:text-gray-200 transition-colors">
-                            {release.seriesDetails?.name || 'Série'}
+                            {release.seriesDetails?.name || release.series_name || 'Série'}
                           </h3>
                           <p className="text-gray-400 text-xs mt-0.5 line-clamp-1">
-                            {release.episode_title || `Épisode ${release.episode_number}`}
+                            {release.episode_title || (release.episode_range ? `Épisodes ${release.episode_range}` : `Épisode ${release.episode_number}`)}
                           </p>
                         </div>
                       </Link>
-                    ))}
+                    )})}
                   </div>
                 </div>
               </div>
@@ -367,7 +557,7 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                 </p>
               </div>
             ) : (
-              weekDates.map((date) => {
+              currentWeekDates.map((date) => {
                 const dateKey = date.toISOString().split('T')[0]
                 const dayReleases = releasesByDate.get(dateKey) || []
                 const isCurrentDay = isToday(date)
@@ -393,7 +583,13 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                         )}
                       </div>
                       <span className="px-3 py-1 bg-green-600/20 text-green-400 border border-green-600/40 rounded-full text-sm">
-                        {dayReleases.length} sortie{dayReleases.length > 1 ? 's' : ''}
+                        {(() => {
+                          // Calculer le nombre total d'épisodes en tenant compte des plages
+                          const totalEpisodes = dayReleases.reduce((sum: number, release: any) => {
+                            return sum + getEpisodeCount(release.episode_number, release.episode_range)
+                          }, 0)
+                          return `${totalEpisodes} sortie${totalEpisodes > 1 ? 's' : ''}`
+                        })()}
                       </span>
                     </div>
                   </div>
@@ -401,10 +597,14 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                   {/* Releases Grid */}
                   <div className="p-4 md:p-6 pt-0">
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                      {dayReleases.map((release: any) => (
+                      {dayReleases.map((release: any) => {
+                        const episodeInfo = formatEpisodeInfo(release.season_number, release.episode_number, release.episode_range)
+                        const firstEpisode = getFirstEpisodeFromRange(release.episode_range) || release.episode_number
+                        
+                        return (
                         <Link 
                           key={release.id}
-                          href={`/series/${release.tmdb_id}-${(release.seriesDetails?.name || '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`}
+                          href={`/watch/series/${release.tmdb_id}/${release.season_number}/${firstEpisode}`}
                           className="group cursor-pointer"
                         >
                           <div className="relative aspect-[2/3] bg-gray-900 rounded-lg overflow-hidden border border-white/20 hover:border-white/40 transition-colors duration-300">
@@ -422,7 +622,7 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                                       <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
                                     </svg>
                                   </div>
-                                  <p className="text-white text-xs font-medium line-clamp-3">{release.seriesDetails?.name || 'Série'}</p>
+                                  <p className="text-white text-xs font-medium line-clamp-3">{release.seriesDetails?.name || release.series_name || 'Série'}</p>
                                 </div>
                               </div>
                             )}
@@ -430,7 +630,7 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                             {/* Episode info badge */}
                             <div className="absolute top-2 left-2">
                               <span className="px-2 py-1 bg-red-600 border border-red-600/40 rounded-full text-xs text-white font-medium">
-                                S{String(release.season_number).padStart(2, '0')}E{String(release.episode_number).padStart(2, '0')}
+                                {episodeInfo}
                               </span>
                             </div>
                             
@@ -438,7 +638,7 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                             {release.release_time && (
                               <div className="absolute top-2 right-2">
                                 <span className="px-2 py-1 bg-black border border-white/20 rounded-full text-xs text-white">
-                                  {release.release_time}
+                                  {formatTime(release.release_time)}
                                 </span>
                               </div>
                             )}
@@ -456,10 +656,10 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                           
                           <div className="mt-3">
                             <h3 className="font-medium text-white text-sm line-clamp-2 group-hover:text-gray-200 transition-colors">
-                              {release.seriesDetails?.name || 'Série'}
+                              {release.seriesDetails?.name || release.series_name || 'Série'}
                             </h3>
                             <p className="text-gray-400 text-xs mt-1">
-                              {release.episode_title || `Épisode ${release.episode_number}`}
+                              {release.episode_title || (release.episode_range ? `Épisodes ${release.episode_range}` : `Épisode ${release.episode_number}`)}
                             </p>
                             {release.seriesDetails?.genres && (
                               <p className="text-gray-500 text-xs mt-1">
@@ -468,7 +668,7 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
                             )}
                           </div>
                         </Link>
-                      ))}
+                      )})}
                     </div>
                   </div>
                 </div>
@@ -479,7 +679,7 @@ export default function AgendaClient({ seriesReleases, weekDates }: { seriesRele
         </div>
 
         {/* No releases this week */}
-        {!loading && weekDates.every(date => (releasesByDate.get(date.toISOString().split('T')[0]) || []).length === 0) && (
+        {!loading && currentWeekDates.every(date => (releasesByDate.get(date.toISOString().split('T')[0]) || []).length === 0) && (
           <div className="text-center py-20">
             <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center mx-auto mb-6 border border-white/20">
               <svg className="w-10 h-10 text-white/60" fill="currentColor" viewBox="0 0 24 24">
