@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { list } from "@vercel/blob";
-import { put, del } from "@vercel/blob";
+import { getSeriesVideosStructured, updateSeriesVideos } from "@/lib/supabase";
 
 // IP autorisées pour l'accès admin
-const ADMIN_IPS = ['165.169.45.189'];
+const ADMIN_IPS = ['165.169.45.189', '192.168.1.3'];
 
 // Fonction pour vérifier l'IP du client
 function getClientIP(request: Request): string | null {
@@ -58,38 +57,36 @@ export async function GET(
 
   try {
     const { id } = await params;
-    
-    // Récupérer le fichier JSON spécifique
-    const { blobs } = await list({ prefix: `series/${id}.json` });
-    
-    if (blobs.length === 0) {
+    const tmdbId = parseInt(id);
+
+    if (isNaN(tmdbId)) {
+      return NextResponse.json({ error: 'Invalid series ID' }, { status: 400 });
+    }
+
+    // Récupérer les vidéos structurées depuis Supabase
+    const structuredData = await getSeriesVideosStructured(tmdbId);
+
+    if (!structuredData) {
       return NextResponse.json({ error: 'Series not found' }, { status: 404 });
     }
 
-    const seriesBlob = blobs[0];
-    
-    // Récupérer le contenu du fichier
-    const response = await fetch(seriesBlob.url);
-    const seriesData: SeriesData = await response.json();
+    // Convertir au format attendu par le frontend
+    const seriesData: SeriesData = {
+      season: structuredData
+    };
 
-    // Extraire l'ID TMDB du nom de fichier
-    const tmdbId = extractTMDBId(seriesBlob.pathname);
-    
     // Récupérer les informations TMDB
-    let tmdbData = null;
-    if (tmdbId) {
-      tmdbData = await fetchTMDBData(tmdbId);
-    }
+    const tmdbData = await fetchTMDBData(tmdbId.toString());
 
     return NextResponse.json({
-      id,
-      pathname: seriesBlob.pathname,
-      uploadedAt: seriesBlob.uploadedAt,
-      size: seriesBlob.size,
-      url: seriesBlob.url,
+      id: id.toString(),
+      pathname: `series/${id}.json`,
+      uploadedAt: new Date().toISOString(),
+      size: JSON.stringify(seriesData).length,
+      url: `https://supabase-storage-url/series/${id}.json`,
       seriesData,
       tmdbData,
-      extractedId: tmdbId
+      extractedId: tmdbId.toString()
     });
   } catch (error: unknown) {
     console.error('Error fetching series:', error);
@@ -109,8 +106,14 @@ export async function PUT(
 
   try {
     const { id } = await params;
+    const tmdbId = parseInt(id);
+
+    if (isNaN(tmdbId)) {
+      return NextResponse.json({ error: 'Invalid series ID' }, { status: 400 });
+    }
+
     console.log('PUT request for series ID:', id);
-    
+
     const seriesData: SeriesData = await request.json();
     console.log('Received series data:', JSON.stringify(seriesData, null, 2));
 
@@ -125,7 +128,7 @@ export async function PUT(
     // Valider chaque saison et épisode
     for (const [seasonNumber, season] of Object.entries(seriesData.season)) {
       console.log(`Validating season ${seasonNumber}`);
-      
+
       if (!season.episodes || typeof season.episodes !== 'object') {
         console.error(`Invalid episodes in season ${seasonNumber}`);
         return NextResponse.json({ error: `Invalid episodes in season ${seasonNumber}` }, { status: 400 });
@@ -133,7 +136,7 @@ export async function PUT(
 
       for (const [episodeNumber, episode] of Object.entries(season.episodes)) {
         console.log(`Validating season ${seasonNumber} episode ${episodeNumber}`);
-        
+
         if (!episode.videos || !Array.isArray(episode.videos)) {
           console.error(`Invalid videos in season ${seasonNumber} episode ${episodeNumber}`);
           return NextResponse.json({ error: `Invalid videos in season ${seasonNumber} episode ${episodeNumber}` }, { status: 400 });
@@ -145,11 +148,11 @@ export async function PUT(
             console.error('All video fields are required:', video);
             return NextResponse.json({ error: 'All video fields are required' }, { status: 400 });
           }
-          
+
           // Valider que pub et play sont des nombres 0 ou 1, avec valeurs par défaut
           const pubValue = typeof video.pub === 'number' ? video.pub : 0;
           const playValue = typeof video.play === 'number' ? video.play : 1;
-          
+
           if (pubValue !== 0 && pubValue !== 1) {
             console.error('pub must be 0 or 1:', pubValue);
             return NextResponse.json({ error: 'pub must be 0 or 1' }, { status: 400 });
@@ -158,7 +161,7 @@ export async function PUT(
             console.error('play must be 0 or 1:', playValue);
             return NextResponse.json({ error: 'play must be 0 or 1' }, { status: 400 });
           }
-          
+
           // Mettre à jour les valeurs si elles étaient manquantes
           video.pub = pubValue;
           video.play = playValue;
@@ -166,23 +169,23 @@ export async function PUT(
       }
     }
 
-    console.log('All validations passed, creating blob...');
+    console.log('All validations passed, updating series in Supabase...');
 
-    // Créer le nouveau blob
-    const blob = await put(`series/${id}.json`, JSON.stringify(seriesData, null, 2), {
-      access: 'public',
-      contentType: 'application/json',
-      allowOverwrite: true,
-    });
+    // Mettre à jour les vidéos de la série dans Supabase
+    const success = await updateSeriesVideos(tmdbId, seriesData.season);
 
-    console.log('Blob created successfully:', blob);
+    if (!success) {
+      return NextResponse.json({ error: 'Failed to update series videos' }, { status: 500 });
+    }
+
+    console.log('Series updated successfully in Supabase');
 
     return NextResponse.json({
       success: true,
-      pathname: blob.pathname,
+      pathname: `series/${id}.json`,
       uploadedAt: new Date().toISOString(),
-      size: JSON.stringify(seriesData, null, 2).length,
-      url: blob.url
+      size: JSON.stringify(seriesData).length,
+      url: `https://supabase-storage-url/series/${id}.json`
     });
   } catch (error: unknown) {
     console.error('Error updating series:', error);

@@ -3,7 +3,7 @@
 import useEmblaCarousel from 'embla-carousel-react'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -34,6 +34,35 @@ export default function MovieCarousel({ title, movies, showRank = false }: Movie
 
   const [canScrollPrev, setCanScrollPrev] = useState(false)
   const [canScrollNext, setCanScrollNext] = useState(false)
+  const [bannedContent, setBannedContent] = useState<Set<string>>(new Set())
+
+  // Vérifier le contenu banni au chargement du composant
+  useEffect(() => {
+    const checkBannedContent = async () => {
+      const bannedSet = new Set<string>()
+
+      // Vérifier chaque film/série pour voir s'il est banni
+      for (const movie of movies) {
+        try {
+          const mediaType = getMediaType(movie)
+          const response = await fetch(`/api/banned?tmdb_id=${movie.id}&content_type=${mediaType}`)
+          const data = await response.json()
+
+          if (data.banned) {
+            bannedSet.add(`${movie.id}-${mediaType}`)
+          }
+        } catch (error) {
+          console.error('Error checking banned content:', error)
+        }
+      }
+
+      setBannedContent(bannedSet)
+    }
+
+    if (movies.length > 0) {
+      checkBannedContent()
+    }
+  }, [movies])
 
   useEffect(() => {
     if (!emblaApi) return
@@ -68,6 +97,14 @@ export default function MovieCarousel({ title, movies, showRank = false }: Movie
     return movie.title ? 'movie' : 'tv'
   }
 
+  // Filtrer les films bannis
+  const filteredMovies = useMemo(() => {
+    return movies.filter(movie => {
+      const mediaType = getMediaType(movie)
+      return !bannedContent.has(`${movie.id}-${mediaType}`)
+    })
+  }, [movies, bannedContent])
+
   return (
     <div className="w-full py-8 pl-4 sm:pl-6 lg:pl-8 overflow-x-hidden">
       {/* Header */}
@@ -100,7 +137,7 @@ export default function MovieCarousel({ title, movies, showRank = false }: Movie
       {/* Carousel */}
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex gap-4">
-          {movies.map((movie) => (
+          {filteredMovies.map((movie) => (
             <Link
               key={movie.id}
               href={`/${getMediaType(movie) === 'movie' ? 'movies' : 'series'}/${createSlug(movie.title || movie.name || '', movie.id)}`}

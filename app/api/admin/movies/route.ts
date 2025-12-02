@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { list } from "@vercel/blob";
 
 // IP autorisées pour l'accès admin
-const ADMIN_IPS = ['165.169.45.189'];
+const ADMIN_IPS = ['165.169.45.189', '192.168.1.3'];
 
 // Fonction pour vérifier l'IP du client
 function getClientIP(request: Request): string | null {

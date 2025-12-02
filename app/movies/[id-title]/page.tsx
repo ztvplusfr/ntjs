@@ -129,6 +129,28 @@ async function getMovieDetails(id: string) {
   }
 }
 
+async function getMovieFrenchCertification(id: string) {
+  const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
+
+  try {
+    const response = await fetch(
+      `https://api.themoviedb.org/3/movie/${id}/release_dates?api_key=${apiKey}`
+    )
+
+    if (!response.ok) return null
+
+    const data = await response.json()
+    const franceEntry = data.results?.find((entry: any) => entry.iso_3166_1 === 'FR')
+    if (!franceEntry?.release_dates?.length) return null
+
+    const certificationObject = franceEntry.release_dates.find((release: any) => release.certification)
+    return certificationObject?.certification || null
+  } catch (error) {
+    console.error('Error fetching movie certification:', error)
+    return null
+  }
+}
+
 export async function generateMetadata({ params }: MoviePageProps): Promise<Metadata> {
   const [id] = (await params)['id-title'].split('-')
   
@@ -195,12 +217,13 @@ export default async function MoviePage({ params }: MoviePageProps) {
   
   console.log('MoviePage - Récupération des données pour le film ID:', id)
   
-  const [movie, videos, imagesData, similarMovies, castData] = await Promise.all([
+  const [movie, videos, imagesData, similarMovies, castData, frenchCertification] = await Promise.all([
     getMovieDetails(id),
     getStreamingVideos(id),
     getMovieImages(id),
     getSimilarMovies(id),
-    getMovieCast(id)
+    getMovieCast(id),
+    getMovieFrenchCertification(id)
   ])
 
   console.log('MoviePage - Données récupérées :', {
@@ -215,5 +238,14 @@ export default async function MoviePage({ params }: MoviePageProps) {
     notFound()
   }
 
-  return <MovieClientPage movie={movie} videos={videos} imagesData={imagesData} similarMovies={similarMovies} castData={castData} />
+  return (
+    <MovieClientPage
+      movie={movie}
+      videos={videos}
+      imagesData={imagesData}
+      similarMovies={similarMovies}
+      castData={castData}
+      frenchCertification={frenchCertification}
+    />
+  )
 }

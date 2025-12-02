@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { notFound } from 'next/navigation'
 import VideoCard from '@/components/video-card'
 import ImageGallery from '../../../components/image-gallery'
@@ -9,6 +9,7 @@ import SimilarMovies from '@/components/similar-movies'
 import Actors from '@/components/actors'
 import MovieRequestModal from '@/components/movie-request-modal'
 import { Play, MessageCircle } from 'lucide-react'
+import { getRatingInfo } from '@/lib/ratings'
 
 interface Video {
   id?: string
@@ -44,6 +45,7 @@ interface MoviePageProps {
   imagesData: any
   similarMovies: any
   castData: any
+  frenchCertification?: string | null
 }
 
 async function getStreamingVideos(id: string) {
@@ -131,11 +133,32 @@ async function getMovieDetails(id: string) {
   }
 }
 
-export default function MovieClientPage({ movie, videos, imagesData, similarMovies, castData }: MoviePageProps) {
+export default function MovieClientPage({ movie, videos, imagesData, similarMovies, castData, frenchCertification }: MoviePageProps) {
   const [currentUrl, setCurrentUrl] = useState('')
   const [logos, setLogos] = useState<any[]>([])
   const [tmdbVideos, setTmdbVideos] = useState<any[]>([])
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
+  const [matureAcknowledged, setMatureAcknowledged] = useState(false)
+  const [showMatureWarning, setShowMatureWarning] = useState(false)
+  const ratingInfo = useMemo(() => getRatingInfo(frenchCertification), [frenchCertification])
+  const frenchRatingLabel = ratingInfo?.label
+  const frenchRatingCode = ratingInfo?.code
+  const frenchRatingDescription = ratingInfo?.description
+  const isMatureRating = Boolean(ratingInfo?.mature)
+
+  useEffect(() => {
+    if (isMatureRating) {
+      setShowMatureWarning(!matureAcknowledged)
+    } else {
+      setShowMatureWarning(false)
+      setMatureAcknowledged(false)
+    }
+  }, [isMatureRating, matureAcknowledged])
+
+  const acknowledgeMatureContent = () => {
+    setMatureAcknowledged(true)
+    setShowMatureWarning(false)
+  }
 
   useEffect(() => {
     console.log('MovieClientPage - Données reçues :', {
@@ -272,9 +295,36 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
     : null
   
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Hero Section */}
-      <div className="relative h-[60vh] overflow-hidden -mt-16">
+    <div className="min-h-screen bg-black text-white relative">
+      {showMatureWarning && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/90 backdrop-blur-sm px-4 py-8">
+          <div className="max-w-lg space-y-4 rounded-2xl border border-white/20 bg-black/80 p-6 text-center shadow-xl shadow-black/40">
+            <p className="text-xs uppercase tracking-[0.4em] text-red-400">Avertissement</p>
+            <h2 className="text-2xl font-bold">Mature Audience Only (TV-MA)</h2>
+            <p className="text-sm text-gray-300">
+              Contenu réservé aux adultes (17+). Peut contenir :
+            </p>
+            <ul className="mx-auto max-w-[280px] space-y-1 text-left text-xs text-gray-300">
+              <li>• Violence forte</li>
+              <li>• Sexualité explicite</li>
+              <li>• Langage très grossier</li>
+              <li>• Scènes sensibles</li>
+            </ul>
+            <button
+              onClick={acknowledgeMatureContent}
+              className="w-full rounded-full bg-emerald-500/90 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400"
+            >
+              Je confirme avoir 17 ans ou plus
+            </button>
+            {frenchRatingDescription && (
+              <p className="text-[11px] text-gray-400">{frenchRatingDescription}</p>
+            )}
+          </div>
+        </div>
+      )}
+      <div className={showMatureWarning ? 'pointer-events-none filter blur-sm' : ''}>
+        {/* Hero Section */}
+        <div className="relative h-[60vh] overflow-hidden -mt-16">
         {backdropUrl && (
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -312,6 +362,18 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
                   {movie.runtime && (
                     <span className="px-2 sm:px-3 py-1 bg-black rounded-full text-xs sm:text-sm border border-white/20">
                       {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}min
+                    </span>
+                  )}
+                  {frenchRatingLabel && (
+                    <span className="px-2 sm:px-3 py-1 bg-black rounded-full text-xs sm:text-sm border border-white/20">
+                      <span className="text-emerald-400 font-semibold leading-none">
+                        {frenchRatingLabel}
+                      </span>
+                      {frenchCertification && (
+                        <span className="text-gray-400 ml-2 uppercase text-[10px] tracking-wide">
+                          {frenchCertification}
+                        </span>
+                      )}
                     </span>
                   )}
                   <span className="flex items-center px-2 sm:px-3 py-1 bg-black rounded-full text-xs sm:text-sm border border-white/20">
@@ -464,9 +526,10 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
           <SimilarMovies movies={similarMovies?.results || []} />
         </div>
       </div>
-      
-      {/* Movie Request Modal */}
-      <MovieRequestModal
+    </div>
+    
+    {/* Movie Request Modal */}
+    <MovieRequestModal
         isOpen={isRequestModalOpen}
         onClose={() => setIsRequestModalOpen(false)}
         movieTitle={movie.title}

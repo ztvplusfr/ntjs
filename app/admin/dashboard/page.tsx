@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { Film, Tv, FolderOpen, FileText, BarChart3, Users, Clock, TrendingUp } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 interface DashboardStats {
   moviesCount: number
   seriesCount: number
-  totalFiles: number
+  totalViews: number
+  totalVideos: number
   lastUpdated: string
 }
 
@@ -14,7 +16,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     moviesCount: 0,
     seriesCount: 0,
-    totalFiles: 0,
+    totalViews: 0,
+    totalVideos: 0,
     lastUpdated: ''
   })
   const [loading, setLoading] = useState(true)
@@ -22,29 +25,41 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Récupérer les statistiques des fichiers JSON
-        const response = await fetch('/api/admin/stats')
-        if (response.ok) {
-          const data = await response.json()
-          setStats(data)
-        } else {
-          // Fallback avec des données simulées
-          setStats({
-            moviesCount: 0,
-            seriesCount: 0,
-            totalFiles: 0,
-            lastUpdated: new Date().toISOString()
-          })
+        // Récupérer les statistiques depuis Supabase
+        const { data: movies, error: moviesError } = await supabase
+          .from('videos')
+          .select('tmdb_id')
+          .eq('type', 'movie')
+
+        const { data: series, error: seriesError } = await supabase
+          .from('videos')
+          .select('tmdb_id')
+          .eq('type', 'series')
+
+        const { data: allVideos, error: videosError } = await supabase
+          .from('videos')
+          .select('play')
+
+        if (moviesError || seriesError || videosError) {
+          console.error('Error fetching stats:', moviesError || seriesError || videosError)
+          return
         }
-      } catch (error) {
-        console.error('Error fetching stats:', error)
-        // Fallback avec des données simulées
+
+        // Compter les films et séries uniques par tmdb_id
+        const uniqueMovies = new Set(movies?.map(m => m.tmdb_id))
+        const uniqueSeries = new Set(series?.map(s => s.tmdb_id))
+        
+        const totalViews = allVideos?.reduce((acc, video) => acc + (video.play || 0), 0) || 0
+
         setStats({
-          moviesCount: 0,
-          seriesCount: 0,
-          totalFiles: 0,
+          moviesCount: uniqueMovies.size,
+          seriesCount: uniqueSeries.size,
+          totalViews,
+          totalVideos: allVideos?.length || 0,
           lastUpdated: new Date().toISOString()
         })
+      } catch (error) {
+        console.error('Error fetching stats:', error)
       } finally {
         setLoading(false)
       }
@@ -76,9 +91,9 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Tableau de bord Admin</h1>
+          <h1 className="text-4xl font-bold mb-2">Tableau de bord Admin</h1>
           <p className="text-gray-400">
-            Gestion des fichiers JSON de films et séries
+            Gestion des vidéos de films et séries
           </p>
         </div>
 
@@ -93,7 +108,7 @@ export default function AdminDashboard() {
               <span className="text-sm text-gray-400">Films</span>
             </div>
             <div className="text-2xl font-bold mb-1">{stats.moviesCount}</div>
-            <div className="text-sm text-gray-400">fichiers JSON</div>
+            <div className="text-sm text-gray-400">films uniques</div>
           </div>
 
           {/* Series Count */}
@@ -105,10 +120,10 @@ export default function AdminDashboard() {
               <span className="text-sm text-gray-400">Séries</span>
             </div>
             <div className="text-2xl font-bold mb-1">{stats.seriesCount}</div>
-            <div className="text-sm text-gray-400">fichiers JSON</div>
+            <div className="text-sm text-gray-400">séries uniques</div>
           </div>
 
-          {/* Total Files */}
+          {/* Total Videos */}
           <div className="bg-black rounded-lg p-6 border border-white/20">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-green-500/20 rounded-lg">
@@ -116,24 +131,20 @@ export default function AdminDashboard() {
               </div>
               <span className="text-sm text-gray-400">Total</span>
             </div>
-            <div className="text-2xl font-bold mb-1">{stats.totalFiles}</div>
-            <div className="text-sm text-gray-400">fichiers JSON</div>
+            <div className="text-2xl font-bold mb-1">{stats.totalVideos}</div>
+            <div className="text-sm text-gray-400">vidéos</div>
           </div>
 
-          {/* Last Updated */}
+          {/* Total Views */}
           <div className="bg-black rounded-lg p-6 border border-white/20">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-orange-500/20 rounded-lg">
-                <Clock className="w-6 h-6 text-orange-400" />
+                <Users className="w-6 h-6 text-orange-400" />
               </div>
-              <span className="text-sm text-gray-400">Dernière mise à jour</span>
+              <span className="text-sm text-gray-400">Vues</span>
             </div>
-            <div className="text-lg font-bold mb-1">
-              {stats.lastUpdated ? new Date(stats.lastUpdated).toLocaleDateString('fr-FR') : 'N/A'}
-            </div>
-            <div className="text-sm text-gray-400">
-              {stats.lastUpdated ? new Date(stats.lastUpdated).toLocaleTimeString('fr-FR') : 'N/A'}
-            </div>
+            <div className="text-2xl font-bold mb-1">{stats.totalViews.toLocaleString()}</div>
+            <div className="text-sm text-gray-400">vues totales</div>
           </div>
         </div>
 
@@ -150,7 +161,7 @@ export default function AdminDashboard() {
             >
               <FolderOpen className="w-5 h-5 mb-2 text-blue-400" />
               <div className="font-medium">Gérer les films</div>
-              <div className="text-sm text-gray-400">Voir et modifier les fichiers JSON des films</div>
+              <div className="text-sm text-gray-400">Voir et modifier les vidéos des films</div>
             </a>
             <a 
               href="/admin/series"
@@ -158,7 +169,7 @@ export default function AdminDashboard() {
             >
               <FolderOpen className="w-5 h-5 mb-2 text-purple-400" />
               <div className="font-medium">Gérer les séries</div>
-              <div className="text-sm text-gray-400">Voir et modifier les fichiers JSON des séries</div>
+              <div className="text-sm text-gray-400">Voir et modifier les vidéos des séries</div>
             </a>
             <button className="p-4 bg-black rounded-lg border border-white/20 hover:bg-white/10 transition-colors text-left">
               <TrendingUp className="w-5 h-5 mb-2 text-green-400" />
@@ -169,9 +180,9 @@ export default function AdminDashboard() {
         </div>
 
         {/* Recent Activity */}
-        <div className="mt-8 bg-black rounded-lg p-6 border border-white/20">
+        <div className="bg-black rounded-lg p-6 border border-white/20 mt-6">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5" />
+            <Clock className="w-5 h-5" />
             Activité récente
           </h2>
           <div className="text-gray-400">

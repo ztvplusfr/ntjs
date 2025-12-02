@@ -31,7 +31,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: 'identify'
+          scope: 'identify guilds'
         }
       }
     })

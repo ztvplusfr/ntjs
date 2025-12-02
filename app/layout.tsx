@@ -22,6 +22,27 @@ export const metadata: Metadata = {
   verification: {
     google: 'JoVfuBLfd6H-fd6wA8nGaf8eYKfkRV9gTkaFkftTmyE',
   },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'ZTVPlus',
+    startupImage: [
+      {
+        url: '/icon-stranger-things.png',
+        media: '(device-width: 768px) and (device-height: 1024px)',
+      },
+    ],
+  },
+  other: {
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'apple-mobile-web-app-title': 'ZTVPlus',
+    'mobile-web-app-capable': 'yes',
+    'msapplication-TileColor': '#000000',
+    'msapplication-config': '/browserconfig.xml',
+    'theme-color': '#000000',
+  },
 }
 
 export default function RootLayout({
@@ -57,6 +78,24 @@ export default function RootLayout({
           defer
           src="https://cloud.umami.is/script.js"
           data-website-id="0766a5aa-c287-45de-ae85-353a3696e739"
+        />
+        <Script
+          id="register-sw"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                      console.log('SW registered: ', registration);
+                    })
+                    .catch(function(registrationError) {
+                      console.log('SW registration failed: ', registrationError);
+                    });
+                });
+              }
+            `,
+          }}
         />
       </body>
     </html>

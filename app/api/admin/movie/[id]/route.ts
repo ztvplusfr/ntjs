@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { list } from "@vercel/blob";
-import { put, del } from "@vercel/blob";
+import { getMovieVideos, updateMovieVideos } from "@/lib/supabase";
 
 // IP autorisées pour l'accès admin
-const ADMIN_IPS = ['165.169.45.189'];
+const ADMIN_IPS = ['165.169.45.189', '192.168.1.3'];
 
 // Fonction pour vérifier l'IP du client
 function getClientIP(request: Request): string | null {
@@ -50,38 +49,43 @@ export async function GET(
 
   try {
     const { id } = await params;
-    
-    // Récupérer le fichier JSON spécifique
-    const { blobs } = await list({ prefix: `movies/${id}.json` });
-    
-    if (blobs.length === 0) {
+    const tmdbId = parseInt(id);
+
+    if (isNaN(tmdbId)) {
+      return NextResponse.json({ error: 'Invalid movie ID' }, { status: 400 });
+    }
+
+    // Récupérer les vidéos du film depuis Supabase
+    const videos = await getMovieVideos(tmdbId);
+
+    if (!videos) {
       return NextResponse.json({ error: 'Movie not found' }, { status: 404 });
     }
 
-    const movieBlob = blobs[0];
-    
-    // Récupérer le contenu du fichier
-    const response = await fetch(movieBlob.url);
-    const movieData: MovieData = await response.json();
+    // Convertir les vidéos au format attendu par le frontend
+    const movieData: MovieData = {
+      videos: videos.map(video => ({
+        name: video.name || '',
+        url: video.url,
+        lang: video.lang,
+        quality: video.quality,
+        pub: video.pub,
+        play: video.play
+      }))
+    };
 
-    // Extraire l'ID TMDB du nom de fichier
-    const tmdbId = extractTMDBId(movieBlob.pathname);
-    
     // Récupérer les informations TMDB
-    let tmdbData = null;
-    if (tmdbId) {
-      tmdbData = await fetchTMDBData(tmdbId);
-    }
+    const tmdbData = await fetchTMDBData(tmdbId.toString());
 
     return NextResponse.json({
-      id,
-      pathname: movieBlob.pathname,
-      uploadedAt: movieBlob.uploadedAt,
-      size: movieBlob.size,
-      url: movieBlob.url,
+      id: id.toString(),
+      pathname: `movies/${id}.json`,
+      uploadedAt: new Date().toISOString(),
+      size: JSON.stringify(movieData).length,
+      url: `https://supabase-storage-url/movies/${id}.json`,
       movieData,
       tmdbData,
-      extractedId: tmdbId
+      extractedId: tmdbId.toString()
     });
   } catch (error: unknown) {
     console.error('Error fetching movie:', error);
@@ -102,6 +106,11 @@ export async function PUT(
   try {
     const { id } = await params;
     const movieData: MovieData = await request.json();
+    const tmdbId = parseInt(id);
+
+    if (isNaN(tmdbId)) {
+      return NextResponse.json({ error: 'Invalid movie ID' }, { status: 400 });
+    }
 
     // Valider les données
     if (!movieData.videos || !Array.isArray(movieData.videos)) {
@@ -122,19 +131,19 @@ export async function PUT(
       }
     }
 
-    // Créer le nouveau blob
-    const blob = await put(`movies/${id}.json`, JSON.stringify(movieData, null, 2), {
-      access: 'public',
-      contentType: 'application/json',
-      allowOverwrite: true,
-    });
+    // Mettre à jour les vidéos dans Supabase
+    const success = await updateMovieVideos(tmdbId, movieData.videos);
+
+    if (!success) {
+      return NextResponse.json({ error: 'Failed to update movie videos' }, { status: 500 });
+    }
 
     return NextResponse.json({
       success: true,
-      pathname: blob.pathname,
+      pathname: `movies/${id}.json`,
       uploadedAt: new Date().toISOString(),
-      size: JSON.stringify(movieData, null, 2).length,
-      url: blob.url
+      size: JSON.stringify(movieData).length,
+      url: `https://supabase-storage-url/movies/${id}.json`
     });
   } catch (error: unknown) {
     console.error('Error updating movie:', error);
@@ -154,15 +163,18 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    
-    // Trouver et supprimer le blob
-    const { blobs } = await list({ prefix: `movies/${id}.json` });
-    
-    if (blobs.length === 0) {
-      return NextResponse.json({ error: 'Movie not found' }, { status: 404 });
+    const tmdbId = parseInt(id);
+
+    if (isNaN(tmdbId)) {
+      return NextResponse.json({ error: 'Invalid movie ID' }, { status: 400 });
     }
 
-    await del(blobs[0].url);
+    // Supprimer toutes les vidéos du film depuis Supabase
+    const success = await updateMovieVideos(tmdbId, []);
+
+    if (!success) {
+      return NextResponse.json({ error: 'Failed to delete movie videos' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

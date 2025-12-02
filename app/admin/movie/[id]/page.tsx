@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Film, Plus, Trash2, Save, Eye, Code, Video, Globe, Hd, Calendar, Star, ArrowLeft } from 'lucide-react'
+import { Film, Plus, Trash2, Save, Eye, Code, Video, Globe, Calendar, Star, ArrowLeft } from 'lucide-react'
 
 interface Video {
   name: string

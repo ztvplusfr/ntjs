@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Play, Calendar, Clock, Star, ChevronDown, ChevronUp, Tv, Filter, Settings, Trash2, Info, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
@@ -9,6 +9,7 @@ import PageHead from '@/components/page-head'
 import StreamingDisclaimer from '@/components/streaming-disclaimer'
 import SeriesRequestModal from '@/components/series-request-modal'
 import { supabase } from '@/lib/supabase'
+import { getRatingInfo } from '@/lib/ratings'
 
 // Interface pour les données vidéos (correspond à l'API locale)
 interface VideoServer {
@@ -94,6 +95,12 @@ interface SerieDetails {
       iso_639_1?: string
     }>
   }
+  content_ratings?: {
+    results: Array<{
+      iso_3166_1: string
+      rating: string
+    }>
+  }
 }
 
 async function getSerieDetails(id: string): Promise<SerieDetails | null> {
@@ -101,7 +108,7 @@ async function getSerieDetails(id: string): Promise<SerieDetails | null> {
   
   try {
     const response = await fetch(
-      `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=fr-FR&append_to_response=credits,videos,recommendations,images`
+      `https://api.themoviedb.org/3/tv/${id}?api_key=${apiKey}&language=fr-FR&append_to_response=credits,videos,recommendations,images,content_ratings`
     )
     
     if (!response.ok) return null
@@ -229,23 +236,140 @@ function formatLocalTime(releaseTime: string): string {
   }).replace(':', 'h')
 }
 
-// Fonction pour récupérer les prochains épisodes depuis Supabase
-async function getUpcomingEpisodes(tmdbId: number): Promise<any[] | null> {
+// Fonction pour récupérer tous les prochains épisodes (pour les badges)
+async function getAllUpcomingEpisodes(tmdbId: number): Promise<any[] | null> {
   try {
+    // Récupérer d'abord les données brutes
     const { data, error } = await supabase
       .from('series_releases')
       .select('*')
       .eq('tmdb_id', tmdbId)
-      .gte('release_date', new Date().toISOString().split('T')[0])
       .order('release_date', { ascending: true })
-      .limit(10)
+      .limit(20) // Récupérer plus pour filtrer
+
+    if (error) {
+      console.error('Error fetching all upcoming episodes:', error)
+      return null
+    }
+
+    if (!data) return null
+
+    // Filtrer côté client pour prendre en compte l'heure
+    const now = new Date()
+    const today = now.toISOString().split('T')[0]
+    const userTimezoneOffset = now.getTimezoneOffset() * 60 * 1000 // Offset en millisecondes
+
+    const filteredData = data.filter(episode => {
+      const releaseDate = new Date(episode.release_date)
+      const episodeDate = releaseDate.toISOString().split('T')[0]
+
+      // Si la date est dans le futur, inclure
+      if (episodeDate > today) {
+        return true
+      }
+
+      // Si c'est aujourd'hui, vérifier l'heure
+      if (episodeDate === today && episode.release_time) {
+        const [hours, minutes] = episode.release_time.split(':')
+
+        // Créer la date de sortie en UTC+4 (comme stocké en base)
+        const utc4Date = new Date(releaseDate)
+        utc4Date.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+
+        // Convertir UTC+4 vers UTC (soustraire 4 heures)
+        const utcDate = new Date(utc4Date.getTime() - (4 * 60 * 60 * 1000))
+
+        // Convertir UTC vers heure locale de l'utilisateur
+        const localReleaseTime = new Date(utcDate.getTime() - userTimezoneOffset)
+
+        return localReleaseTime > now
+      }
+
+      // Si c'est aujourd'hui sans heure spécifiée, inclure
+      if (episodeDate === today && !episode.release_time) {
+        return true
+      }
+
+      // Sinon, exclure
+      return false
+    })
+
+    return filteredData.slice(0, 10) // Limiter à 10 résultats
+  } catch (error) {
+    console.error('Error fetching all upcoming episodes:', error)
+    return null
+  }
+}
+
+// Fonction pour récupérer les prochains épisodes filtrés (pour la logique)
+async function getUpcomingEpisodes(tmdbId: number): Promise<any[] | null> {
+  try {
+    // Récupérer d'abord les données brutes
+    const { data, error } = await supabase
+      .from('series_releases')
+      .select('*')
+      .eq('tmdb_id', tmdbId)
+      .order('release_date', { ascending: true })
+      .limit(20) // Récupérer plus pour filtrer
 
     if (error) {
       console.error('Error fetching upcoming episodes:', error)
       return null
     }
 
-    return data
+    if (!data) return null
+
+    // Filtrer côté client pour prendre en compte l'heure
+    const now = new Date()
+    const today = now.toISOString().split('T')[0]
+    const userTimezoneOffset = now.getTimezoneOffset() * 60 * 1000 // Offset en millisecondes
+
+    const filteredData = data.filter(episode => {
+      const releaseDate = new Date(episode.release_date)
+      const episodeDate = releaseDate.toISOString().split('T')[0]
+
+      // Si la date est dans le futur, inclure
+      if (episodeDate > today) {
+        return true
+      }
+
+      // Si c'est aujourd'hui, vérifier l'heure
+      if (episodeDate === today && episode.release_time) {
+        const [hours, minutes] = episode.release_time.split(':')
+
+        // Créer la date de sortie en UTC+4 (comme stocké en base)
+        const utc4Date = new Date(releaseDate)
+        utc4Date.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+
+        // Convertir UTC+4 vers UTC (soustraire 4 heures)
+        const utcDate = new Date(utc4Date.getTime() - (4 * 60 * 60 * 1000))
+
+        // Convertir UTC vers heure locale de l'utilisateur
+        const localReleaseTime = new Date(utcDate.getTime() - userTimezoneOffset)
+
+        console.log('Debug upcoming filter:', {
+          episode: `${episode.season_number}x${episode.episode_number}`,
+          releaseTime: episode.release_time,
+          utc4Date: utc4Date.toISOString(),
+          utcDate: utcDate.toISOString(),
+          localReleaseTime: localReleaseTime.toISOString(),
+          now: now.toISOString(),
+          isUpcoming: localReleaseTime > now
+        })
+
+        return localReleaseTime > now
+      }
+
+      // Si c'est aujourd'hui sans heure spécifiée, inclure
+      if (episodeDate === today && !episode.release_time) {
+        return true
+      }
+
+      // Sinon, exclure
+      return false
+    })
+
+    return filteredData.slice(0, 10) // Limiter à 10 résultats
   } catch (error) {
     console.error('Error fetching upcoming episodes:', error)
     return null
@@ -352,7 +476,29 @@ export default function SeriePage() {
   const [serieLogo, setSerieLogo] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [upcomingEpisodes, setUpcomingEpisodes] = useState<any[]>([])
+  const [upcomingEpisodesFiltered, setUpcomingEpisodesFiltered] = useState<any[]>([])
   const [countdowns, setCountdowns] = useState<{ [key: string]: string }>({})
+  const [frenchRating, setFrenchRating] = useState<string | null>(null)
+  const [matureAcknowledged, setMatureAcknowledged] = useState(false)
+  const [showMatureWarning, setShowMatureWarning] = useState(false)
+  const ratingInfo = useMemo(() => getRatingInfo(frenchRating), [frenchRating])
+  const frenchRatingLabel = ratingInfo?.label
+  const frenchRatingDescription = ratingInfo?.description
+  const isMatureRating = Boolean(ratingInfo?.mature)
+
+  useEffect(() => {
+    if (isMatureRating) {
+      setShowMatureWarning(!matureAcknowledged)
+    } else {
+      setShowMatureWarning(false)
+      setMatureAcknowledged(false)
+    }
+  }, [isMatureRating, matureAcknowledged])
+
+  const acknowledgeMatureContent = () => {
+    setMatureAcknowledged(true)
+    setShowMatureWarning(false)
+  }
 
   // Charger le filtre depuis localStorage
   useEffect(() => {
@@ -396,6 +542,8 @@ export default function SeriePage() {
       }
       
       setSerie(serieData)
+      const franceRating = serieData.content_ratings?.results?.find(r => r.iso_3166_1 === 'FR')
+      setFrenchRating(franceRating?.rating || null)
       
       // Charger le logo de la série
       const logo = await getSerieLogos(id)
@@ -458,11 +606,16 @@ export default function SeriePage() {
   useEffect(() => {
     const loadUpcomingEpisodes = async () => {
       if (!serie) return
-      
-      const upcoming = await getUpcomingEpisodes(serie.id)
-      setUpcomingEpisodes(upcoming || [])
+
+      // Charger les épisodes pour les badges (non filtrés)
+      const upcomingForBadges = await getAllUpcomingEpisodes(serie.id)
+      setUpcomingEpisodes(upcomingForBadges || [])
+
+      // Charger les épisodes filtrés pour la logique
+      const upcomingFiltered = await getUpcomingEpisodes(serie.id)
+      setUpcomingEpisodesFiltered(upcomingFiltered || [])
     }
-    
+
     if (serie) {
       loadUpcomingEpisodes()
     }
@@ -537,27 +690,46 @@ export default function SeriePage() {
   const shouldShowEpisode = (episode: Episode) => {
     // Si le filtre n'est pas activé, afficher tous les épisodes
     if (!showAvailableOnly) return true
-    
+
     // Si le filtre est activé, afficher si:
     // 1. L'épisode a des vidéos disponibles, OU
-    // 2. L'épisode fait partie d'une sortie à venir
+    // 2. L'épisode fait partie d'une sortie à venir (même si elle a eu lieu aujourd'hui)
     const hasVideoAvailable = hasVideos(episode.episode_number)
     const isUpcoming = upcomingEpisodes.some(
-      ue => ue.season_number === selectedSeason && 
-      (ue.episode_number === episode.episode_number || 
+      ue => ue.season_number === selectedSeason &&
+      (ue.episode_number === episode.episode_number ||
        (ue.episode_range && isEpisodeInRange(episode.episode_number, ue.episode_range)))
     )
-    
+
     return hasVideoAvailable || isUpcoming
   }
 
   // Fonction pour vérifier si un épisode est à venir (pas encore disponible)
   const isEpisodeUpcoming = (episode: Episode) => {
-    return upcomingEpisodes.some(
-      ue => ue.season_number === selectedSeason && 
-      (ue.episode_number === episode.episode_number || 
+    const upcomingRelease = upcomingEpisodes.find(
+      ue => ue.season_number === selectedSeason &&
+      (ue.episode_number === episode.episode_number ||
        (ue.episode_range && isEpisodeInRange(episode.episode_number, ue.episode_range)))
     )
+
+    if (!upcomingRelease) return false
+
+    // Si c'est aujourd'hui, vérifier l'heure aussi
+    const releaseDate = new Date(upcomingRelease.release_date)
+    const today = new Date()
+    const isToday = releaseDate.toDateString() === today.toDateString()
+
+    if (isToday && upcomingRelease.release_time) {
+      const [hours, minutes] = upcomingRelease.release_time.split(':')
+      releaseDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+
+      // Convertir l'heure UTC+4 en heure locale
+      const localReleaseTime = new Date(releaseDate.getTime() - (4 * 60 * 60 * 1000))
+      return localReleaseTime > today
+    }
+
+    // Si c'est dans le futur ou aujourd'hui sans heure spécifiée, c'est à venir
+    return releaseDate >= today || isToday
   }
 
   // Fonction pour vérifier si un épisode est dans une plage
@@ -632,8 +804,35 @@ export default function SeriePage() {
         releaseDate={serie.first_air_date}
         genres={serie.genres?.map(g => g.name)}
       />
-      <div className="min-h-screen bg-black text-white">
-      {/* Settings Button */}
+      <div className="min-h-screen bg-black text-white relative">
+        {showMatureWarning && (
+          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/90 backdrop-blur-sm px-4 py-8">
+            <div className="max-w-lg space-y-4 rounded-2xl border border-white/20 bg-black/80 p-6 text-center shadow-xl shadow-black/40">
+              <p className="text-xs uppercase tracking-[0.4em] text-red-400">Avertissement</p>
+              <h2 className="text-2xl font-bold">Mature Audience Only (TV-MA)</h2>
+              <p className="text-sm text-gray-300">
+                Contenu réservé aux adultes (17+). Peut contenir :
+              </p>
+              <ul className="mx-auto max-w-[280px] space-y-1 text-left text-xs text-gray-300">
+                <li>• Violence forte</li>
+                <li>• Sexualité explicite</li>
+                <li>• Langage très grossier</li>
+                <li>• Scènes sensibles</li>
+              </ul>
+              <button
+                onClick={acknowledgeMatureContent}
+                className="w-full rounded-full bg-emerald-500/90 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400"
+              >
+                Je confirme avoir 17 ans ou plus
+              </button>
+              {frenchRatingDescription && (
+                <p className="text-[11px] text-gray-400">{frenchRatingDescription}</p>
+              )}
+            </div>
+          </div>
+        )}
+        <div className={showMatureWarning ? 'pointer-events-none filter blur-sm' : ''}>
+          {/* Settings Button */}
       <button
         onClick={() => setShowSettings(!showSettings)}
         className="fixed top-4 right-4 z-50 p-3 bg-gray-800/80 backdrop-blur rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
@@ -782,6 +981,14 @@ export default function SeriePage() {
                   {serie.episode_run_time && serie.episode_run_time[0] && (
                     <span className="px-3 py-1 bg-black border border-white/30 rounded-full text-xs sm:text-sm">
                       {serie.episode_run_time[0]}min
+                    </span>
+                  )}
+                  {frenchRatingLabel && (
+                    <span className="px-3 py-1 bg-black border border-white/30 rounded-full text-xs sm:text-sm">
+                      <span className="text-emerald-400 font-semibold leading-none">{frenchRatingLabel}</span>
+                      {frenchRating && (
+                        <span className="text-gray-400 ml-2 uppercase text-[10px] tracking-wide">{frenchRating}</span>
+                      )}
                     </span>
                   )}
                   <span className="flex items-center px-3 py-1 bg-black border border-white/30 rounded-full text-xs sm:text-sm">
@@ -988,7 +1195,6 @@ export default function SeriePage() {
                 <p className="text-gray-400">Chargement des épisodes...</p>
               </div>
             ) : (
-              <>
               <div className="space-y-4">
                 {episodes
                   .filter(episode => shouldShowEpisode(episode))
@@ -997,11 +1203,14 @@ export default function SeriePage() {
                     const upcomingRelease = getEpisodeUpcomingRelease(episode)
                     
                     return (
-                  <div key={episode.id} className={`bg-black rounded-lg overflow-hidden border ${
-                    isEpisodeUpcoming(episode) 
-                      ? 'border-orange-500/30 bg-orange-950/20' 
-                      : 'border-white/20'
-                  }`}>
+                      <div 
+                        key={episode.id} 
+                        className={`bg-black rounded-lg overflow-hidden border ${
+                          isEpisodeUpcoming(episode) 
+                            ? 'border-orange-500/30 bg-orange-950/20' 
+                            : 'border-white/20'
+                        }`}
+                      >
                     <div className="p-4">
                       {/* Mobile Layout: Image on top */}
                       <div className="sm:hidden">
@@ -1263,8 +1472,7 @@ export default function SeriePage() {
                           </div>
                         </div>
                       </div>
-                      </div>
-                      
+
                       {/* Expanded Content */}
                       {expandedEpisode === episode.id && episode.overview && (
                         <div className="mt-4 pt-4 border-t border-white/20">
@@ -1274,12 +1482,13 @@ export default function SeriePage() {
                         </div>
                       )}
                     </div>
-                    )
-                  })}
+                  </div>
+                )
+              })}
               </div>
-              
-              </>
             )}
+          </div>
+          
           </div>
           
           {/* Streaming Disclaimer */}
@@ -1314,11 +1523,10 @@ export default function SeriePage() {
           )}
         </div>
       </div>
-      
-      </div>
-      
-      {/* Series Request Modal */}
-      <SeriesRequestModal
+    </div>
+    
+    {/* Series Request Modal */}
+    <SeriesRequestModal
         isOpen={isRequestModalOpen}
         onClose={() => setIsRequestModalOpen(false)}
         seriesTitle={serie.name}

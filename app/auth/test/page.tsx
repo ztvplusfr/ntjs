@@ -45,13 +45,15 @@ export default function AuthTestPage() {
 
         <div className="bg-gray-900 rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Variables d'environnement</h2>
-          <div className="space-y-2 text-sm">
-            <p><strong>NEXTAUTH_URL:</strong> {typeof window !== 'undefined' ? 'Défini' : 'Non défini'}</p>
-            <p><strong>DISCORD_CLIENT_ID:</strong> {process.env.DISCORD_CLIENT_ID ? 'Défini' : 'Non défini'}</p>
-            <p><strong>DISCORD_CLIENT_SECRET:</strong> {process.env.DISCORD_CLIENT_SECRET ? 'Défini' : 'Non défini'}</p>
-            <p><strong>NEXTAUTH_SECRET:</strong> {process.env.NEXTAUTH_SECRET ? 'Défini' : 'Non défini'}</p>
+            <div className="space-y-2 text-sm">
+              <p><strong>NEXTAUTH_URL:</strong> {typeof window !== 'undefined' ? 'Défini' : 'Non défini'}</p>
+              <p><strong>DISCORD_CLIENT_ID:</strong> {process.env.DISCORD_CLIENT_ID ? 'Défini' : 'Non défini'}</p>
+              <p><strong>DISCORD_CLIENT_SECRET:</strong> {process.env.DISCORD_CLIENT_SECRET ? 'Défini' : 'Non défini'}</p>
+              <p><strong>DISCORD_GUILD_ID:</strong> {process.env.DISCORD_GUILD_ID ? 'Défini' : 'Non défini'}</p>
+              <p><strong>DISCORD_BOT_TOKEN:</strong> {process.env.DISCORD_BOT_TOKEN ? 'Défini' : 'Non défini'}</p>
+              <p><strong>NEXTAUTH_SECRET:</strong> {process.env.NEXTAUTH_SECRET ? 'Défini' : 'Non défini'}</p>
+            </div>
           </div>
-        </div>
 
         <div className="bg-gray-900 rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Actions</h2>
@@ -73,7 +75,9 @@ export default function AuthTestPage() {
                 <li>Sélectionnez votre application</li>
                 <li>Allez dans "OAuth2" → "General"</li>
                 <li>Ajoutez ce redirect URI: <code className="bg-gray-800 px-2 py-1 rounded">http://192.168.1.3:3000/api/auth/callback/discord</code></li>
-                <li>Vérifiez que les scopes incluent: <code className="bg-gray-800 px-2 py-1 rounded">identify</code></li>
+                <li>Vérifiez que les scopes incluent: <code className="bg-gray-800 px-2 py-1 rounded">identify</code> et <code className="bg-gray-800 px-2 py-1 rounded">guilds</code></li>
+                <li>Définissez <code className="bg-gray-800 px-2 py-1 rounded">DISCORD_GUILD_ID</code> avec l'ID de votre serveur Discord principal</li>
+                <li>Définissez <code className="bg-gray-800 px-2 py-1 rounded">DISCORD_BOT_TOKEN</code> (bot avec le scope <code className="bg-gray-800 px-2 py-1 rounded">GUILD_MEMBERS</code> si besoin)</li>
               </ul>
             </div>
             <div>

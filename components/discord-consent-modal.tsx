@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { AlertTriangle, X, Check, Shield, Users } from 'lucide-react'
 
 interface DiscordConsentModalProps {
@@ -12,6 +12,9 @@ interface DiscordConsentModalProps {
 export default function DiscordConsentModal({ isOpen, onClose, onAccept }: DiscordConsentModalProps) {
   const [hasConsented, setHasConsented] = useState(false)
   const [isChecked, setIsChecked] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [verificationError, setVerificationError] = useState<string | null>(null)
+  const [isMemberVerified, setIsMemberVerified] = useState<boolean | null>(null)
 
   // Vérifier si le consentement a déjà été donné
   useEffect(() => {
@@ -22,9 +25,54 @@ export default function DiscordConsentModal({ isOpen, onClose, onAccept }: Disco
     }
   }, [])
 
-  const handleAccept = () => {
-    if (!isChecked) return
-    
+  const checkDiscordMembership = useCallback(async () => {
+    setVerificationError(null)
+    setIsMemberVerified(null)
+    setIsVerifying(true)
+
+    try {
+      const response = await fetch('/api/discord/verify-membership', {
+        cache: 'no-store',
+        credentials: 'include',
+      })
+      let payload: { isMember?: boolean; error?: string } = {}
+
+      try {
+        payload = await response.json()
+      } catch {
+        payload = {}
+      }
+
+      if (!response.ok) {
+        setIsMemberVerified(false)
+        setVerificationError(payload?.error || 'Impossible de vérifier votre adhésion.')
+        return false
+    }
+
+    if (!payload?.isMember) {
+      setIsMemberVerified(false)
+      setVerificationError('Rejoignez le serveur Discord officiel pour continuer.')
+      return false
+    }
+
+    setIsMemberVerified(true)
+    return true
+  } catch (error) {
+    console.error(error)
+    setIsMemberVerified(false)
+    setVerificationError('La vérification a échoué. Réessayez dans un instant.')
+    return false
+  } finally {
+    setIsVerifying(false)
+  }
+  }, [])
+
+  const handleAccept = async () => {
+    if (!isChecked || isVerifying) return
+
+    const membershipValid = await checkDiscordMembership()
+    if (!membershipValid) return
+
     localStorage.setItem('discord_consent', 'true')
     setHasConsented(true)
     onAccept()
@@ -32,7 +80,29 @@ export default function DiscordConsentModal({ isOpen, onClose, onAccept }: Disco
 
   const handleCheckboxChange = (checked: boolean) => {
     setIsChecked(checked)
+    if (verificationError) {
+      setVerificationError(null)
+    }
   }
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    let cancelled = false
+
+    const verifyOnOpen = async () => {
+      const membershipValid = await checkDiscordMembership()
+      if (!membershipValid && !cancelled) {
+        onClose()
+      }
+    }
+
+    verifyOnOpen()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, onClose, checkDiscordMembership])
 
   if (!isOpen) return null
 
@@ -130,6 +200,18 @@ export default function DiscordConsentModal({ isOpen, onClose, onAccept }: Disco
                     </svg>
                     Rejoindre le serveur
                   </a>
+                  <button
+                    onClick={checkDiscordMembership}
+                    disabled={isVerifying}
+                    className="inline-flex items-center justify-center gap-2 mt-3 w-full rounded-lg border border-blue-500/50 bg-blue-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-blue-700 disabled:opacity-70"
+                  >
+                    {isVerifying ? 'Vérification...' : 'Vérifier mon adhésion'}
+                  </button>
+                  {isMemberVerified && !verificationError && (
+                    <p className="text-emerald-400 text-xs mt-2">
+                      Vous êtes membre du serveur Discord.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -164,6 +246,12 @@ export default function DiscordConsentModal({ isOpen, onClose, onAccept }: Disco
               </label>
             </div>
 
+            {verificationError && (
+              <p className="text-red-400 text-xs mt-1">
+                {verificationError}
+              </p>
+            )}
+
             {/* Action buttons */}
             <div className="flex gap-3 pt-2">
               <button
@@ -174,11 +262,11 @@ export default function DiscordConsentModal({ isOpen, onClose, onAccept }: Disco
               </button>
               <button
                 onClick={handleAccept}
-                disabled={!isChecked}
+                disabled={!isChecked || isVerifying}
                 className="flex-1 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 disabled:from-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition-all transform hover:scale-[1.02] disabled:scale-100 flex items-center justify-center gap-2 shadow-lg border border-orange-500/30"
               >
                 <Check size={18} />
-                Continuer
+                {isVerifying ? 'Vérification...' : 'Continuer'}
               </button>
             </div>
           </div>

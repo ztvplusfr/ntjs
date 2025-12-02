@@ -1,16 +1,21 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Tv, Search, Filter, Eye, Trash2, Edit, BarChart3, Calendar, Clock, Star, Users, PlayCircle } from 'lucide-react'
+import { Tv, Search, Filter, Eye, Trash2, Edit, BarChart3, Calendar, Clock, Star, Users, PlayCircle, MessageCircle } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
-interface SeriesFile {
-  pathname: string
-  uploadedAt: string
-  size: number
+interface SeriesWithTMDB {
+  id: number
+  tmdb_id: number
+  type: 'series'
+  name?: string
   url: string
-}
-
-interface SeriesWithTMDB extends SeriesFile {
+  lang: string
+  quality: string
+  pub: number
+  play: number
+  season_number?: number
+  episode_number?: number
   tmdbData?: {
     id: number
     name: string
@@ -29,7 +34,6 @@ interface SeriesWithTMDB extends SeriesFile {
     number_of_episodes: number
     status: string
   }
-  extractedId?: string
 }
 
 interface AdminStats {
@@ -37,7 +41,6 @@ interface AdminStats {
   totalViews: number
   totalLikes: number
   totalComments: number
-  totalSize: number
   avgRating: number
 }
 
@@ -51,21 +54,67 @@ export default function AdminSeries() {
     totalViews: 0,
     totalLikes: 0,
     totalComments: 0,
-    totalSize: 0,
     avgRating: 0
   })
 
   useEffect(() => {
     const fetchSeries = async () => {
       try {
-        // Récupérer la liste des fichiers series
-        const response = await fetch('/api/admin/series')
-        if (response.ok) {
-          const data = await response.json()
-          setSeries(data.series)
-          setFilteredSeries(data.series)
-          setStats(data.stats)
+        // Récupérer les séries depuis Supabase (regrouper par tmdb_id pour éviter les doublons)
+        const { data: videos, error } = await supabase
+          .from('videos')
+          .select('*')
+          .eq('type', 'series')
+          .order('tmdb_id', { ascending: true })
+
+        if (error) {
+          console.error('Error fetching series:', error)
+          return
         }
+
+        // Regrouper les vidéos par tmdb_id pour obtenir les séries uniques
+        const seriesMap = new Map<number, SeriesWithTMDB>()
+        
+        for (const video of videos || []) {
+          if (!seriesMap.has(video.tmdb_id)) {
+            const seriesWithTMDB: SeriesWithTMDB = {
+              ...video,
+              tmdbData: undefined
+            }
+
+            // Récupérer les données TMDB
+            try {
+              const tmdbResponse = await fetch(
+                `https://api.themoviedb.org/3/tv/${video.tmdb_id}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&language=fr-FR`
+              )
+              if (tmdbResponse.ok) {
+                const tmdbData = await tmdbResponse.json()
+                seriesWithTMDB.tmdbData = tmdbData
+              }
+            } catch (error) {
+              console.error(`Error fetching TMDB data for series ${video.tmdb_id}:`, error)
+            }
+
+            seriesMap.set(video.tmdb_id, seriesWithTMDB)
+          }
+        }
+
+        const uniqueSeries = Array.from(seriesMap.values())
+        setSeries(uniqueSeries)
+        setFilteredSeries(uniqueSeries)
+
+        // Calculer les statistiques
+        const newStats: AdminStats = {
+          totalSeries: uniqueSeries.length,
+          totalViews: uniqueSeries.reduce((acc, serie) => acc + (serie.play || 0), 0),
+          totalLikes: 0, // Pas de champ likes dans la table videos
+          totalComments: 0, // Pas de champ comments dans la table videos
+          avgRating: uniqueSeries
+            .filter(s => s.tmdbData?.vote_average)
+            .reduce((acc, s, _, arr) => acc + (s.tmdbData?.vote_average || 0), 0) / 
+            uniqueSeries.filter(s => s.tmdbData?.vote_average).length || 0
+        }
+        setStats(newStats)
       } catch (error) {
         console.error('Error fetching series:', error)
       } finally {
@@ -79,19 +128,13 @@ export default function AdminSeries() {
   useEffect(() => {
     const filtered = series.filter(serie => 
       serie.tmdbData?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      serie.extractedId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      serie.pathname.toLowerCase().includes(searchTerm.toLowerCase())
+      serie.tmdb_id?.toString().includes(searchTerm.toLowerCase()) ||
+      serie.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      serie.quality?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      serie.lang?.toLowerCase().includes(searchTerm.toLowerCase())
     )
     setFilteredSeries(filtered)
   }, [searchTerm, series])
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -101,6 +144,32 @@ export default function AdminSeries() {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  const handleDeleteSeries = async (tmdbId: number) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette série et tous ses épisodes ?')) return
+
+    try {
+      const { error } = await supabase
+        .from('videos')
+        .delete()
+        .eq('tmdb_id', tmdbId)
+        .eq('type', 'series')
+
+      if (error) {
+        console.error('Error deleting series:', error)
+        alert('Erreur lors de la suppression de la série')
+        return
+      }
+
+      // Mettre à jour la liste
+      setSeries(series.filter(s => s.tmdb_id !== tmdbId))
+      setFilteredSeries(filteredSeries.filter(s => s.tmdb_id !== tmdbId))
+      alert('Série supprimée avec succès')
+    } catch (error) {
+      console.error('Error deleting series:', error)
+      alert('Erreur lors de la suppression de la série')
+    }
   }
 
   if (loading) {
@@ -134,63 +203,63 @@ export default function AdminSeries() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-            <Tv className="w-8 h-8 text-purple-400" />
+          <h1 className="text-4xl font-bold mb-2 flex items-center">
+            <Tv className="mr-3" />
             Gestion des Séries
           </h1>
-          <p className="text-gray-400">
-            Liste des fichiers JSON des séries avec informations TMDB associées
-          </p>
+          <p className="text-gray-400">Gérez votre catalogue de séries et leurs métadonnées</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
           <div className="bg-black rounded-lg p-4 border border-white/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Tv className="w-4 h-4 text-purple-400" />
-              <span className="text-sm text-gray-400">Total Séries</span>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Total Séries</p>
+                <p className="text-2xl font-bold">{stats.totalSeries}</p>
+              </div>
+              <Tv className="text-purple-400" size={24} />
             </div>
-            <div className="text-xl font-bold">{stats.totalSeries}</div>
           </div>
           
           <div className="bg-black rounded-lg p-4 border border-white/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Eye className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-gray-400">Vues Totales</span>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Vues Totales</p>
+                <p className="text-2xl font-bold">{stats.totalViews.toLocaleString()}</p>
+              </div>
+              <Eye className="text-green-400" size={24} />
             </div>
-            <div className="text-xl font-bold">{stats.totalViews.toLocaleString()}</div>
           </div>
           
           <div className="bg-black rounded-lg p-4 border border-white/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Star className="w-4 h-4 text-yellow-400" />
-              <span className="text-sm text-gray-400">Likes</span>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Likes</p>
+                <p className="text-2xl font-bold">{stats.totalLikes.toLocaleString()}</p>
+              </div>
+              <Star className="text-yellow-400" size={24} />
             </div>
-            <div className="text-xl font-bold">{stats.totalLikes.toLocaleString()}</div>
           </div>
           
           <div className="bg-black rounded-lg p-4 border border-white/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="w-4 h-4 text-purple-400" />
-              <span className="text-sm text-gray-400">Commentaires</span>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Commentaires</p>
+                <p className="text-2xl font-bold">{stats.totalComments.toLocaleString()}</p>
+              </div>
+              <MessageCircle className="text-purple-400" size={24} />
             </div>
-            <div className="text-xl font-bold">{stats.totalComments.toLocaleString()}</div>
           </div>
           
           <div className="bg-black rounded-lg p-4 border border-white/20">
-            <div className="flex items-center gap-2 mb-2">
-              <BarChart3 className="w-4 h-4 text-orange-400" />
-              <span className="text-sm text-gray-400">Taille Totale</span>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Note Moy.</p>
+                <p className="text-2xl font-bold">{stats.avgRating.toFixed(1)}</p>
+              </div>
+              <BarChart3 className="text-orange-400" size={24} />
             </div>
-            <div className="text-xl font-bold">{formatFileSize(stats.totalSize)}</div>
-          </div>
-          
-          <div className="bg-black rounded-lg p-4 border border-white/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Star className="w-4 h-4 text-red-400" />
-              <span className="text-sm text-gray-400">Note Moyenne</span>
-            </div>
-            <div className="text-xl font-bold">{stats.avgRating.toFixed(1)}</div>
           </div>
         </div>
 
@@ -215,9 +284,9 @@ export default function AdminSeries() {
         </div>
 
         {/* Series Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredSeries.map((serie) => (
-            <div key={serie.pathname} className="bg-black rounded-lg border border-white/20 overflow-hidden hover:border-purple-400/50 transition-colors">
+            <div key={serie.tmdb_id} className="bg-black rounded-lg border border-white/20 overflow-hidden hover:border-purple-400/50 transition-colors">
               {/* Poster */}
               <div className="aspect-[2/3] bg-gray-800 relative overflow-hidden">
                 {serie.tmdbData?.poster_path ? (
@@ -238,12 +307,15 @@ export default function AdminSeries() {
                     <Eye className="w-4 h-4" />
                   </button>
                   <a 
-                    href={`/admin/series/${serie.extractedId || serie.pathname.split('/').pop()?.replace('.json', '')}`}
+                    href={`/admin/series/${serie.tmdb_id}`}
                     className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
                   >
                     <Edit className="w-4 h-4" />
                   </a>
-                  <button className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors">
+                  <button 
+                    onClick={() => handleDeleteSeries(serie.tmdb_id)}
+                    className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -252,7 +324,7 @@ export default function AdminSeries() {
               {/* Series Info */}
               <div className="p-4">
                 <h3 className="font-semibold text-lg mb-2 line-clamp-1">
-                  {serie.tmdbData?.name || serie.extractedId || 'Inconnu'}
+                  {serie.tmdbData?.name || serie.name || `Série #${serie.tmdb_id}`}
                 </h3>
                 
                 {serie.tmdbData && (
@@ -271,31 +343,27 @@ export default function AdminSeries() {
                     </div>
                     <div className="flex items-center gap-2">
                       <PlayCircle className="w-4 h-4" />
-                      {serie.tmdbData.number_of_seasons}S / {serie.tmdbData.number_of_episodes}E
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-1 bg-purple-500/20 border border-purple-500/30 rounded text-xs">
-                        {serie.tmdbData.status}
-                      </span>
+                      {serie.tmdbData.number_of_seasons} Saisons
                     </div>
                   </div>
                 )}
 
-                {/* File Info */}
+                {/* Video Info */}
                 <div className="mt-3 pt-3 border-t border-white/10 text-xs text-gray-500">
                   <div className="flex justify-between">
-                    <span>Fichier: {serie.pathname.split('/').pop()}</span>
-                    <span>{formatFileSize(serie.size)}</span>
+                    <span>Qualité: {serie.quality}</span>
+                    <span>Langue: {serie.lang}</span>
                   </div>
                   <div className="flex justify-between mt-1">
-                    <span>Ajouté: {formatDate(serie.uploadedAt)}</span>
+                    <span>Vues: {serie.play || 0}</span>
+                    <span>ID: {serie.tmdb_id}</span>
                   </div>
                 </div>
 
                 {/* Edit Button */}
                 <div className="mt-3 pt-3 border-t border-white/10">
                   <a 
-                    href={`/admin/series/${serie.extractedId || serie.pathname.split('/').pop()?.replace('.json', '')}`}
+                    href={`/admin/series/${serie.tmdb_id}`}
                     className="w-full px-3 py-2 bg-purple-500/20 border border-purple-500/30 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors flex items-center justify-center gap-2 text-sm"
                   >
                     <Edit className="w-4 h-4" />
