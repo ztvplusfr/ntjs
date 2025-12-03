@@ -425,54 +425,68 @@ export default function ProfilePage() {
 
                         {/* Items for this date - Grid layout */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {items.map((item) => (
-                            <div
-                              key={`${item.id}-${item.timestamp}`}
-                              className="flex gap-3 p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors border border-sky-500/10"
-                            >
-                              {/* Poster */}
-                              <div className="w-12 h-16 flex-shrink-0">
-                                <img
-                                  src={item.poster}
-                                  alt={item.title}
-                                  className="w-full h-full object-cover rounded"
-                                />
-                              </div>
-
-                              {/* Info */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between">
-                                  <div className="min-w-0 flex-1">
-                                    <h4 className="font-medium text-white text-sm line-clamp-1">{item.title}</h4>
-                                    {item.type === 'series' && item.season && item.episode && (
-                                      <p className="text-xs text-gray-400 truncate">
-                                        S{item.season.toString().padStart(2, '0')}E{item.episode.toString().padStart(2, '0')}
-                                        {item.episodeTitle && ` - ${item.episodeTitle}`}
-                                      </p>
-                                    )}
-                                    <p className="text-xs text-sky-400 mt-1">
-                                      {item.time}
-                                    </p>
+                          {items.map((item) => {
+                            const watchUrl = item.type === 'movie' 
+                              ? `/watch/${item.id}`
+                              : `/watch/series/${item.id}/${item.season || 1}/${item.episode || 1}`
+                            
+                            return (
+                              <div
+                                key={`${item.id}-${item.timestamp}`}
+                                className="flex gap-3 p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors border border-sky-500/10 cursor-pointer group"
+                                onClick={() => router.push(watchUrl)}
+                              >
+                                {/* Poster */}
+                                <div className="w-12 h-16 flex-shrink-0 relative">
+                                  <img
+                                    src={item.poster}
+                                    alt={item.title}
+                                    className="w-full h-full object-cover rounded group-hover:opacity-80 transition-opacity"
+                                  />
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded transition-colors flex items-center justify-center">
+                                    <div className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <div className="w-0 h-0 border-l-[6px] border-l-black border-y-[4px] border-y-transparent ml-0.5"></div>
+                                    </div>
                                   </div>
+                                </div>
 
-                                  <div className="flex items-center gap-1 ml-2">
-                                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium border ${
-                                      item.type === 'movie'
-                                        ? 'bg-blue-600/20 text-blue-400 border-blue-600/30'
-                                        : 'bg-purple-600/20 text-purple-400 border-purple-600/30'
-                                    }`}>
-                                      {item.type === 'movie' ? 'F' : 'S'}
-                                    </span>
-                                    {item.video && (
-                                      <span className="px-1.5 py-0.5 bg-gray-700 text-gray-300 rounded text-xs">
-                                        {item.video.quality}
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between">
+                                    <div className="min-w-0 flex-1">
+                                      <h4 className="font-medium text-white text-sm line-clamp-1 group-hover:text-sky-400 transition-colors">
+                                        {item.title}
+                                      </h4>
+                                      {item.type === 'series' && item.season && item.episode && (
+                                        <p className="text-xs text-gray-400 truncate">
+                                          S{item.season.toString().padStart(2, '0')}E{item.episode.toString().padStart(2, '0')}
+                                          {item.episodeTitle && ` - ${item.episodeTitle}`}
+                                        </p>
+                                      )}
+                                      <p className="text-xs text-sky-400 mt-1">
+                                        {item.time}
+                                      </p>
+                                    </div>
+
+                                    <div className="flex items-center gap-1 ml-2">
+                                      <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium border ${
+                                        item.type === 'movie'
+                                          ? 'bg-blue-600/20 text-blue-400 border-blue-600/30'
+                                          : 'bg-purple-600/20 text-purple-400 border-purple-600/30'
+                                      }`}>
+                                        {item.type === 'movie' ? 'F' : 'S'}
                                       </span>
-                                    )}
+                                      {item.video && (
+                                        <span className="px-1.5 py-0.5 bg-gray-700 text-gray-300 rounded text-xs">
+                                          {item.video.quality}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     ))
