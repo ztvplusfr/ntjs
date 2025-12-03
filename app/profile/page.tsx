@@ -210,7 +210,12 @@ export default function ProfilePage() {
       acc[dateKey].push(item)
       return acc
     }, {} as Record<string, typeof filteredHistory>)
-  ).sort(([a], [b]) => b.localeCompare(a)) // Trier par date décroissante
+  ).sort(([a], [b]) => {
+    // Convertir les dates DD-MM-YYYY en objets Date pour un tri chronologique correct
+    const dateA = new Date(a.split('-').reverse().join('-'))
+    const dateB = new Date(b.split('-').reverse().join('-'))
+    return dateB.getTime() - dateA.getTime() // Plus récent en premier
+  })
 
   if (status === 'loading' || loading) {
     return (
