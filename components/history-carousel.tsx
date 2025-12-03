@@ -89,15 +89,15 @@ export default function HistoryCarousel() {
       const convertedHistory: HistoryItem[] = cookieHistory.map(item => {
         // Le watchedAt est maintenant au format DD-MM-YYYY HH:MM:SS
         const watchedDateStr = item.watchedAt
-        
+
         // Parser la date au format DD-MM-YYYY HH:MM:SS
         const [datePart, timePart] = watchedDateStr.split(' ')
         const [day, month, year] = datePart.split('-').map(Number)
         const [hours, minutes, seconds] = timePart.split(':').map(Number)
-        
+
         // Créer l'objet Date (les mois sont 0-indexés)
         const watchedDate = new Date(year, month - 1, day, hours, minutes, seconds)
-        
+
         return {
           type: item.type,
           id: item.id,
@@ -163,7 +163,7 @@ export default function HistoryCarousel() {
     const loadFromSupabase = async () => {
       try {
         const response = await fetch('/api/history', { cache: 'no-store' })
-        
+
         if (!response.ok) {
           const errorText = await response.text()
           console.error('Supabase API error:', response.status, errorText)
@@ -176,24 +176,24 @@ export default function HistoryCarousel() {
           let dateStr = ''
           let timeStr = ''
           let timestamp = Date.now()
-          
+
           if (item.last_watched_at) {
             try {
               // Format ISO de Supabase (UTC) : 2025-11-30T07:57:43.352305+00:00
               const lastWatched = new Date(item.last_watched_at)
-              
+
               // Convertir en heure locale de l'appareil utilisateur
               dateStr = lastWatched.toLocaleDateString(undefined, {
                 day: '2-digit',
-                month: '2-digit', 
+                month: '2-digit',
                 year: 'numeric'
               }).replace(/\//g, '-') // DD-MM-YYYY selon locale appareil
-              
+
               timeStr = lastWatched.toLocaleTimeString(undefined, {
                 hour: '2-digit',
                 minute: '2-digit'
               }) // HH:MM selon fuseau appareil
-              
+
               timestamp = lastWatched.getTime()
             } catch (error) {
               console.error('Error parsing date:', item.last_watched_at, error)
@@ -204,7 +204,7 @@ export default function HistoryCarousel() {
             dateStr = new Date().toLocaleDateString(undefined).replace(/\//g, '-')
             timeStr = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
           }
-          
+
           return {
             type: item.content_type,
             id: item.content_id,
@@ -243,7 +243,9 @@ export default function HistoryCarousel() {
     if (session?.user?.id) {
       loadFromSupabase()
     } else {
-      loadFromCookies()
+      // Pour les utilisateurs non connectés, ne charger aucun historique
+      setHistory([])
+      setLoading(false)
     }
   }, [session, status])
 
@@ -326,18 +328,18 @@ export default function HistoryCarousel() {
     )
   }
 
+  // Afficher toujours la section historique, même si vide
   if (history.length === 0) {
-    // Si l'utilisateur n'est pas connecté, afficher le message d'invitation
-    if (!session?.user?.id) {
-      return (
-        <div className="w-full py-8 pl-4 sm:pl-6 lg:pl-8">
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-1 h-8 bg-blue-500"></div>
-            <h2 className="text-2xl font-bold text-white">Historique</h2>
-          </div>
-          
-          {/* Message d'invitation */}
+    return (
+      <div className="w-full py-8 pl-4 sm:pl-6 lg:pl-8">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-1 h-8 bg-blue-500"></div>
+          <h2 className="text-2xl font-bold text-white">Historique</h2>
+        </div>
+
+        {/* Message d'invitation au centre */}
+        <div className="flex justify-center">
           <div className="bg-black/30 border border-white/10 rounded-lg p-6 text-center max-w-md">
             <div className="w-12 h-12 bg-blue-500/20 border border-blue-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,11 +355,8 @@ export default function HistoryCarousel() {
             </Link>
           </div>
         </div>
-      )
-    }
-    
-    // Si connecté mais pas d'historique, ne rien afficher
-    return null
+      </div>
+    )
   }
 
   return (

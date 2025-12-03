@@ -52,6 +52,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          data-cfasync="false"
+          src="//d1zhmd1pxxxajf.cloudfront.net/?dmhzd=1228481"
+        ></script>
+      </head>
       <body className="bg-black">
         <CookieMigrationProvider>
           <SessionProviderWrapper>

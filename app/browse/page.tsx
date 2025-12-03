@@ -19,14 +19,21 @@ export default function Browse() {
       <div className="overflow-x-hidden">
         <DonationCta />
         <TodayReleasesCarousel />
+        <StreamingDisclaimer />
         <HistoryCarousel />
+        <StreamingDisclaimer />
         <Countdown />
+        <StreamingDisclaimer />
         <Top10Movies />
+        <StreamingDisclaimer />
         <LatestMovies />
         <StreamingDisclaimer />
         <LatestAnimes />
+        <StreamingDisclaimer />
         <DiscordInvite />
+        <StreamingDisclaimer />
         <Top10Series />
+        <StreamingDisclaimer />
         <LatestSeries />
       </div>
     </main>

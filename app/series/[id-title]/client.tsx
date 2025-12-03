@@ -1188,6 +1188,12 @@ export default function SeriePage() {
               </div>
             </div>
 
+            {/* Streaming Disclaimer - Only show when no episodes are available */}
+            {(() => {
+              const availableEpisodes = episodes.filter(ep => hasVideos(ep.episode_number))
+              return availableEpisodes.length === 0 && !episodesLoading ? <StreamingDisclaimer /> : null
+            })()}
+
             {/* Episodes List */}
             {episodesLoading ? (
               <div className="text-center py-12">
@@ -1488,12 +1494,15 @@ export default function SeriePage() {
               </div>
             )}
           </div>
-          
+
           </div>
-          
-          {/* Streaming Disclaimer */}
-          <StreamingDisclaimer />
-          
+
+          {/* Streaming Disclaimer - Only show when no episodes are available */}
+          {(() => {
+            const availableEpisodes = episodes.filter(ep => hasVideos(ep.episode_number))
+            return availableEpisodes.length === 0 && !episodesLoading ? <StreamingDisclaimer /> : null
+          })()}
+
           {/* Cast */}
           {serie.credits?.cast && serie.credits.cast.length > 0 && (
             <div className="mb-12">

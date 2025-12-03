@@ -18,19 +18,23 @@ export default function Header() {
     <header className="w-full h-16 py-4 px-6 flex items-center justify-between relative z-40">
       {/* Profile avatar on mobile left */}
       <div className="flex-1 lg:hidden">
-        {session?.user?.image ? (
-          <img
-            src={session.user.image}
-            alt={session.user?.name || 'User'}
-            className="w-8 h-8 rounded-full border border-white/30"
-          />
-        ) : (
-          <div className="w-8 h-8 bg-black border border-white/30 rounded-full flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          </div>
-        )}
+        {session ? (
+          <Link href="/profile">
+            {session.user?.image ? (
+              <img
+                src={session.user.image}
+                alt={session.user?.name || 'User'}
+                className="w-8 h-8 rounded-full border border-white/30 hover:border-white/50 transition-colors"
+              />
+            ) : (
+              <div className="w-8 h-8 bg-black border border-white/30 hover:border-white/50 rounded-full flex items-center justify-center transition-colors">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            )}
+          </Link>
+        ) : null}
       </div>
       
       <div className="hidden lg:flex items-center gap-4">

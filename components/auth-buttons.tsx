@@ -33,7 +33,10 @@ export default function AuthButtons() {
         
         {/* Full user info and logout - visible on desktop */}
         <div className="hidden lg:flex items-center gap-3">
-          <div className="flex items-center gap-2">
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 hover:bg-gray-900 px-3 py-2 rounded-lg transition-colors"
+          >
             {session.user?.image && (
               <img
                 src={session.user.image}
@@ -44,8 +47,8 @@ export default function AuthButtons() {
             <span className="text-white text-sm font-medium">
               {session.user?.name}
             </span>
-          </div>
-          
+          </Link>
+
           <button
             onClick={() => signOut({ callbackUrl: '/' })}
             className="bg-black border border-white/30 hover:bg-gray-900 hover:border-white/50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"

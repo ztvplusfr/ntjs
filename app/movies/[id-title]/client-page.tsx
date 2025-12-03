@@ -8,6 +8,7 @@ import ShareButton from '@/components/share-button'
 import SimilarMovies from '@/components/similar-movies'
 import Actors from '@/components/actors'
 import MovieRequestModal from '@/components/movie-request-modal'
+import StreamingDisclaimer from '@/components/streaming-disclaimer'
 import { Play, MessageCircle } from 'lucide-react'
 import { getRatingInfo } from '@/lib/ratings'
 
@@ -449,21 +450,24 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
                 )
               } else {
                 return (
-                  <div className="bg-black rounded-lg p-8 text-center border border-white/20">
-                    <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
-                      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
-                      </svg>
+                  <>
+                    <div className="bg-black rounded-lg p-8 text-center border border-white/20 mb-6">
+                      <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
+                        <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      </div>
+                      <p className="text-gray-400 mb-6">Aucune vidéo disponible pour ce film.</p>
+                      <button
+                        onClick={() => setIsRequestModalOpen(true)}
+                        className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-3 px-6 rounded-xl transition-all transform hover:scale-[1.02] shadow-lg border border-cyan-500/50"
+                      >
+                        <MessageCircle size={18} />
+                        Demander ce film
+                      </button>
                     </div>
-                    <p className="text-gray-400 mb-6">Aucune vidéo disponible pour ce film.</p>
-                    <button
-                      onClick={() => setIsRequestModalOpen(true)}
-                      className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-3 px-6 rounded-xl transition-all transform hover:scale-[1.02] shadow-lg border border-cyan-500/50"
-                    >
-                      <MessageCircle size={18} />
-                      Demander ce film
-                    </button>
-                  </div>
+                    <StreamingDisclaimer />
+                  </>
                 )
               }
             })()}

@@ -23,7 +23,8 @@ export default function StreamingDisclaimer() {
   return (
     <div className="w-full py-4 px-4 sm:py-6 sm:pl-6 lg:pl-8">
       <div className="max-w-4xl mx-auto">
-        <div className="relative overflow-hidden rounded-xl shadow-2xl bg-gradient-to-r from-red-600/95 via-red-600/90 to-orange-600/90 backdrop-blur-sm border border-red-700/50">
+        <div className="relative rounded-2xl bg-zinc-950 border border-red-500/60 shadow-xl">
+          <div className="absolute inset-1 rounded-[calc(0.75rem)] border border-red-500/30 pointer-events-none"></div>
           {/* Lignes décoratives en arrière-plan */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent"></div>
@@ -37,55 +38,25 @@ export default function StreamingDisclaimer() {
               {/* Icône principale avec animation */}
               <div className="flex-shrink-0">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-red-400/30 rounded-full animate-ping"></div>
-                  <div className="relative w-10 h-10 sm:w-14 sm:h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/30">
-                    <AlertTriangle className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
+                  <div className="absolute inset-0 blur-lg bg-red-600/40 rounded-full"></div>
+                  <div className="relative w-11 h-11 sm:w-14 sm:h-14 bg-black border border-red-500 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-6 h-6 text-red-400" />
                   </div>
                 </div>
               </div>
               
               {/* Contenu texte */}
               <div className="flex-1 min-w-0">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
-                  <h3 className="font-bold text-lg sm:text-xl text-white">
-                    Information importante
-                  </h3>
-                  <div className="flex items-center gap-1 px-2 py-1 bg-white/20 rounded-full self-start sm:self-center">
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                    <span className="text-xs text-white font-medium">Streaming</span>
-                  </div>
-                </div>
+                <h3 className="font-semibold text-lg sm:text-xl text-white mb-3">
+                  Statut de disponibilité
+                </h3>
                 
-                <p className="text-white/90 text-sm sm:text-base leading-relaxed mb-4">
-                  Tous les films et séries ajoutés à votre historique ne sont pas nécessairement disponibles en streaming. 
-                  La disponibilité réelle sera confirmée lorsque vous cliquerez sur un contenu.
+                <p className="text-white/90 text-sm sm:text-base leading-relaxed mb-3">
+                  Certains contenus affichés proviennent de services externes et peuvent être temporairement indisponibles. Pour vérifier leur disponibilité, cliquez simplement dessus.
                 </p>
-                
-                {/* Indicateurs visuels - grille sur mobile, ligne sur desktop */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                  <div className="flex items-center gap-2 text-white/80">
-                    <Info className="w-4 h-4 flex-shrink-0" />
-                    <span className="text-sm">Vérification automatique au clic</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-white/80">
-                    <div className="w-3 h-3 border-2 border-white/60 rounded-full flex-shrink-0"></div>
-                    <span className="text-sm">Disponibilité variable</span>
-                  </div>
-                </div>
               </div>
             </div>
             
-            {/* Barre de progression animée */}
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
-              <div className="h-full bg-white/60 animate-pulse" style={{ width: '60%' }}></div>
-            </div>
-          </div>
-          
-          {/* Barre d'information (non cliquable) */}
-          <div className="absolute bottom-0 left-0 right-0 h-10 sm:h-12 bg-gradient-to-t from-black/30 to-transparent flex items-end justify-center pb-1 sm:pb-2">
-            <div className="text-white/60 text-xs px-2 text-center">
-              Information permanente sur la disponibilité des contenus
-            </div>
           </div>
         </div>
       </div>

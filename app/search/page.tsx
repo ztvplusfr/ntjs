@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { Search as SearchIcon, Film, Star, Calendar, Tv } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import StreamingDisclaimer from '@/components/streaming-disclaimer'
 
 interface TMDBMovie {
   id: number
@@ -146,7 +147,7 @@ function SearchContent() {
             <h2 className="text-2xl font-bold mb-6">
               {movies.length} résultat{movies.length > 1 ? 's' : ''} pour "{query}"
             </h2>
-            
+
             {/* Movie Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {movies.map((item) => (
@@ -214,9 +215,12 @@ function SearchContent() {
           <div className="text-center py-20">
             <SearchIcon size={64} className="text-gray-600 mx-auto mb-6" />
             <h2 className="text-2xl font-bold mb-4">Rechercher des films et séries</h2>
-            <p className="text-gray-400 max-w-md mx-auto">
+            <p className="text-gray-400 max-w-md mx-auto mb-8">
               Utilisez la barre de recherche ci-dessus pour trouver des films, séries TV et bien plus encore.
             </p>
+
+            {/* Streaming Disclaimer */}
+            <StreamingDisclaimer />
           </div>
         )}
       </div>

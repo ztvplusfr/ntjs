@@ -103,23 +103,17 @@ export default function Sidebar() {
       <div className="flex flex-col items-center space-y-4">
         {/* Profile photo */}
         {session?.user?.image ? (
-          <div className="relative group">
+          <Link href="/profile" className="relative group">
             <img
               src={session.user.image}
               alt={session.user.name || 'Profile'}
               className="w-10 h-10 rounded-full border-2 border-gray-700 group-hover:border-indigo-500 transition-colors duration-200 cursor-pointer"
-              onClick={handleLogout}
-              title="Se déconnecter"
+              title="Voir le profil"
             />
             <div className="absolute left-full ml-2 px-2 py-1 bg-black text-white text-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none border border-white/20">
-              {session.user.name || 'Profil'} (cliquer pour déconnexion)
+              {session.user.name || 'Profil'}
             </div>
-            {isLoggingOut && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              </div>
-            )}
-          </div>
+          </Link>
         ) : (
           <div className="relative group">
             <div className="w-10 h-10 bg-black border border-white/20 rounded-full flex items-center justify-center text-white/60">
