@@ -120,19 +120,19 @@ export default function ProfilePage() {
         let timeStr = ''
         let timestamp = Date.now()
 
-        if (item.last_watched_at) {
+        if (item.updated_at) {
           try {
-            const lastWatched = new Date(item.last_watched_at)
-            dateStr = lastWatched.toLocaleDateString(undefined, {
+            const updatedAt = new Date(item.updated_at)
+            dateStr = updatedAt.toLocaleDateString(undefined, {
               day: '2-digit',
               month: '2-digit',
               year: 'numeric'
             }).replace(/\//g, '-')
-            timeStr = lastWatched.toLocaleTimeString(undefined, {
+            timeStr = updatedAt.toLocaleTimeString(undefined, {
               hour: '2-digit',
               minute: '2-digit'
             })
-            timestamp = lastWatched.getTime()
+            timestamp = updatedAt.getTime()
           } catch (error) {
             dateStr = new Date().toLocaleDateString(undefined).replace(/\//g, '-')
             timeStr = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
