@@ -55,11 +55,11 @@ CREATE TABLE IF NOT EXISTS history (
 CREATE INDEX IF NOT EXISTS idx_history_user_id ON history(user_id);
 CREATE INDEX IF NOT EXISTS idx_history_content_id ON history(content_id);
 CREATE INDEX IF NOT EXISTS idx_history_content_type ON history(content_type);
-CREATE INDEX IF NOT EXISTS idx_history_last_watched ON history(last_watched_at DESC);
-CREATE INDEX IF NOT EXISTS idx_history_user_last_watched ON history(user_id, last_watched_at DESC);
+CREATE INDEX IF NOT EXISTS idx_history_updated_at ON history(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_history_user_updated_at ON history(user_id, updated_at DESC);
 
 -- Index composite pour l'historique d'un utilisateur
-CREATE INDEX IF NOT EXISTS idx_history_user_content ON history(user_id, content_type, last_watched_at DESC);
+CREATE INDEX IF NOT EXISTS idx_history_user_content ON history(user_id, content_type, updated_at DESC);
 
 -- Trigger pour mettre à jour updated_at automatiquement
 CREATE OR REPLACE FUNCTION update_updated_at_column()

@@ -267,7 +267,7 @@ export async function GET(request: NextRequest) {
       .from('history')
       .select('*')
       .eq('user_id', token.sub)
-      .order('last_watched_at', { ascending: false })
+      .order('updated_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
     if (contentType && ['movie', 'series'].includes(contentType)) {

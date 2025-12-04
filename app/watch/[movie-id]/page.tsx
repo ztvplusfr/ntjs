@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { AlertTriangle } from 'lucide-react'
-import WatchPlayer from '../../../components/watch-player'
+import VideoPlayer from '../../../components/video-player'
 import HistoryTracker from '../../../components/history-tracker'
 import VideoSourceCard from '../../../components/video-source-card'
 import ViewCounter from '../../../components/view-counter'
@@ -88,7 +88,7 @@ async function getMovieVideos(movieId: string): Promise<VideoResponse | null> {
 
 async function getMovieDetails(id: string) {
   const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
-  
+
   try {
     const response = await fetch(
       `https://api.themoviedb.org/3/movie/${id}?api_key=${apiKey}&language=fr-FR`,
@@ -96,13 +96,33 @@ async function getMovieDetails(id: string) {
         cache: 'no-store',
       }
     )
-    
+
     if (!response.ok) return null
-    
+
     return await response.json()
   } catch (error) {
     return null
   }
+}
+
+// Generate embed URL based on video URL
+function getEmbedUrl(url: string): string {
+  // Handle different video providers
+  if (url.includes('vidhideplus.com') || url.includes('doodstream') || url.includes('proxy.afterdark.click')) {
+    // For these providers, use the direct URL in iframe
+    return url
+  } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    // YouTube embed
+    const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)?.[1]
+    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0` : url
+  } else if (url.includes('vimeo.com')) {
+    // Vimeo embed
+    const videoId = url.match(/vimeo\.com\/(\d+)/)?.[1]
+    return videoId ? `https://player.vimeo.com/video/${videoId}?autoplay=1` : url
+  }
+
+  // Default: use direct URL
+  return url
 }
 
 export default function WatchPage({ params, searchParams }: WatchPageProps) {
@@ -291,11 +311,50 @@ export default function WatchPage({ params, searchParams }: WatchPageProps) {
                 {/* Video Player - 2/3 width */}
                 <div className="lg:col-span-2 w-full">
                   {currentSelectedVideo ? (
-                    <WatchPlayer 
-                      video={currentSelectedVideo}
-                      movie={movie}
-                      allVideos={videosData?.videos || []}
-                    />
+                    <div className="relative w-full bg-black border border-white/20 rounded-lg overflow-hidden">
+                      {currentSelectedVideo.play === 1 && !(currentSelectedVideo.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)) ? (
+                        // Lecteur vidéo natif pour play=1 (sauf proxy.afterdark.click sur iOS)
+                        <VideoPlayer
+                          key={`video-movie-${movieId}-${currentSelectedVideo.id}`}
+                          src={currentSelectedVideo.url}
+                          poster={movie.backdrop_path ? `https://image.tmdb.org/t/p/w780${movie.backdrop_path}` : undefined}
+                          title={`${movie.title}`}
+                          controls={true}
+                          autoPlayWhenChanged={true}
+                          className="w-full aspect-video select-none"
+                        />
+                      ) : currentSelectedVideo.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) ? (
+                        // Lecteur vidéo natif HTML5 direct pour proxy.afterdark.click sur iOS
+                        <video
+                          key={`native-video-movie-${movieId}-${currentSelectedVideo.id}`}
+                          controls
+                          controlsList="nodownload noremoteplayback"
+                          className="w-full aspect-video select-none"
+                          poster={movie.backdrop_path ? `https://image.tmdb.org/t/p/w780${movie.backdrop_path}` : undefined}
+                          preload="metadata"
+                          onContextMenu={(event) => event.preventDefault()}
+                          onCopy={(event) => event.preventDefault()}
+                          onCut={(event) => event.preventDefault()}
+                          onPaste={(event) => event.preventDefault()}
+                        >
+                          <source src={currentSelectedVideo.url} type="application/x-mpegURL" />
+                          <source src={currentSelectedVideo.url} type="video/mp4" />
+                          Votre navigateur ne supporte pas la lecture vidéo.
+                        </video>
+                      ) : (
+                        // Iframe embed pour play=0
+                        <iframe
+                          key={`movie-${movieId}-${currentSelectedVideo.id}`}
+                          src={getEmbedUrl(currentSelectedVideo.url)}
+                          className="w-full aspect-video border-0"
+                          allowFullScreen
+                          allow="autoplay; encrypted-media; picture-in-picture; web-share"
+                          loading="eager"
+                          title={`Regarder ${movie.title} en streaming`}
+                          referrerPolicy="no-referrer-when-downgrade"
+                        />
+                      )}
+                    </div>
                   ) : (
                     <div className="bg-black border border-white/20 rounded-lg aspect-video flex items-center justify-center w-full">
                       <div className="text-center">
@@ -318,17 +377,17 @@ export default function WatchPage({ params, searchParams }: WatchPageProps) {
                       <h3 className="text-lg font-semibold mb-4 text-white">Sources disponibles</h3>
                       <div className="space-y-3 max-h-[600px] overflow-y-auto">
                         {videosData.videos.map((video: Video, index: number) => {
-                          const videoWithId = {
+                          const videoWithId: Video = {
                             ...video,
                             id: video.id || `${movie.id}-video-${index}`,
                             hasAds: video.pub === 1,
                             server: video.name,
                             serverIndex: index + 1 // 1-based index for URL
                           }
-                          
+
                           // Logique plus stricte : uniquement par ID
                           const isSelected = Boolean(currentSelectedVideo && videoWithId.id === currentSelectedVideo.id)
-                          
+
                           return (
                             <VideoSourceCard
                               key={videoWithId.id}

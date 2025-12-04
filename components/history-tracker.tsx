@@ -68,10 +68,19 @@ export default function HistoryTracker({
     }
   }) => {
     try {
+      // Récupérer le token JWT depuis next-auth
+      const tokenResponse = await fetch('/api/auth/token')
+      if (!tokenResponse.ok) {
+        console.error('Failed to get auth token')
+        return
+      }
+      const { token } = await tokenResponse.json()
+
       const response = await fetch('/api/history', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           content_id: payload.contentId,
@@ -100,12 +109,16 @@ export default function HistoryTracker({
       })
 
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('History API error:', response.status, errorText)
+
         // Si c'est une erreur de duplicate (409), c'est normal - on met à jour
         if (response.status === 409) {
           const updateResponse = await fetch('/api/history', {
             method: 'PUT',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
               content_id: payload.contentId,
@@ -132,7 +145,14 @@ export default function HistoryTracker({
               }
             })
           })
+
+          if (!updateResponse.ok) {
+            const updateErrorText = await updateResponse.text()
+            console.error('History PUT API error:', updateResponse.status, updateErrorText)
+          }
         }
+      } else {
+        console.log('History saved successfully')
       }
     } catch (error) {
       console.error('Error saving history to Supabase:', error)
