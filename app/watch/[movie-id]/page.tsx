@@ -8,6 +8,7 @@ import VideoPlayer from '../../../components/video-player'
 import HistoryTracker from '../../../components/history-tracker'
 import VideoSourceCard from '../../../components/video-source-card'
 import ViewCounter from '../../../components/view-counter'
+import MovieDonationPrompt from '@/components/movie-donation-prompt'
 import DiscordMessageModal from '../../../components/discord-message-modal'
 import { getMovieVideos as getSupabaseMovieVideos } from '../../../lib/supabase'
 
@@ -125,6 +126,13 @@ function getEmbedUrl(url: string): string {
   return url
 }
 
+function parseIframeSnippet(source: string): string | null {
+  if (!source) return null
+  const trimmed = source.trim()
+  const match = trimmed.match(/<iframe[\s\S]*?<\/iframe>/i)
+  return match ? match[0] : null
+}
+
 export default function WatchPage({ params, searchParams }: WatchPageProps) {
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false)
   const [movie, setMovie] = useState<any>(null)
@@ -133,32 +141,31 @@ export default function WatchPage({ params, searchParams }: WatchPageProps) {
   const [loading, setLoading] = useState(true)
   const [movieId, setMovieId] = useState<string>('')
   const [search, setSearch] = useState<any>({})
-  
   useEffect(() => {
     const loadData = async () => {
       const resolvedParams = await params
       const resolvedSearchParams = await searchParams
       const id = resolvedParams['movie-id']
-      
+
       setMovieId(id)
       setSearch(resolvedSearchParams)
-      
+
       // Fetch movie details, videos and logos
       const [movieData, videosResponse, logosResponse] = await Promise.all([
         getMovieDetails(id),
         getMovieVideos(id),
         getMovieLogos(id)
       ])
-      
+
       setMovie(movieData)
       setVideosData(videosResponse)
       setLogosData(logosResponse)
       setLoading(false)
     }
-    
+
     loadData()
   }, [params, searchParams])
-  
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -179,7 +186,7 @@ export default function WatchPage({ params, searchParams }: WatchPageProps) {
   
   if (videosData && videosData.videos && videosData.videos.length > 0) {
     // Add unique IDs to videos if they don't have them
-    const videosWithIds = videosData.videos.map((video, index) => ({
+    const videosWithIds = videosData.videos.map((video: Video, index: number) => ({
       ...video,
       id: video.id || `${movie.id}-video-${index}`,
       hasAds: video.pub === 1,
@@ -214,6 +221,10 @@ export default function WatchPage({ params, searchParams }: WatchPageProps) {
     ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}`
     : null
 
+  const iframeEmbedMarkup = currentSelectedVideo
+    ? parseIframeSnippet(currentSelectedVideo.url)
+    : null
+
   // Find best logo with priority: FR > EN > other languages > any
   const getBestLogo = () => {
     if (!logosData || logosData.length === 0) return null
@@ -241,6 +252,7 @@ export default function WatchPage({ params, searchParams }: WatchPageProps) {
   
   const bestLogo = getBestLogo()
 
+  // Gestion du fullscreen personnalisé
   return (
     <>
       <div className="min-h-screen bg-black text-white">
@@ -311,8 +323,13 @@ export default function WatchPage({ params, searchParams }: WatchPageProps) {
                 {/* Video Player - 2/3 width */}
                 <div className="lg:col-span-2 w-full">
                   {currentSelectedVideo ? (
-                    <div className="relative w-full bg-black border border-white/20 rounded-lg overflow-hidden">
-                      {currentSelectedVideo.play === 1 && !(currentSelectedVideo.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)) ? (
+                    <div className="relative w-full bg-black border border-white/20 rounded-lg overflow-hidden group">
+                  {iframeEmbedMarkup ? (
+                    <div
+                      className="w-full aspect-video rounded-lg bg-black overflow-hidden"
+                      dangerouslySetInnerHTML={{ __html: iframeEmbedMarkup }}
+                    />
+                  ) : currentSelectedVideo.play === 1 && !(currentSelectedVideo.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)) ? (
                         // Lecteur vidéo natif pour play=1 (sauf proxy.afterdark.click sur iOS)
                         <VideoPlayer
                           key={`video-movie-${movieId}-${currentSelectedVideo.id}`}
@@ -416,6 +433,8 @@ export default function WatchPage({ params, searchParams }: WatchPageProps) {
               </div>
             </div>
 
+            <MovieDonationPrompt />
+
             {/* Movie Info */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">
               {/* Main Info */}
@@ -480,11 +499,12 @@ export default function WatchPage({ params, searchParams }: WatchPageProps) {
         </div>
         
         {/* Modale de support Discord */}
-        <DiscordMessageModal 
+        <DiscordMessageModal
           isOpen={isSupportModalOpen}
           onClose={() => setIsSupportModalOpen(false)}
         />
       </div>
+
     </>
   )
 }

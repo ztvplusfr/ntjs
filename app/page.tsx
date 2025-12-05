@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { 
   IconPlayerPlay,
   IconStar,
@@ -14,18 +14,51 @@ import {
   IconBrandApple, 
   IconBrandAndroid, 
   IconBrandXbox, 
-  IconBrandWindows
+  IconBrandWindows,
+  IconX
 } from '@tabler/icons-react'
 import Link from 'next/link'
 import Countdown from '@/components/countdown'
 import PageHead from '@/components/page-head'
+import SearchParamsProvider from '@/components/search-params-provider'
 
 export default function WelcomePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><div className="text-white">Chargement...</div></div>}>
+      <WelcomePageContent />
+    </Suspense>
+  )
+}
+
+function WelcomePageContent() {
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
     setIsLoaded(true)
   }, [])
+
+  return (
+    <SearchParamsProvider>
+      {(searchParams) => <WelcomePageWithParams searchParams={searchParams} isLoaded={isLoaded} />}
+    </SearchParamsProvider>
+  )
+}
+
+function WelcomePageWithParams({ searchParams, isLoaded }: { searchParams: URLSearchParams; isLoaded: boolean }) {
+  const [showAuthNotification, setShowAuthNotification] = useState(false)
+
+  useEffect(() => {
+    // Vérifier si le paramètre auth=required est présent
+    if (searchParams.get('auth') === 'required') {
+      setShowAuthNotification(true)
+      // Masquer la notification après 5 secondes
+      const timer = setTimeout(() => {
+        setShowAuthNotification(false)
+      }, 5000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [searchParams])
 
   const features = [
     {
@@ -82,6 +115,39 @@ export default function WelcomePage() {
       />
 
       <div className="bg-black text-white overflow-hidden">
+        {/* Notification d'authentification requise */}
+        {showAuthNotification && (
+          <div className="fixed top-4 right-4 z-50 max-w-sm animate-pulse">
+            <div className="bg-gradient-to-r from-sky-600 to-cyan-600 text-white p-4 rounded-lg shadow-lg border border-sky-400/30 backdrop-blur-sm">
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-sm mb-1">Connexion requise</h4>
+                  <p className="text-xs opacity-90">Veuillez vous connecter pour accéder à cette page.</p>
+                  <div className="mt-2 flex gap-2">
+                    <Link
+                      href="/auth/signin"
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 rounded text-xs font-medium hover:bg-white/30 transition-colors"
+                    >
+                      Se connecter
+                    </Link>
+                    <button
+                      onClick={() => setShowAuthNotification(false)}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-white/10 rounded text-xs font-medium hover:bg-white/20 transition-colors"
+                    >
+                      Plus tard
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAuthNotification(false)}
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  <IconX size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Hero Section */}
         <section className="relative pt-24 pb-16 flex items-center justify-center">
           {/* Background Effects */}

@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Button } from '@/components/ui/button'
 import { Info, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import WatchlistButton, { ButtonState } from '@/components/watchlist-button'
 
 interface TMDBContent {
   id: number
@@ -25,8 +25,10 @@ export default function Hero() {
   const [featuredContent, setFeaturedContent] = useState<TMDBContent[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [watchlistStates, setWatchlistStates] = useState<Record<number, ButtonState>>({})
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  const [lastAction, setLastAction] = useState<'added' | 'removed' | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Fonction pour passer au contenu suivant
@@ -76,6 +78,70 @@ export default function Hero() {
       return () => clearTimeout(timer)
     }
   }, [currentIndex, featuredContent.length])
+
+  const handleWatchlistStateChange = (nextState: ButtonState, id: number) => {
+    const prevState = watchlistStates[id]
+    setWatchlistStates((prev) => ({
+      ...prev,
+      [id]: nextState
+    }))
+
+    if (nextState === 'saved') {
+      setLastAction('added')
+    } else if (nextState === 'idle' && prevState === 'saved') {
+      setLastAction('removed')
+    }
+  }
+
+  useEffect(() => {
+    if (!featuredContent || featuredContent.length === 0) return
+
+    const controller = new AbortController()
+
+    const fetchWatchlist = async () => {
+      try {
+        const response = await fetch('/api/watchlist', {
+          signal: controller.signal,
+          cache: 'no-store'
+        })
+
+        if (!response.ok) {
+          return
+        }
+
+        const data = await response.json()
+        const saved = new Set<number>((data?.list || []).map((item: any) => Number(item.tmdb_id)))
+
+        if (saved.size === 0) return
+
+        setWatchlistStates((prev) => {
+          const clone = { ...prev }
+          featuredContent.forEach((content) => {
+            if (saved.has(content.id)) {
+              clone[content.id] = 'saved'
+            }
+          })
+          return clone
+        })
+      } catch (error) {
+        if ((error as any)?.name === 'AbortError') return
+        console.error('Unable to load hero watchlist state:', error)
+      }
+    }
+
+    fetchWatchlist()
+
+    return () => controller.abort()
+  }, [featuredContent])
+
+  useEffect(() => {
+    if (!lastAction) return
+    const timer = setTimeout(() => {
+      setLastAction(null)
+    }, 2800)
+
+    return () => clearTimeout(timer)
+  }, [lastAction])
 
   useEffect(() => {
     const fetchFeaturedContent = async () => {
@@ -208,6 +274,8 @@ export default function Hero() {
 
   const title = currentContent.title || currentContent.name || 'Contenu'
   const year = currentContent.release_date?.split('-')[0] || currentContent.first_air_date?.split('-')[0] || '2024'
+  const normalizedType = String(currentContent.media_type || '').toLowerCase()
+  const watchlistContentType = normalizedType.includes('série') || normalizedType.includes('serie') ? 'series' : 'movie'
 
   return (
     <div 
@@ -217,6 +285,23 @@ export default function Hero() {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
+      {lastAction && (
+        <div
+          aria-live="assertive"
+          className="pointer-events-none absolute top-6 left-1/2 z-30 -translate-x-1/2 flex items-center gap-2 rounded-full bg-black/70 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] shadow-xl"
+        >
+          <span
+            className={`h-3 w-3 rounded-full shadow ${
+              lastAction === 'added' ? 'bg-emerald-400 shadow-emerald-400/60' : 'bg-rose-500 shadow-rose-500/60'
+            }`}
+          />
+          <span
+            className={lastAction === 'added' ? 'text-emerald-300' : 'text-rose-300'}
+          >
+            {lastAction === 'added' ? 'Ajouté à la watchlist' : 'Retiré de la watchlist'}
+          </span>
+        </div>
+      )}
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat -z-10 transition-opacity duration-1000"
@@ -319,6 +404,15 @@ export default function Hero() {
                 <span className="text-white font-medium">Plus d'infos</span>
               </div>
             </Link>
+            <WatchlistButton
+              tmdbId={currentContent.id}
+              contentType={watchlistContentType}
+              className="px-6 py-3 bg-black/80 border border-gray-300/30 rounded-full backdrop-blur-sm"
+              defaultState={watchlistStates[currentContent.id] ?? 'idle'}
+              onStateChange={(nextState) =>
+                handleWatchlistStateChange(nextState, currentContent.id)
+              }
+            />
           </div>
         </div>
       </div>

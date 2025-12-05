@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { User, Film, Tv, Calendar, TrendingUp, Clock } from 'lucide-react'
-import HistoryCarousel from '@/components/history-carousel'
+import { User, Film, Tv, Calendar, TrendingUp, Clock, BookmarkPlus } from 'lucide-react'
+import Link from 'next/link'
 import PageHead from '@/components/page-head'
 
 interface ProfileStats {
@@ -13,6 +13,12 @@ interface ProfileStats {
   totalWatchTime: number // en minutes
   averageRating: number
   lastActivity: string
+}
+
+interface WatchlistStats {
+  total: number
+  movies: number
+  series: number
 }
 
 interface HistoryItem {
@@ -42,9 +48,8 @@ export default function ProfilePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [stats, setStats] = useState<ProfileStats | null>(null)
-  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [watchlistStats, setWatchlistStats] = useState<WatchlistStats | null>(null)
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'movie' | 'series'>('all')
   const [deviceInfo, setDeviceInfo] = useState<any>(null)
 
   useEffect(() => {
@@ -56,6 +61,7 @@ export default function ProfilePage() {
     }
 
     loadProfileData()
+    loadWatchlistStats()
     detectDeviceInfo()
   }, [session, status, router])
 
@@ -184,10 +190,6 @@ export default function ProfilePage() {
         lastActivity: lastActivity
       })
 
-      // Trier l'historique par date (plus récent en premier)
-      const sortedHistory = historyData.sort((a, b) => b.timestamp - a.timestamp)
-      setHistory(sortedHistory)
-
     } catch (error) {
       console.error('Erreur chargement données profil:', error)
     } finally {
@@ -195,27 +197,30 @@ export default function ProfilePage() {
     }
   }
 
-  const filteredHistory = history.filter(item => {
-    if (filter === 'all') return true
-    return item.type === filter
-  })
-
-  // Regrouper l'historique par date
-  const groupedByDate = Object.entries(
-    filteredHistory.reduce((acc, item) => {
-      const dateKey = item.date
-      if (!acc[dateKey]) {
-        acc[dateKey] = []
+  const loadWatchlistStats = async () => {
+    try {
+      const response = await fetch('/api/watchlist', { cache: 'no-store' })
+      if (!response.ok) {
+        return
       }
-      acc[dateKey].push(item)
-      return acc
-    }, {} as Record<string, typeof filteredHistory>)
-  ).sort(([a], [b]) => {
-    // Convertir les dates DD-MM-YYYY en objets Date pour un tri chronologique correct
-    const dateA = new Date(a.split('-').reverse().join('-'))
-    const dateB = new Date(b.split('-').reverse().join('-'))
-    return dateB.getTime() - dateA.getTime() // Plus récent en premier
-  })
+
+      const data = await response.json()
+      if (data.stats) {
+        setWatchlistStats(data.stats)
+        return
+      }
+
+      if (Array.isArray(data.list)) {
+        setWatchlistStats({
+          total: data.list.length,
+          movies: data.list.filter((item: any) => item.content_type === 'movie').length,
+          series: data.list.filter((item: any) => item.content_type === 'series').length
+        })
+      }
+    } catch (error) {
+      console.error('Erreur chargement watchlist stats:', error)
+    }
+  }
 
   if (status === 'loading' || loading) {
     return (
@@ -266,8 +271,7 @@ export default function ProfilePage() {
         {/* Content */}
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Profile Info & Stats */}
-            <div className="lg:col-span-1 space-y-6">
+            <div className="lg:col-span-2 space-y-6">
               <div className="bg-black border border-sky-500/30 rounded-xl p-6 backdrop-blur-sm">
                 <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
                   <TrendingUp size={20} />
@@ -313,9 +317,56 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Device Information */}
-              <div className="bg-black border border-sky-500/30 rounded-xl p-6 backdrop-blur-sm">
-                <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <div className="bg-black border border-sky-500/30 rounded-xl p-6 space-y-4">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <BookmarkPlus size={20} />
+                  Raccourcis
+                </h2>
+                <div className="space-y-3">
+                  <Link
+                    href="/profile/watchlist"
+                    className="block rounded-2xl border border-white/10 bg-gray-900/60 p-4 transition hover:border-white/30"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.4em] text-gray-400">Watchlist</p>
+                        <p className="text-2xl font-semibold text-white">
+                          {watchlistStats ? `${watchlistStats.total} contenus` : 'Chargement...'}
+                        </p>
+                      </div>
+                      <BookmarkPlus size={24} className="text-amber-400" />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      Accédez à tout ce que vous avez mis de côté.
+                    </p>
+                  </Link>
+                  <Link
+                    href="/profile/history"
+                    className="block rounded-2xl border border-white/10 bg-gray-900/60 p-4 transition hover:border-white/30"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.4em] text-gray-400">Historique</p>
+                        <p className="text-2xl font-semibold text-white">
+                          {stats ? `${stats.totalMovies + stats.totalEpisodes} éléments` : 'Chargement...'}
+                        </p>
+                      </div>
+                      <Clock size={24} className="text-sky-400" />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      Reprenez la lecture là où vous l'avez laissée.
+                    </p>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      Dernière activité : {stats?.lastActivity || 'Chargement...'}
+                    </p>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-1">
+              <div className="bg-black border border-sky-500/30 rounded-xl p-6 backdrop-blur-sm space-y-4">
+                <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
                   <User size={20} />
                   Appareil actuel
                 </h2>
@@ -345,152 +396,6 @@ export default function ProfilePage() {
                     <span className="text-sm text-gray-300">Fuseau horaire</span>
                     <span className="font-bold text-sky-400 text-xs">{deviceInfo?.timezone || 'Chargement...'}</span>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* History Section */}
-            <div className="lg:col-span-2">
-              <div className="bg-black border border-sky-500/30 rounded-xl p-6 backdrop-blur-sm">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold flex items-center gap-2">
-                    <Clock size={20} />
-                    Historique de visionnage
-                  </h2>
-
-                  {/* Filter Buttons */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setFilter('all')}
-                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
-                        filter === 'all'
-                          ? 'bg-sky-600 text-white border-sky-500'
-                          : 'bg-black text-gray-400 hover:bg-gray-900 border-sky-500/30'
-                      }`}
-                    >
-                      Tout
-                    </button>
-                    <button
-                      onClick={() => setFilter('movie')}
-                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
-                        filter === 'movie'
-                          ? 'bg-blue-600 text-white border-blue-500'
-                          : 'bg-black text-gray-400 hover:bg-gray-900 border-sky-500/30'
-                      }`}
-                    >
-                      Films
-                    </button>
-                    <button
-                      onClick={() => setFilter('series')}
-                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors border ${
-                        filter === 'series'
-                          ? 'bg-purple-600 text-white border-purple-500'
-                          : 'bg-black text-gray-400 hover:bg-gray-900 border-sky-500/30'
-                      }`}
-                    >
-                      Séries
-                    </button>
-                  </div>
-                </div>
-
-                {/* History Items Grouped by Date */}
-                <div className="space-y-6 max-h-[600px] overflow-y-auto">
-                  {filteredHistory.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400">
-                      <Clock size={48} className="mx-auto mb-4 opacity-50" />
-                      <p>Aucun élément dans l'historique</p>
-                      {filter !== 'all' && (
-                        <p className="text-sm mt-2">Essayez de changer le filtre</p>
-                      )}
-                    </div>
-                  ) : (
-                    groupedByDate.map(([date, items]) => (
-                      <div key={date} className="space-y-3">
-                        {/* Date Header */}
-                        <div className="flex items-center gap-3">
-                          <div className="w-1 h-6 bg-sky-500 rounded-full"></div>
-                          <h3 className="text-lg font-semibold text-white">
-                            {new Date(date.split('-').reverse().join('-')).toLocaleDateString('fr-FR', {
-                              weekday: 'long',
-                              day: 'numeric',
-                              month: 'long',
-                              year: 'numeric'
-                            })}
-                          </h3>
-                          <div className="flex-1 h-px bg-sky-500/30"></div>
-                          <span className="text-sm text-sky-400 font-medium">
-                            {items.length} élément{items.length > 1 ? 's' : ''}
-                          </span>
-                        </div>
-
-                        {/* Items for this date - Grid layout */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {items.map((item) => {
-                            const watchUrl = item.type === 'movie' 
-                              ? `/watch/${item.id}`
-                              : `/watch/series/${item.id}/${item.season || 1}/${item.episode || 1}`
-                            
-                            return (
-                              <div
-                                key={`${item.id}-${item.timestamp}`}
-                                className="flex gap-3 p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors border border-sky-500/10 cursor-pointer group"
-                                onClick={() => router.push(watchUrl)}
-                              >
-                                {/* Poster */}
-                                <div className="w-12 h-16 flex-shrink-0 relative">
-                                  <img
-                                    src={item.poster}
-                                    alt={item.title}
-                                    className="w-full h-full object-cover rounded group-hover:opacity-80 transition-opacity"
-                                  />
-                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded transition-colors flex items-center justify-center">
-                                    <div className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <div className="w-0 h-0 border-l-[6px] border-l-black border-y-[4px] border-y-transparent ml-0.5"></div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Info */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between">
-                                    <div className="min-w-0 flex-1">
-                                      <h4 className="font-medium text-white text-sm line-clamp-1 group-hover:text-sky-400 transition-colors">
-                                        {item.title}
-                                      </h4>
-                                      {item.type === 'series' && item.season && item.episode && (
-                                        <p className="text-xs text-gray-400 truncate">
-                                          S{item.season.toString().padStart(2, '0')}E{item.episode.toString().padStart(2, '0')}
-                                          {item.episodeTitle && ` - ${item.episodeTitle}`}
-                                        </p>
-                                      )}
-                                      <p className="text-xs text-sky-400 mt-1">
-                                        {item.time}
-                                      </p>
-                                    </div>
-
-                                    <div className="flex items-center gap-1 ml-2">
-                                      <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium border ${
-                                        item.type === 'movie'
-                                          ? 'bg-blue-600/20 text-blue-400 border-blue-600/30'
-                                          : 'bg-purple-600/20 text-purple-400 border-purple-600/30'
-                                      }`}>
-                                        {item.type === 'movie' ? 'F' : 'S'}
-                                      </span>
-                                      {item.video && (
-                                        <span className="px-1.5 py-0.5 bg-gray-700 text-gray-300 rounded text-xs">
-                                          {item.video.quality}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    ))
-                  )}
                 </div>
               </div>
             </div>

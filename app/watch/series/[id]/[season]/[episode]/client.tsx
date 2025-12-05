@@ -6,6 +6,7 @@ import { ArrowLeft, Tv, Calendar, Clock, Star, ChevronLeft, ChevronRight, AlertT
 import Link from 'next/link'
 import HistoryTracker from '@/components/history-tracker'
 import PageHead from '@/components/page-head'
+import MovieDonationPrompt from '@/components/movie-donation-prompt'
 import ViewCounter from '@/components/view-counter'
 import DiscordMessageModal from '@/components/discord-message-modal'
 import { cookieUtils } from '@/lib/cookies'
@@ -1039,6 +1040,8 @@ export default function WatchSeriesPage() {
               </div>
             </div>
           </div>
+
+          <MovieDonationPrompt />
 
           {/* Episode Info */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full">

@@ -1,6 +1,6 @@
 'use client'
 
-import { Home, Search, User, LogOut, HeadphonesIcon, Settings, LayoutDashboard, Calendar } from 'lucide-react'
+import { Home, Search, User, LogOut, HeadphonesIcon, Settings, Calendar } from 'lucide-react'
 import { 
   IconBrandDiscord, 
   IconLogout
@@ -27,21 +27,7 @@ export default function Sidebar() {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false)
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false)
-  const [isAuthorizedIP, setIsAuthorizedIP] = useState(false)
   const [appVersion, setAppVersion] = useState('')
-  
-  // Vérifier si l'IP est autorisée (côté client uniquement)
-  useEffect(() => {
-    const checkAuthorization = () => {
-      // Pour le développement, on peut utiliser des IPs de test
-      const authorizedIPs = ['192.168.1.3', '165.169.45.189', '::1', '127.0.0.1']
-      const clientIP = '::1' // En production, vous devriez obtenir l'IP réelle du client
-      
-      setIsAuthorizedIP(authorizedIPs.includes(clientIP))
-    }
-    
-    checkAuthorization()
-  }, [])
 
   // Charger la version depuis package.json
   useEffect(() => {
@@ -123,19 +109,6 @@ export default function Sidebar() {
               Non connecté
             </div>
           </div>
-        )}
-        
-        {/* Dashboard icon - visible only for authorized IPs */}
-        {isAuthorizedIP && (
-          <Link
-            href="/admin/dashboard"
-            className="group relative p-3 rounded-full transition-all duration-200 bg-green-500/20 border border-green-500/30 text-green-400 hover:text-green-300 hover:bg-green-500/30"
-          >
-            <LayoutDashboard size={24} />
-            <div className="absolute left-full ml-2 px-2 py-1 bg-black text-white text-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none border border-white/20">
-              Tableau de bord
-            </div>
-          </Link>
         )}
         
         {/* Logout button (only when logged in) */}

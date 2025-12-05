@@ -6,6 +6,7 @@ import { Play, Calendar, Clock, Star, ChevronDown, ChevronUp, Tv, Filter, Settin
 import Link from 'next/link'
 import ShareButton from '@/components/share-button'
 import PageHead from '@/components/page-head'
+import MovieDonationPrompt from '@/components/movie-donation-prompt'
 import StreamingDisclaimer from '@/components/streaming-disclaimer'
 import SeriesRequestModal from '@/components/series-request-modal'
 import { supabase } from '@/lib/supabase'
@@ -1125,10 +1126,12 @@ export default function SeriePage() {
               </div>
             </div>
           </div>
-        </div>
       </div>
-      
-      {/* Seasons and Episodes Section */}
+    </div>
+    
+    <MovieDonationPrompt />
+
+    {/* Seasons and Episodes Section */}
       <div className="px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-5xl">
           {/* Season Selector */}

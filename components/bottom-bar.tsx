@@ -13,7 +13,11 @@ const bottomBarItems = [
   { icon: Settings, label: 'Settings', href: '/settings' },
 ]
 
-export default function BottomBar() {
+interface BottomBarProps {
+  hidden?: boolean
+}
+
+export default function BottomBar({ hidden = false }: BottomBarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -27,7 +31,7 @@ export default function BottomBar() {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-sm border-t border-gray-800 z-50 lg:hidden">
+      <div className={`fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-sm border-t border-gray-800 z-50 lg:hidden ${hidden ? 'hidden' : ''}`}>
         <div className="flex items-center justify-around py-2">
           {bottomBarItems.map((item) => {
             const Icon = item.icon

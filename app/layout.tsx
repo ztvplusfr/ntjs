@@ -10,6 +10,7 @@ import SessionProviderWrapper from '@/components/session-provider'
 import NavigationLoader from '@/components/navigation-loader'
 import CookieMigrationProvider from '@/components/cookie-migration-provider'
 import { Analytics } from '@vercel/analytics/next'
+import ReCaptchaWrapper from '@/components/recaptcha-wrapper'
 
 export const metadata: Metadata = {
   title: 'ZTVPlus',
@@ -55,26 +56,28 @@ export default function RootLayout({
       <head>
       </head>
       <body className="bg-black">
-        <CookieMigrationProvider>
-          <SessionProviderWrapper>
-            <NavigationLoader />
-            {/* Sidebar - cachée sur mobile */}
-            <div className="hidden lg:block">
-              <Sidebar />
-            </div>
-            
-            {/* Contenu principal */}
-            <div className="lg:ml-20">
-              <Header />
-              <main className="pb-16 lg:pb-0">
-                {children}
-              </main>
-            </div>
-            
-            {/* Bottom bar - visible uniquement sur mobile */}
-            <BottomBar />
-          </SessionProviderWrapper>
-        </CookieMigrationProvider>
+        <ReCaptchaWrapper>
+          <CookieMigrationProvider>
+            <SessionProviderWrapper>
+              <NavigationLoader />
+              {/* Sidebar - cachée sur mobile */}
+              <div className="hidden lg:block">
+                <Sidebar />
+              </div>
+              
+              {/* Contenu principal */}
+              <div className="lg:ml-20">
+                <Header />
+                <main className="pb-16 lg:pb-0">
+                  {children}
+                </main>
+              </div>
+              
+              {/* Bottom bar - visible uniquement sur mobile */}
+              <BottomBar />
+            </SessionProviderWrapper>
+          </CookieMigrationProvider>
+        </ReCaptchaWrapper>
         <Analytics />
         <Script
           defer

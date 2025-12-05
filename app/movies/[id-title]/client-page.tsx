@@ -7,6 +7,7 @@ import ImageGallery from '../../../components/image-gallery'
 import ShareButton from '@/components/share-button'
 import SimilarMovies from '@/components/similar-movies'
 import Actors from '@/components/actors'
+import MovieDonationPrompt from '@/components/movie-donation-prompt'
 import MovieRequestModal from '@/components/movie-request-modal'
 import StreamingDisclaimer from '@/components/streaming-disclaimer'
 import { Play, MessageCircle } from 'lucide-react'
@@ -418,6 +419,8 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
       {/* Additional Content */}
       <div className="px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-5xl">
+          <MovieDonationPrompt />
+
           {/* Videos */}
           <div className="mb-12">
             <div className="flex items-center gap-4 mb-8">
