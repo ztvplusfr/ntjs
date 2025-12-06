@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import MovieCarousel from '@/components/movie-carousel'
+import MovieCarouselWithMenu from '@/components/movie-carousel-with-menu'
 import { Trophy } from 'lucide-react'
 
 interface Series {
@@ -116,7 +116,7 @@ export default function Top10Series() {
 
   return (
     <div className="w-full py-8 pl-4 sm:pl-6 lg:pl-8 overflow-x-hidden">
-      <MovieCarousel 
+      <MovieCarouselWithMenu 
         title={
           <div className="flex items-center gap-2">
             <Trophy className="w-6 h-6 text-purple-500" />

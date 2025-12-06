@@ -635,10 +635,17 @@ export default function HistoryCarousel() {
                 onTouchEnd={() => cancelLongPress()}
                 onTouchCancel={() => cancelLongPress()}
                 onTouchMove={() => cancelLongPress()}
-                onClick={(event) => event.preventDefault()}
+                onClick={(event) => {
+                  event.preventDefault()
+                  openContextMenu(item, event.clientX, event.clientY)
+                }}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault()
+                    const rect = event.currentTarget.getBoundingClientRect()
+                    const x = rect.left + rect.width / 2
+                    const y = rect.top + rect.height / 2
+                    openContextMenu(item, x, y)
                   }
                 }}
               >

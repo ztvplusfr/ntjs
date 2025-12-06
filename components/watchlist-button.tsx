@@ -48,6 +48,14 @@ export default function WatchlistButton({
       const nextState: ButtonState = state === 'saved' ? 'idle' : 'saved'
       setState(nextState)
       onStateChange?.(nextState)
+      
+      // Émettre un événement pour synchroniser les autres composants
+      if (typeof window !== 'undefined') {
+        const action = state === 'saved' ? 'removed' : 'added'
+        window.dispatchEvent(new CustomEvent('watchlist-changed', {
+          detail: { action, tmdbId: Number(tmdbId), contentType }
+        }))
+      }
     } catch (error) {
       console.error('Watchlist error', error)
       setState('error')

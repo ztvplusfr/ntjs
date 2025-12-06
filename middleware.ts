@@ -6,7 +6,7 @@ import { getToken } from 'next-auth/jwt'
 const ADMIN_IPS = ['165.169.45.189', '192.168.1.3']
 
 // Routes publiques qui ne nécessitent pas d'authentification
-const PUBLIC_ROUTES = ['/', '/auth/signin', '/auth/error', '/api/auth']
+const PUBLIC_ROUTES = ['/', '/auth/signin', '/auth/error', '/logout', '/api/auth', '/api/logout', '/api/clean-auth']
 
 // Vérifier si une route est publique
 function isPublicRoute(pathname: string): boolean {
@@ -17,6 +17,11 @@ function isPublicRoute(pathname: string): boolean {
   
   // Vérification des routes API (commencent par /api/auth)
   if (pathname.startsWith('/api/auth')) {
+    return true
+  }
+  
+  // Vérification explicite pour les API de logout
+  if (pathname === '/api/logout' || pathname === '/api/clean-auth') {
     return true
   }
   
@@ -108,7 +113,9 @@ export const config = {
      * - favicon.ico (favicon file)
      * - auth/signin (sign in page)
      * - auth/error (auth error page)
+     * - logout (logout page)
+     * - clean-auth (clean auth endpoint)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|auth/signin|auth/error).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|auth/signin|auth/error|logout|clean-auth).*)',
   ]
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Info, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Info, ChevronLeft, ChevronRight, Star } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import WatchlistButton, { ButtonState } from '@/components/watchlist-button'
@@ -19,6 +19,18 @@ interface TMDBContent {
   media_type?: string
   logo_path?: string
   has_logo?: boolean
+  genres?: string[]
+}
+
+const getFrenchMediaType = (mediaType?: string) => {
+  const normalized = (mediaType || "").toLowerCase()
+  if (normalized.includes("tv") || normalized.includes("série") || normalized.includes("serie")) {
+    return "Série"
+  }
+  if (normalized.includes("movie") || normalized.includes("film")) {
+    return "Film"
+  }
+  return "Contenu"
 }
 
 export default function Hero() {
@@ -134,6 +146,37 @@ export default function Hero() {
     return () => controller.abort()
   }, [featuredContent])
 
+  // Écouter les changements de watchlist depuis d'autres composants
+  useEffect(() => {
+    const handleWatchlistChange = (event: CustomEvent) => {
+      const { action, tmdbId } = event.detail
+      
+      if (action === 'added') {
+        setWatchlistStates(prev => ({
+          ...prev,
+          [tmdbId]: 'saved'
+        }))
+        setLastAction('added')
+      } else if (action === 'removed') {
+        setWatchlistStates(prev => ({
+          ...prev,
+          [tmdbId]: 'idle'
+        }))
+        setLastAction('removed')
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('watchlist-changed', handleWatchlistChange as EventListener)
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('watchlist-changed', handleWatchlistChange as EventListener)
+      }
+    }
+  }, [])
+
   useEffect(() => {
     if (!lastAction) return
     const timer = setTimeout(() => {
@@ -148,10 +191,10 @@ export default function Hero() {
       try {
         const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
         
-        // Récupérer les films et séries populaires
+        // Récupérer les films et séries tendances du jour
         const [moviesResponse, seriesResponse] = await Promise.all([
-          fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=fr-FR&page=1`),
-          fetch(`https://api.themoviedb.org/3/tv/popular?api_key=${apiKey}&language=fr-FR&page=1`)
+          fetch(`https://api.themoviedb.org/3/trending/movie/day?api_key=${apiKey}&language=fr-FR`),
+          fetch(`https://api.themoviedb.org/3/trending/tv/day?api_key=${apiKey}&language=fr-FR`)
         ])
         
         if (!moviesResponse.ok || !seriesResponse.ok) {
@@ -163,58 +206,63 @@ export default function Hero() {
           seriesResponse.json()
         ])
         
-        // Prendre les 3 premiers films et 2 premières séries (ou inversement)
+        // Prendre les 3 premiers films et 3 premières séries tendances
         const selectedMovies = moviesData.results.slice(0, 3).map((movie: any) => ({
           ...movie,
-          media_type: 'Film'
+          media_type: 'movie'
         }))
         
-        const selectedSeries = seriesData.results.slice(0, 2).map((serie: any) => ({
+        const selectedSeries = seriesData.results.slice(0, 3).map((serie: any) => ({
           ...serie,
-          media_type: 'Série',
+          media_type: 'tv',
           title: serie.name,
           release_date: serie.first_air_date
         }))
         
         // Mélanger les films et séries
-        const allContent = [...selectedMovies, ...selectedSeries]
-          .sort(() => 0.5 - Math.random()) // Mélanger aléatoirement
-          .slice(0, 5) // Prendre 5 éléments maximum
+        const allContent = [...selectedMovies, ...selectedSeries].sort(() => 0.5 - Math.random())
         
         // Récupérer les logos pour chaque contenu
         const contentWithLogos = await Promise.all(
           allContent.map(async (content: TMDBContent) => {
             try {
-              const mediaType = content.media_type === 'Série' ? 'tv' : 'movie'
-              const imagesResponse = await fetch(
-                `https://api.themoviedb.org/3/${mediaType}/${content.id}/images?api_key=${apiKey}`
-              )
-              
-              if (imagesResponse.ok) {
-                const imagesData = await imagesResponse.json()
-                
-                // Chercher d'abord les logos en français, puis en anglais, puis autre langue
-                const logos = imagesData.logos || []
-                const frenchLogo = logos.find((logo: any) => logo.iso_639_1 === 'fr')
-                const englishLogo = logos.find((logo: any) => logo.iso_639_1 === 'en')
-                const anyLogo = logos[0] // Prendre le premier logo disponible
-                
-                const selectedLogo = frenchLogo || englishLogo || anyLogo
-                
+              const mediaType =
+                (content.media_type || '').toLowerCase().includes('tv') ? 'tv' : 'movie'
+
+                const detailsResponse = await fetch(
+                  `https://api.themoviedb.org/3/${mediaType}/${content.id}?api_key=${apiKey}&language=fr-FR&append_to_response=images&include_image_language=fr,null`
+                )
+
+              if (detailsResponse.ok) {
+                const details = await detailsResponse.json()
+                const logos = details.images?.logos || []
+                const findByLang = (lang: string) =>
+                  logos.find((logo: any) => (logo.iso_639_1 || "").toLowerCase() === lang)
+                const frenchLogo = findByLang("fr")
+                const englishLogo = findByLang("en")
+                const selectedLogo = frenchLogo || englishLogo || logos[0]
+
                 return {
                   ...content,
+                  ...details,
+                  name: details.name || content.name,
+                  title: details.title || content.title,
                   logo_path: selectedLogo?.file_path,
-                  has_logo: !!selectedLogo
+                  has_logo: !!selectedLogo,
+                  genres: Array.isArray(details.genres)
+                    ? details.genres.map((genre: any) => genre.name).filter(Boolean)
+                    : [],
                 }
               }
             } catch (error) {
-              console.error('Error fetching logo for content:', content.id, error)
+              console.error('Error fetching detail for content:', content.id, error)
             }
-            
+
             return {
               ...content,
               logo_path: undefined,
-              has_logo: false
+              has_logo: false,
+              genres: [],
             }
           })
         )
@@ -232,9 +280,10 @@ export default function Hero() {
             release_date: "2024-01-01",
             vote_average: 8.5,
             runtime: 120,
-            media_type: "Film",
+            media_type: "movie",
             logo_path: undefined,
-            has_logo: false
+            has_logo: false,
+            genres: ["Film"]
           },
           {
             id: 2,
@@ -244,9 +293,62 @@ export default function Hero() {
             release_date: "2024-02-15",
             vote_average: 8.0,
             runtime: 45,
-            media_type: "Série",
+            media_type: "tv",
             logo_path: undefined,
-            has_logo: false
+            has_logo: false,
+            genres: ["Série"]
+          },
+          {
+            id: 3,
+            title: "Film Populaire 2",
+            overview: "Une autre aventure épique à découvrir.",
+            backdrop_path: "/backdrop3.jpg",
+            release_date: "2024-03-15",
+            vote_average: 8.3,
+            runtime: 110,
+            media_type: "movie",
+            logo_path: undefined,
+            has_logo: false,
+            genres: ["Film"]
+          },
+          {
+            id: 4,
+            title: "Série Populaire 2",
+            overview: "Une suite palpitante pleine de mystère.",
+            backdrop_path: "/backdrop4.jpg",
+            release_date: "2024-04-01",
+            vote_average: 7.9,
+            runtime: 50,
+            media_type: "tv",
+            logo_path: undefined,
+            has_logo: false,
+            genres: ["Série"]
+          },
+          {
+            id: 5,
+            title: "Film Populaire 3",
+            overview: "Du spectacle grand écran comme on l'aime.",
+            backdrop_path: "/backdrop5.jpg",
+            release_date: "2024-05-12",
+            vote_average: 8.1,
+            runtime: 130,
+            media_type: "movie",
+            logo_path: undefined,
+            has_logo: false,
+            genres: ["Film"]
+          },
+          {
+            id: 6,
+            title: "Série Populaire 3",
+            overview: "Une troisième saison qui élève encore la barre.",
+            backdrop_path: "/backdrop6.jpg",
+            release_date: "2024-06-30",
+            vote_average: 8.2,
+            runtime: 48,
+            media_type: "tv",
+            logo_path: undefined,
+            has_logo: false,
+            genres: ["Série"]
           }
         ])
       } finally {
@@ -273,9 +375,17 @@ export default function Hero() {
     : '/placeholder-hero.jpg'
 
   const title = currentContent.title || currentContent.name || 'Contenu'
-  const year = currentContent.release_date?.split('-')[0] || currentContent.first_air_date?.split('-')[0] || '2024'
   const normalizedType = String(currentContent.media_type || '').toLowerCase()
-  const watchlistContentType = normalizedType.includes('série') || normalizedType.includes('serie') ? 'series' : 'movie'
+  const isSeriesContent =
+    normalizedType.includes('tv') ||
+    normalizedType.includes('série') ||
+    normalizedType.includes('serie')
+  const watchlistContentType = isSeriesContent ? 'series' : 'movie'
+  const mediaTypeLabel = getFrenchMediaType(currentContent.media_type)
+  const genreLabel = currentContent.genres && currentContent.genres.length > 0
+    ? currentContent.genres[0]
+    : 'Genre varié'
+  const ratingValue = currentContent.vote_average ? currentContent.vote_average.toFixed(1) : null
 
   return (
     <div 
@@ -353,7 +463,7 @@ export default function Hero() {
       {/* Content */}
       <div className="relative h-full flex items-end md:items-center pl-8 pr-4 sm:pl-20 sm:pr-6 lg:pl-28 lg:pr-8 pt-16 md:pt-16 pb-8">
         <div className="max-w-2xl w-full">
-          {/* Logo ou Titre */}
+          {/* Logo + Titre */}
           {currentContent.has_logo && currentContent.logo_path ? (
             <div className="mb-6">
               <Image
@@ -374,19 +484,17 @@ export default function Hero() {
           {/* Meta Info */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm sm:text-base text-gray-200 mb-8">
             <span className="px-3 py-1 bg-black/80 border border-gray-300/30 rounded-full backdrop-blur-sm">
-              {currentContent.media_type || 'Film'}
+              {mediaTypeLabel}
             </span>
             <span className="px-3 py-1 bg-black/80 border border-gray-300/30 rounded-full backdrop-blur-sm">
-              {year}
+              {genreLabel}
             </span>
-            {currentContent.runtime && (
-              <span className="px-3 py-1 bg-black/80 border border-gray-300/30 rounded-full backdrop-blur-sm">
-                {Math.floor(currentContent.runtime / 60)}h {currentContent.runtime % 60}min
-              </span>
-            )}
-            <span className="px-3 py-1 bg-black/80 border border-gray-300/30 rounded-full backdrop-blur-sm flex items-center">
-              <span className="text-yellow-400 mr-1">★</span>
-              {currentContent.vote_average?.toFixed(1) || 'N/A'}
+            <span className="px-3 py-1 bg-black/80 border border-gray-300/30 rounded-full backdrop-blur-sm">
+              Sélection du jour
+            </span>
+            <span className="px-3 py-1 bg-black/80 border border-gray-300/30 rounded-full backdrop-blur-sm flex items-center gap-1">
+              <Star className="w-3 h-3 text-yellow-400" />
+              {ratingValue ? `Note ${ratingValue}` : 'Note inconnue'}
             </span>
           </div>
           
@@ -395,7 +503,7 @@ export default function Hero() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <Link href={currentContent.media_type === 'Série' || currentContent.media_type === 'Serie' 
+            <Link href={isSeriesContent
               ? `/series/${currentContent.id}-${title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`
               : `/movies/${currentContent.id}-${title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`
             }>

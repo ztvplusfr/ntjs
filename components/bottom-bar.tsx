@@ -1,9 +1,8 @@
 'use client'
 
-import { Home, Search, Calendar, User, LogOut, HeadphonesIcon, Settings } from 'lucide-react'
+import { Home, Search, Calendar, HeadphonesIcon, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useSession, signOut } from 'next-auth/react'
 import { useState } from 'react'
 import SupportModal from './support-modal'
 
@@ -19,16 +18,7 @@ interface BottomBarProps {
 
 export default function BottomBar({ hidden = false }: BottomBarProps) {
   const pathname = usePathname()
-  const { data: session } = useSession()
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false)
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true)
-    await signOut({ callbackUrl: '/' })
-    setIsLoggingOut(false)
-  }
-
   return (
     <>
       <div className={`fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-sm border-t border-gray-800 z-50 lg:hidden ${hidden ? 'hidden' : ''}`}>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import MovieCarousel from '@/components/movie-carousel'
+import MovieCarouselWithMenu from '@/components/movie-carousel-with-menu'
 
 interface Movie {
   id: number
@@ -94,7 +94,7 @@ export default function LatestMovies() {
 
   return (
     <div className="w-full py-8 pl-4 sm:pl-6 lg:pl-8 overflow-x-hidden">
-      <MovieCarousel title="Derniers Films" movies={movies} />
+      <MovieCarouselWithMenu title="Derniers Films" movies={movies} />
     </div>
   )
 }

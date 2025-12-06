@@ -3,7 +3,7 @@
 import { notFound } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, ArrowLeft } from 'lucide-react'
 import VideoPlayer from '../../../components/video-player'
 import HistoryTracker from '../../../components/history-tracker'
 import VideoSourceCard from '../../../components/video-source-card'
@@ -274,9 +274,10 @@ export default function WatchPage({ params, searchParams }: WatchPageProps) {
             <div className="flex items-center space-x-4">
               <Link 
                 href={`/movies/${movieId}-${movie.title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`}
-                className="px-4 py-2 bg-black border border-white/30 text-white rounded-lg hover:bg-gray-900 hover:border-white/50 transition-colors"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-white/20 bg-black hover:bg-gray-900 hover:border-white/30 h-10 px-4 py-2 text-white"
               >
-                ← Retour au film
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline ml-2">Retour au film</span>
               </Link>
               <span className="text-gray-500">|</span>
               {bestLogo ? (

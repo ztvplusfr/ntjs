@@ -3,9 +3,38 @@
 import { useSession, signOut } from 'next-auth/react'
 import { IconBrandDiscord, IconUser } from '@tabler/icons-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { writeAuthFlag } from '@/lib/auth-flag'
+import { useState } from 'react'
 
 export default function AuthButtons() {
   const { data: session, status } = useSession()
+  const router = useRouter()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+    try {
+      // First clear local auth flag
+      writeAuthFlag(false)
+      
+      // Use comprehensive cleaning endpoint
+      await fetch('/api/clean-auth', { method: 'POST' })
+      
+      // Use NextAuth signOut with redirect to ensure complete cleanup
+      await signOut({ 
+        redirect: true, 
+        callbackUrl: '/' 
+      })
+    } catch (error) {
+      console.error('Failed to sign out:', error)
+      // Fallback: force hard reload
+      window.location.replace('/')
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
 
   if (status === 'loading') {
     return (
@@ -16,7 +45,6 @@ export default function AuthButtons() {
   if (session) {
     return (
       <>
-        {/* Profile avatar - visible on mobile left */}
         <div className="lg:hidden flex items-center">
           {session.user?.image ? (
             <img
@@ -30,8 +58,7 @@ export default function AuthButtons() {
             </div>
           )}
         </div>
-        
-        {/* Full user info and logout - visible on desktop */}
+
         <div className="hidden lg:flex items-center gap-3">
           <Link
             href="/profile"
@@ -50,18 +77,21 @@ export default function AuthButtons() {
           </Link>
 
           <button
-            onClick={() => signOut({ callbackUrl: '/' })}
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
             className="bg-black border border-white/30 hover:bg-gray-900 hover:border-white/50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
-            Déconnexion
+            {isLoggingOut ? 'Déconnexion...' : 'Déconnexion'}
           </button>
         </div>
-        
-        {/* Logout button - visible on mobile right */}
+
         <div className="lg:hidden">
           <button
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="bg-black border border-white/30 hover:bg-gray-900 hover:border-white/50 text-white p-2 rounded-lg text-sm font-medium transition-colors"
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="bg-black border border-white/30 hover:bg-gray-900 hover:border-white/50 text-white p-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center disabled:opacity-70"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -74,10 +104,8 @@ export default function AuthButtons() {
 
   return (
     <>
-      {/* Empty space on mobile left when not logged in */}
       <div className="lg:hidden"></div>
-      
-      {/* Login button - visible on desktop */}
+
       <div className="hidden lg:block">
         <Link 
           href="/auth/discord"
@@ -87,8 +115,7 @@ export default function AuthButtons() {
           <span className="ml-2">Connexion Discord</span>
         </Link>
       </div>
-      
-      {/* Login button - visible on mobile right */}
+
       <div className="lg:hidden">
         <Link 
           href="/auth/discord"

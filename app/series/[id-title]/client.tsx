@@ -11,6 +11,15 @@ import StreamingDisclaimer from '@/components/streaming-disclaimer'
 import SeriesRequestModal from '@/components/series-request-modal'
 import { supabase } from '@/lib/supabase'
 import { getRatingInfo } from '@/lib/ratings'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 // Interface pour les données vidéos (correspond à l'API locale)
 interface VideoServer {
@@ -1136,44 +1145,47 @@ export default function SeriePage() {
         <div className="max-w-5xl">
           {/* Season Selector */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-3xl font-bold">Saisons</h2>
+            <div className="flex flex-col gap-3 items-start mb-6 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="hidden text-3xl font-bold sm:block">Liste des épisodes</h2>
               
               {/* Netflix-style Season Selector */}
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <select
-                    value={selectedSeason}
-                    onChange={(e) => handleSeasonChange(parseInt(e.target.value))}
-                    className="appearance-none bg-black border border-white/30 rounded-full px-4 py-2 pr-10 text-white focus:outline-none focus:border-white focus:ring-2 focus:ring-white/20 cursor-pointer hover:bg-gray-900 transition-all duration-200"
-                  >
+              <div className="flex flex-col gap-2 w-full sm:flex-row sm:items-center sm:gap-3 sm:ml-auto sm:w-auto">
+                <Select
+                  value={selectedSeason.toString()}
+                  onValueChange={(value) => handleSeasonChange(parseInt(value))}
+                >
+                  <SelectTrigger className="w-full bg-black border-white/30 text-white focus:ring-white/20 sm:w-[180px]">
+                    <SelectValue placeholder="Choisir une saison">
+                      {seasons.find(s => s.season_number === selectedSeason)?.name || "Choisir une saison"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="bg-black border-white/20 text-white">
                     {seasons.map((season) => (
-                      <option key={season.id} value={season.season_number} className="bg-gray-900 text-white">
+                      <SelectItem 
+                        key={season.id} 
+                        value={season.season_number.toString()}
+                        className="text-white focus:bg-gray-800 focus:text-white"
+                      >
                         {season.name}
-                      </option>
+                      </SelectItem>
                     ))}
-                  </select>
-                  
-                  {/* Custom Arrow */}
-                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
+                  </SelectContent>
+                </Select>
                 
                 {/* Filter Button */}
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowAvailableOnly(!showAvailableOnly)}
-                  className={`p-2 rounded-full border transition-all duration-200 ${
-                    showAvailableOnly 
-                      ? 'bg-black border-white text-white hover:bg-gray-900 shadow-lg shadow-white/10' 
-                      : 'bg-black border-white/30 text-gray-400 hover:bg-gray-900 hover:border-white/50 hover:text-white'
-                  }`}
                   title={showAvailableOnly ? "Afficher tous les épisodes" : "Afficher uniquement les épisodes disponibles"}
+                  className={cn(
+                    "flex w-full items-center justify-center gap-2 border-white/30 bg-black text-white transition-all duration-200 hover:border-blue-400 hover:bg-blue-600 hover:text-white sm:w-auto",
+                    showAvailableOnly ? "bg-white/10 text-white" : "text-gray-200 hover:text-white"
+                  )}
                 >
-                  <Filter size={20} />
-                </button>
+                  <Filter size={16} />
+                  {showAvailableOnly ? "Afficher tous les ép dispo" : "Afficher disponible uniquement"}
+                </Button>
               </div>
             </div>
 

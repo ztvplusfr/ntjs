@@ -149,16 +149,59 @@ export default function SettingsPage() {
     }
   }
 
-  const clearCache = () => {
+  const clearCache = async () => {
     if (typeof window !== 'undefined') {
-      localStorage.clear()
-      sessionStorage.clear()
-      // Clear cookies
-      document.cookie.split(";").forEach((c) => {
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-      })
-      alert('Cache et données locales vidés avec succès!')
-      window.location.reload()
+      try {
+        // Show confirmation dialog
+        const confirmed = confirm('Êtes-vous sûr de vouloir vider tout le cache et les cookies ? Cela vous déconnectera également.')
+        if (!confirmed) return
+
+        // Use comprehensive cleaning endpoint first
+        await fetch('/api/clean-auth', { method: 'POST' })
+        
+        // Clear localStorage
+        localStorage.clear()
+        
+        // Clear sessionStorage
+        sessionStorage.clear()
+        
+        // Clear all cookies (comprehensive approach)
+        document.cookie.split(";").forEach((c) => {
+          const cookie = c.trim()
+          const eqPos = cookie.indexOf("=")
+          const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
+          
+          // Try to delete cookie with different path and domain combinations
+          const domains = ['', 'localhost', window.location.hostname]
+          const paths = ['/', '/api', '/auth']
+          
+          domains.forEach(domain => {
+            paths.forEach(path => {
+              document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}${domain ? ';domain=' + domain : ''}`
+            })
+          })
+        })
+        
+        // Clear service workers if any
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations()
+          await Promise.all(registrations.map(registration => registration.unregister()))
+        }
+        
+        // Clear browser cache using Clear-Site-Data header (if supported)
+        if ('caches' in window) {
+          const cacheNames = await caches.keys()
+          await Promise.all(cacheNames.map(name => caches.delete(name)))
+        }
+        
+        alert('Cache, cookies et données locales vidés avec succès! Vous allez être redirigé.')
+        
+        // Force redirect to home page
+        window.location.replace('/')
+      } catch (error) {
+        console.error('Erreur lors du nettoyage:', error)
+        alert('Une erreur est survenue lors du nettoyage. Veuillez réessayer.')
+      }
     }
   }
 
@@ -283,13 +326,14 @@ export default function SettingsPage() {
                   <Trash2 size={20} className="text-red-400" />
                 </div>
                 <p className="text-sm text-gray-400">
-                  Réinitialise vos préférences locales et nettoie les traces sans perdre votre progression.
+                  Réinitialise complètement vos préférences, cookies, cache et vous déconnecte de toutes les sessions. 
+                  Cette action est irréversible et nettoiera toutes les données locales.
                 </p>
                 <button
                   onClick={clearCache}
                   className="w-full rounded-2xl border border-red-500/60 bg-red-500/10 px-4 py-3 text-center text-sm font-medium text-red-300 transition hover:bg-red-500/20"
                 >
-                  Vider le cache maintenant
+                  Réinitialiser tout (cache, cookies, session)
                 </button>
               </div>
             </div>

@@ -360,6 +360,7 @@ export default function WatchSeriesPage() {
   const [currentUrl, setCurrentUrl] = useState('')
   const [embedUrl, setEmbedUrl] = useState<string>('')
   const [isLoadingVideo, setIsLoadingVideo] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
   const [serieLogo, setSerieLogo] = useState<string | null>(null)
   const [isRefreshingSources, setIsRefreshingSources] = useState(false)
   const [episodeRelease, setEpisodeRelease] = useState<any | null>(null)
@@ -371,6 +372,11 @@ export default function WatchSeriesPage() {
     const loadData = async () => {
       setLoading(true)
       setError('')
+      
+      // Détecter si on est sur mobile
+      if (typeof window !== 'undefined') {
+        setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent))
+      }
       
       try {
         // Définir l'URL actuelle pour les métadonnées
@@ -523,13 +529,18 @@ export default function WatchSeriesPage() {
         setIsLoadingVideo(false)
         setEmbedUrl('')
       } else {
-        // Iframe embed (play=0), générer l'URL d'embed
-        setIsLoadingVideo(true)
+        // Iframe embed (play=0)
+        // Sur mobile, afficher directement l'iframe sans loader
+        if (isMobile) {
+          setIsLoadingVideo(false)
+        } else {
+          setIsLoadingVideo(true)
+        }
         const url = getEmbedUrl(selectedServer.url)
         setEmbedUrl(url)
       }
     }
-  }, [selectedServer])
+  }, [selectedServer, isMobile])
 
   // Sauvegarder les préférences quand la sélection change
   useEffect(() => {
@@ -712,9 +723,10 @@ export default function WatchSeriesPage() {
           <div className="flex items-center space-x-4">
             <Link 
               href={`/series/${id}-${serie.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}?season=${season}`}
-              className="px-4 py-2 bg-black border border-white/30 text-white rounded-lg hover:bg-gray-900 hover:border-white/50 transition-colors"
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-white/20 bg-black hover:bg-gray-900 hover:border-white/30 h-10 px-4 py-2 text-white"
             >
-              ← Retour à la série
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline ml-2">Retour à la série</span>
             </Link>
             <span className="text-gray-500">|</span>
             <h1 className="text-xl font-bold">{serie.name}</h1>
