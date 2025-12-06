@@ -529,13 +529,8 @@ export default function WatchSeriesPage() {
         setIsLoadingVideo(false)
         setEmbedUrl('')
       } else {
-        // Iframe embed (play=0)
-        // Sur mobile, afficher directement l'iframe sans loader
-        if (isMobile) {
-          setIsLoadingVideo(false)
-        } else {
-          setIsLoadingVideo(true)
-        }
+        // Iframe embed (play=0) – toujours afficher l'iframe sans loader
+        setIsLoadingVideo(false)
         const url = getEmbedUrl(selectedServer.url)
         setEmbedUrl(url)
       }
