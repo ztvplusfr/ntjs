@@ -105,7 +105,29 @@ export default function Countdown() {
   }
 
   if (timeLeft.days === 0 && timeLeft.hours === 0 && timeLeft.minutes === 0 && timeLeft.seconds === 0) {
-    return null
+    return (
+      <div className="relative bg-black">
+        {/* Background layer */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+
+        {/* Content */}
+        <div className="relative py-8 px-6">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="bg-gradient-to-br from-emerald-500/20 via-green-600/10 to-teal-500/20 backdrop-blur-md rounded-2xl p-8 border border-emerald-400/30 shadow-lg shadow-emerald-500/20">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+                🎉 <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Joyeux Anniversaire ZTVPlus !</span> 🎉
+              </h2>
+              <p className="text-xl text-white/90 mb-2">
+                3 ans de streaming et d'émotions !
+              </p>
+              <p className="text-lg text-white/80">
+                Merci pour votre fidélité • <span className="text-emerald-300">{userTimezone}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

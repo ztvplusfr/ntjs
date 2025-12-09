@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, ArrowLeft } from 'lucide-react'
+import AdGate from '../../../components/ad-gate'
 import VideoPlayer from '../../../components/video-player'
 import HistoryTracker from '../../../components/history-tracker'
 import VideoSourceCard from '../../../components/video-source-card'
@@ -324,55 +325,57 @@ export default function WatchPage({ params, searchParams }: WatchPageProps) {
                 {/* Video Player - 2/3 width */}
                 <div className="lg:col-span-2 w-full">
                   {currentSelectedVideo ? (
-                    <div className="relative w-full bg-black border border-white/20 rounded-lg overflow-hidden group">
-                  {iframeEmbedMarkup ? (
-                    <div
-                      className="w-full aspect-video rounded-lg bg-black overflow-hidden"
-                      dangerouslySetInnerHTML={{ __html: iframeEmbedMarkup }}
-                    />
-                  ) : currentSelectedVideo.play === 1 && !(currentSelectedVideo.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)) ? (
-                        // Lecteur vidéo natif pour play=1 (sauf proxy.afterdark.click sur iOS)
-                        <VideoPlayer
-                          key={`video-movie-${movieId}-${currentSelectedVideo.id}`}
-                          src={currentSelectedVideo.url}
-                          poster={movie.backdrop_path ? `https://image.tmdb.org/t/p/w780${movie.backdrop_path}` : undefined}
-                          title={`${movie.title}`}
-                          controls={true}
-                          autoPlayWhenChanged={true}
-                          className="w-full aspect-video select-none"
-                        />
-                      ) : currentSelectedVideo.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) ? (
-                        // Lecteur vidéo natif HTML5 direct pour proxy.afterdark.click sur iOS
-                        <video
-                          key={`native-video-movie-${movieId}-${currentSelectedVideo.id}`}
-                          controls
-                          controlsList="nodownload noremoteplayback"
-                          className="w-full aspect-video select-none"
-                          poster={movie.backdrop_path ? `https://image.tmdb.org/t/p/w780${movie.backdrop_path}` : undefined}
-                          preload="metadata"
-                          onContextMenu={(event) => event.preventDefault()}
-                          onCopy={(event) => event.preventDefault()}
-                          onCut={(event) => event.preventDefault()}
-                          onPaste={(event) => event.preventDefault()}
-                        >
-                          <source src={currentSelectedVideo.url} type="application/x-mpegURL" />
-                          <source src={currentSelectedVideo.url} type="video/mp4" />
-                          Votre navigateur ne supporte pas la lecture vidéo.
-                        </video>
-                      ) : (
-                        // Iframe embed pour play=0
-                        <iframe
-                          key={`movie-${movieId}-${currentSelectedVideo.id}`}
-                          src={getEmbedUrl(currentSelectedVideo.url)}
-                          className="w-full aspect-video border-0"
-                          allowFullScreen
-                          allow="autoplay; encrypted-media; picture-in-picture; web-share"
-                          loading="eager"
-                          title={`Regarder ${movie.title} en streaming`}
-                          referrerPolicy="no-referrer-when-downgrade"
-                        />
-                      )}
-                    </div>
+                    <AdGate className="w-full" enabled={false}>
+                      <div className="relative w-full bg-black border border-white/20 rounded-lg overflow-hidden group">
+                        {iframeEmbedMarkup ? (
+                          <div
+                            className="w-full aspect-video rounded-lg bg-black overflow-hidden"
+                            dangerouslySetInnerHTML={{ __html: iframeEmbedMarkup }}
+                          />
+                        ) : currentSelectedVideo.play === 1 && !(currentSelectedVideo.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)) ? (
+                          // Lecteur vidéo natif pour play=1 (sauf proxy.afterdark.click sur iOS)
+                          <VideoPlayer
+                            key={`video-movie-${movieId}-${currentSelectedVideo.id}`}
+                            src={currentSelectedVideo.url}
+                            poster={movie.backdrop_path ? `https://image.tmdb.org/t/p/w780${movie.backdrop_path}` : undefined}
+                            title={`${movie.title}`}
+                            controls={true}
+                            autoPlayWhenChanged={true}
+                            className="w-full aspect-video select-none"
+                          />
+                        ) : currentSelectedVideo.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) ? (
+                          // Lecteur vidéo natif HTML5 direct pour proxy.afterdark.click sur iOS
+                          <video
+                            key={`native-video-movie-${movieId}-${currentSelectedVideo.id}`}
+                            controls
+                            controlsList="nodownload noremoteplayback"
+                            className="w-full aspect-video select-none"
+                            poster={movie.backdrop_path ? `https://image.tmdb.org/t/p/w780${movie.backdrop_path}` : undefined}
+                            preload="metadata"
+                            onContextMenu={(event) => event.preventDefault()}
+                            onCopy={(event) => event.preventDefault()}
+                            onCut={(event) => event.preventDefault()}
+                            onPaste={(event) => event.preventDefault()}
+                          >
+                            <source src={currentSelectedVideo.url} type="application/x-mpegURL" />
+                            <source src={currentSelectedVideo.url} type="video/mp4" />
+                            Votre navigateur ne supporte pas la lecture vidéo.
+                          </video>
+                        ) : (
+                          // Iframe embed pour play=0
+                          <iframe
+                            key={`movie-${movieId}-${currentSelectedVideo.id}`}
+                            src={getEmbedUrl(currentSelectedVideo.url)}
+                            className="w-full aspect-video border-0"
+                            allowFullScreen
+                            allow="autoplay; encrypted-media; picture-in-picture; web-share"
+                            loading="eager"
+                            title={`Regarder ${movie.title} en streaming`}
+                            referrerPolicy="no-referrer-when-downgrade"
+                          />
+                        )}
+                      </div>
+                    </AdGate>
                   ) : (
                     <div className="bg-black border border-white/20 rounded-lg aspect-video flex items-center justify-center w-full">
                       <div className="text-center">

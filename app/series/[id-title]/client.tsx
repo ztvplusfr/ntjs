@@ -8,7 +8,6 @@ import ShareButton from '@/components/share-button'
 import PageHead from '@/components/page-head'
 import MovieDonationPrompt from '@/components/movie-donation-prompt'
 import StreamingDisclaimer from '@/components/streaming-disclaimer'
-import SeriesRequestModal from '@/components/series-request-modal'
 import { supabase } from '@/lib/supabase'
 import { getRatingInfo } from '@/lib/ratings'
 import {
@@ -19,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { IconBrandDiscord } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 
 // Interface pour les données vidéos (correspond à l'API locale)
@@ -478,10 +479,9 @@ export default function SeriePage() {
   const [episodesLoading, setEpisodesLoading] = useState(false)
   const [expandedEpisode, setExpandedEpisode] = useState<number | null>(null)
   const [videosData, setVideosData] = useState<VideosData | null>(null)
-  const [currentUrl, setCurrentUrl] = useState('')
-  const [showAvailableOnly, setShowAvailableOnly] = useState(false)
-  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
+   const [currentUrl, setCurrentUrl] = useState('')
+   const [showAvailableOnly, setShowAvailableOnly] = useState(false)
+   const [showSettings, setShowSettings] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [serieLogo, setSerieLogo] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
@@ -1189,19 +1189,22 @@ export default function SeriePage() {
               </div>
             </div>
 
-            {/* Bouton de demande - positionné haut */}
-            <div className="mb-6 text-center">
-              <div className="inline-flex items-center gap-2 bg-cyan-600/20 border border-cyan-500/50 rounded-xl p-4">
-                <MessageCircle size={18} className="text-cyan-400" />
-                <span className="text-cyan-300 text-sm">Il manque des épisodes ?</span>
-                <button
-                  onClick={() => setIsRequestModalOpen(true)}
-                  className="ml-2 bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition-all transform hover:scale-[1.02] border border-cyan-500/50"
-                >
-                  Demander les épisodes
-                </button>
-              </div>
-            </div>
+             {/* Alert pour Discord */}
+             <Alert className="mb-6 border-cyan-500/50 bg-cyan-600/10">
+               <MessageCircle className="h-4 w-4" />
+               <AlertDescription className="text-cyan-200 flex items-center justify-between">
+                 <span>Pour demander des épisodes manquants, rejoignez notre serveur Discord où vous pourrez soumettre vos demandes directement à notre équipe.</span>
+                 <button
+                   onClick={() => window.open('https://discord.com/invite/WjedsPDts3', '_blank')}
+                   className="ml-4 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-all transform hover:scale-[1.02] border border-indigo-500/50"
+                 >
+                   <IconBrandDiscord size={16} />
+                   Rejoindre Discord
+                 </button>
+               </AlertDescription>
+             </Alert>
+
+
 
             {/* Streaming Disclaimer - Only show when no episodes are available */}
             {(() => {
@@ -1547,15 +1550,7 @@ export default function SeriePage() {
           )}
         </div>
       </div>
-    </div>
-    
-    {/* Series Request Modal */}
-    <SeriesRequestModal
-        isOpen={isRequestModalOpen}
-        onClose={() => setIsRequestModalOpen(false)}
-        seriesTitle={serie.name}
-        seriesId={serie.id}
-      />
-    </>
+     </div>
+     </>
   )
 }

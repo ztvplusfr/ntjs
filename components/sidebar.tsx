@@ -1,13 +1,12 @@
 'use client'
 
-import { Home, Search, User, LogOut, HeadphonesIcon, Settings, Calendar } from 'lucide-react'
+import { Home, Search, User, LogOut, Settings, Calendar } from 'lucide-react'
 import { IconBrandDiscord } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import DiscordMessageModal from './discord-message-modal'
-import SupportModal from './support-modal'
 import packageInfo from '../package.json'
 
 const sidebarItems = [
@@ -15,7 +14,6 @@ const sidebarItems = [
   { icon: Search, label: 'Search', href: '/search' },
   { icon: Calendar, label: 'Agenda', href: '/agenda' },
   { icon: Settings, label: 'Settings', href: '/settings' },
-  { icon: HeadphonesIcon, label: 'Support', href: '#' },
 ]
 
 export default function Sidebar() {
@@ -23,7 +21,6 @@ export default function Sidebar() {
   const { data: session } = useSession()
   const user = session?.user
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false)
-  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false)
   const [appVersion, setAppVersion] = useState('')
 
   useEffect(() => {
@@ -38,21 +35,6 @@ export default function Sidebar() {
         {sidebarItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
-
-          if (item.label === 'Support') {
-            return (
-              <button
-                key="support"
-                onClick={() => setIsSupportModalOpen(true)}
-                className="group relative p-3 rounded-full text-gray-400 hover:text-white hover:bg-black hover:border hover:border-white/20 transition-all duration-200"
-              >
-                <Icon size={24} />
-                <div className="absolute left-full ml-2 px-2 py-1 bg-black text-white text-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none border border-white/20">
-                  {item.label}
-                </div>
-              </button>
-            )
-          }
 
           return (
             <Link
@@ -148,7 +130,6 @@ export default function Sidebar() {
       </div>
 
       <DiscordMessageModal isOpen={isMessageModalOpen} onClose={() => setIsMessageModalOpen(false)} />
-      <SupportModal isOpen={isSupportModalOpen} onClose={() => setIsSupportModalOpen(false)} />
     </div>
   )
 }

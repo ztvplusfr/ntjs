@@ -41,14 +41,14 @@ export default function Header() {
         ) : null}
       </div>
 
-      <div className="hidden lg:flex items-center gap-4">
-        <Link href="/browse">
-          <img
-            src="/logo-stranger-things.png"
-            alt="ZTVPlus"
-            className="h-8 w-auto object-contain hover:opacity-80 transition-opacity cursor-pointer"
-          />
-        </Link>
+       <div className="hidden lg:flex items-center gap-4">
+         <Link href="/browse">
+           <img
+             src="/logo.png"
+             alt="ZTVPlus"
+             className="h-8 w-auto object-contain hover:opacity-80 transition-opacity cursor-pointer"
+           />
+         </Link>
 
         <span className="text-gray-400 text-sm">|</span>
 
@@ -92,15 +92,15 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="absolute left-1/2 transform -translate-x-1/2 lg:hidden">
-        <Link href="/browse">
-          <img
-            src="/logo-stranger-things.png"
-            alt="ZTVPlus"
-            className="h-8 w-auto object-contain hover:opacity-80 transition-opacity cursor-pointer"
-          />
-        </Link>
-      </div>
+       <div className="absolute left-1/2 transform -translate-x-1/2 lg:hidden">
+         <Link href="/browse">
+           <img
+             src="/logo.png"
+             alt="ZTVPlus"
+             className="h-8 w-auto object-contain hover:opacity-80 transition-opacity cursor-pointer"
+           />
+         </Link>
+       </div>
 
       <div className="flex-1 flex justify-end relative z-50">
         <div className="lg:hidden">

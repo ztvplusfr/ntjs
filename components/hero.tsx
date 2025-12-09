@@ -5,6 +5,7 @@ import { Info, ChevronLeft, ChevronRight, Star } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import WatchlistButton, { ButtonState } from '@/components/watchlist-button'
+import { TypographyH1 } from '@/components/ui/typography'
 
 interface TMDBContent {
   id: number
@@ -476,9 +477,9 @@ export default function Hero() {
               />
             </div>
           ) : (
-            <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+            <TypographyH1 className="text-left text-2xl sm:text-3xl md:text-5xl lg:text-6xl text-white mb-6 leading-tight">
               {title}
-            </h1>
+            </TypographyH1>
           )}
           
           {/* Meta Info */}

@@ -4,7 +4,7 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon.png" />
         <script data-cfasync="false" src="//d1zhmd1pxxxajf.cloudfront.net/?dmhzd=1228481"></script>
       </Head>
       <body>

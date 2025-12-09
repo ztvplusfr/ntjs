@@ -8,10 +8,11 @@ import ShareButton from '@/components/share-button'
 import SimilarMovies from '@/components/similar-movies'
 import Actors from '@/components/actors'
 import MovieDonationPrompt from '@/components/movie-donation-prompt'
-import MovieRequestModal from '@/components/movie-request-modal'
 import StreamingDisclaimer from '@/components/streaming-disclaimer'
 import { Play, MessageCircle } from 'lucide-react'
+import { IconBrandDiscord } from '@tabler/icons-react'
 import { getRatingInfo } from '@/lib/ratings'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface Video {
   id?: string
@@ -136,11 +137,10 @@ async function getMovieDetails(id: string) {
 }
 
 export default function MovieClientPage({ movie, videos, imagesData, similarMovies, castData, frenchCertification }: MoviePageProps) {
-  const [currentUrl, setCurrentUrl] = useState('')
-  const [logos, setLogos] = useState<any[]>([])
-  const [tmdbVideos, setTmdbVideos] = useState<any[]>([])
-  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
-  const [matureAcknowledged, setMatureAcknowledged] = useState(false)
+   const [currentUrl, setCurrentUrl] = useState('')
+   const [logos, setLogos] = useState<any[]>([])
+   const [tmdbVideos, setTmdbVideos] = useState<any[]>([])
+   const [matureAcknowledged, setMatureAcknowledged] = useState(false)
   const [showMatureWarning, setShowMatureWarning] = useState(false)
   const ratingInfo = useMemo(() => getRatingInfo(frenchCertification), [frenchCertification])
   const frenchRatingLabel = ratingInfo?.label
@@ -452,27 +452,33 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
                   </div>
                 )
               } else {
-                return (
-                  <>
-                    <div className="bg-black rounded-lg p-8 text-center border border-white/20 mb-6">
-                      <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
-                        <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
+                 return (
+                   <>
+                      <Alert className="mb-6 border-cyan-500/50 bg-cyan-600/10">
+                        <MessageCircle className="h-4 w-4" />
+                        <AlertDescription className="text-cyan-200 flex items-center justify-between">
+                          <span>Pour demander ce film, rejoignez notre serveur Discord où vous pourrez soumettre vos demandes directement à notre équipe.</span>
+                          <button
+                            onClick={() => window.open('https://discord.com/invite/WjedsPDts3', '_blank')}
+                            className="ml-4 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-all transform hover:scale-[1.02] border border-indigo-500/50"
+                          >
+                            <IconBrandDiscord size={16} />
+                            Rejoindre Discord
+                          </button>
+                        </AlertDescription>
+                      </Alert>
+                      <div className="bg-black rounded-lg p-8 text-center border border-white/20 mb-6">
+                        <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
+                          <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </div>
+                        <p className="text-gray-400 mb-6">Aucune vidéo disponible pour ce film.</p>
                       </div>
-                      <p className="text-gray-400 mb-6">Aucune vidéo disponible pour ce film.</p>
-                      <button
-                        onClick={() => setIsRequestModalOpen(true)}
-                        className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-3 px-6 rounded-xl transition-all transform hover:scale-[1.02] shadow-lg border border-cyan-500/50"
-                      >
-                        <MessageCircle size={18} />
-                        Demander ce film
-                      </button>
-                    </div>
-                    <StreamingDisclaimer />
-                  </>
-                )
-              }
+                     <StreamingDisclaimer />
+                   </>
+                 )
+               }
             })()}
           </div>
 
@@ -533,15 +539,7 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
           <SimilarMovies movies={similarMovies?.results || []} />
         </div>
       </div>
-    </div>
-    
-    {/* Movie Request Modal */}
-    <MovieRequestModal
-        isOpen={isRequestModalOpen}
-        onClose={() => setIsRequestModalOpen(false)}
-        movieTitle={movie.title}
-        movieId={movie.id}
-      />
-    </div>
+     </div>
+     </div>
   )
 }

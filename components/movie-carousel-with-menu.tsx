@@ -77,29 +77,6 @@ export default function MovieCarouselWithMenu({ title, movies, showRank = false 
   useEffect(() => {
     const loadWatchlist = async () => {
       if (!session?.user?.id) return
-      
-      setLoadingWatchlist(true)
-      try {
-        const response = await fetch('/api/watchlist')
-        if (response.ok) {
-          const data = await response.json()
-          const watchlistIds = new Set<number>(data.list?.map((item: any) => Number(item.tmdb_id)) || [])
-          setWatchlist(watchlistIds)
-        }
-      } catch (error) {
-        console.error('Error loading watchlist:', error)
-      } finally {
-        setLoadingWatchlist(false)
-      }
-    }
-
-    loadWatchlist()
-  }, [session])
-
-  useEffect(() => {
-    const loadWatchlist = async () => {
-      if (!session?.user?.id) return
-      
       setLoadingWatchlist(true)
       try {
         const response = await fetch('/api/watchlist')
@@ -244,34 +221,7 @@ export default function MovieCarouselWithMenu({ title, movies, showRank = false 
   const contextMenuStyle: CSSProperties | undefined = menuStyle ? { position: 'fixed', ...menuStyle } : undefined
 
   // Ouvrir le menu contextuel
-  const openContextMenu = async (movie: Movie, x: number, y: number) => {
-    // Vérifier si le contenu est dans la watchlist via l'API
-    if (session?.user?.id) {
-      try {
-        const mediaType = getMediaType(movie)
-        const response = await fetch('/api/watchlist')
-        if (response.ok) {
-          const data = await response.json()
-          const isInWatchlist = data.list?.some((item: any) => 
-            item.tmdb_id === movie.id && item.content_type === mediaType
-          ) || false
-          
-          // Mettre à jour l'état si nécessaire
-          if (isInWatchlist && !watchlist.has(movie.id)) {
-            setWatchlist(prev => new Set(prev).add(movie.id))
-          } else if (!isInWatchlist && watchlist.has(movie.id)) {
-            setWatchlist(prev => {
-              const newSet = new Set(prev)
-              newSet.delete(movie.id)
-              return newSet
-            })
-          }
-        }
-      } catch (error) {
-        console.error('Error checking watchlist status:', error)
-      }
-    }
-    
+  const openContextMenu = (movie: Movie, x: number, y: number) => {
     setContextMenu({ movie, x, y })
   }
 
