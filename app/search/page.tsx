@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { Search as SearchIcon, Film, Star, Calendar, Tv } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
@@ -26,23 +26,48 @@ function SearchContent() {
   const [movies, setMovies] = useState<TMDBMovie[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  
+  // Ref pour éviter les boucles de mise à jour d'URL
+  const isUpdatingFromUrl = useRef(false)
+  const debounceTimerRef = useRef<NodeJS.Timeout>()
 
   // Récupérer la requête depuis l'URL au chargement
   useEffect(() => {
     const searchQuery = searchParams.get('search')
-    if (searchQuery) {
+    if (searchQuery && searchQuery !== query) {
+      isUpdatingFromUrl.current = true
       setQuery(searchQuery)
+      // Réinitialiser le flag après un court délai pour éviter les conflits
+      setTimeout(() => {
+        isUpdatingFromUrl.current = false
+      }, 100)
     }
   }, [searchParams])
 
-  // Mettre à jour l'URL quand la requête change
+  // Mettre à jour l'URL avec debounce quand la requête change (seulement si pas initié par l'URL)
   useEffect(() => {
-    if (query.trim()) {
-      const params = new URLSearchParams()
-      params.set('search', query)
-      router.replace(`${pathname}?${params.toString()}`)
-    } else {
-      router.replace(pathname)
+    if (isUpdatingFromUrl.current) return
+    
+    // Annuler le timer précédent
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+    
+    // Nouveau timer pour mettre à jour l'URL après 500ms de pause
+    debounceTimerRef.current = setTimeout(() => {
+      if (query.trim()) {
+        const params = new URLSearchParams()
+        params.set('search', query)
+        router.replace(`${pathname}?${params.toString()}`)
+      } else {
+        router.replace(pathname)
+      }
+    }, 500)
+    
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
     }
   }, [query, router, pathname])
 
