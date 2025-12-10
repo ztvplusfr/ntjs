@@ -10,14 +10,12 @@ import {
   IconBrandDiscord,
 } from '@tabler/icons-react'
 import { useSession } from 'next-auth/react'
-import { useLocalAuthFlag } from '@/hooks/use-auth-flag'
 
 export default function Header() {
-  const { data: session } = useSession()
-  const isAuthenticatedLocally = useLocalAuthFlag()
+  const { data: session, status } = useSession()
   const userImage = session?.user?.image
   const userName = session?.user?.name || 'Utilisateur'
-  const showMobileAuthedViews = isAuthenticatedLocally || Boolean(session)
+  const showMobileAuthedViews = status === 'authenticated' || Boolean(session)
 
   return (
     <header className="w-full h-16 py-4 px-6 flex items-center justify-between relative z-40">

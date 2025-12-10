@@ -9,7 +9,7 @@ import Header from '@/components/header'
 import SessionProviderWrapper from '@/components/session-provider'
 import NavigationLoader from '@/components/navigation-loader'
 import CookieMigrationProvider from '@/components/cookie-migration-provider'
-import AuthCookieGuard from '@/components/auth-cookie-guard'
+
 import { Analytics } from '@vercel/analytics/next'
 import ReCaptchaWrapper from '@/components/recaptcha-wrapper'
 export const dynamic = 'force-dynamic'
@@ -62,7 +62,6 @@ export default function RootLayout({
         <ReCaptchaWrapper>
           <CookieMigrationProvider>
             <SessionProviderWrapper>
-              <AuthCookieGuard />
               <NavigationLoader />
               {/* Sidebar - cachée sur mobile */}
               <div className="hidden lg:block">

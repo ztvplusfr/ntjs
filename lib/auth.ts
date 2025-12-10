@@ -54,6 +54,38 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt'
   },
+  cookies: {
+    sessionToken: {
+      name: 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: false, // Désactiver pour mobile/developpement
+        domain: process.env.NODE_ENV === 'production' ? '.ztvplus.site' : undefined
+      }
+    },
+    callbackUrl: {
+      name: 'next-auth.callback-url',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: false, // Désactiver pour mobile/developpement
+        domain: process.env.NODE_ENV === 'production' ? '.ztvplus.site' : undefined
+      }
+    },
+    csrfToken: {
+      name: 'next-auth.csrf-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: false, // Désactiver pour mobile/developpement
+        domain: process.env.NODE_ENV === 'production' ? '.ztvplus.site' : undefined
+      }
+    }
+  },
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error'

@@ -51,8 +51,6 @@ function isPublicRoute(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  console.log(`Middleware: Checking path: ${pathname}`)
-
   // Vérifier si la route est dans /admin
   if (pathname.startsWith('/admin')) {
     // Obtenir l'IP du client
@@ -60,40 +58,38 @@ export async function middleware(request: NextRequest) {
     const realIp = request.headers.get('x-real-ip')
     const clientIp = forwarded ? forwarded.split(',')[0].trim() : realIp
 
-    console.log(`Admin access attempt from IP: ${clientIp} to path: ${pathname}`)
-
     // Vérifier si l'IP est autorisée
     if (!clientIp || !ADMIN_IPS.includes(clientIp)) {
-      console.log(`Unauthorized admin access attempt from IP: ${clientIp}`)
-      
       // Rediriger vers la page d'accueil si non autorisé
       const url = request.nextUrl.clone()
       url.pathname = '/'
       return NextResponse.redirect(url)
     }
-
-    console.log(`Authorized admin access from IP: ${clientIp}`)
   }
 
   // Vérifier si la route est publique
   const isRoutePublic = isPublicRoute(pathname)
 
-  console.log(`Is public route: ${isRoutePublic} for path: ${pathname}`)
-
   // Si ce n'est pas une route publique, vérifier l'authentification
   if (!isRoutePublic) {
-    console.log(`Checking authentication for protected route: ${pathname}`)
-    
-    const token = await getToken({ 
-      req: request, 
-      secret: process.env.NEXTAUTH_SECRET 
-    })
+    try {
+      const token = await getToken({ 
+        req: request, 
+        secret: process.env.NEXTAUTH_SECRET,
+        secureCookie: false, // Désactiver pour mobile/developpement
+        cookieName: 'next-auth.session-token'
+      })
 
-    console.log(`Token found: ${!!token}`)
-
-    // Si l'utilisateur n'est pas authentifié, rediriger vers la page de login
-    if (!token) {
-      console.log(`Redirecting unauthenticated user from: ${pathname}`)
+      // Si l'utilisateur n'est pas authentifié, rediriger vers la page de login
+      if (!token) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/auth/signin'
+        // Conserver les paramètres de requête originaux pour le debugging
+        url.search = request.nextUrl.search
+        return NextResponse.redirect(url)
+      }
+    } catch (error) {
+      // En cas d'erreur, rediriger vers la page de login
       const url = request.nextUrl.clone()
       url.pathname = '/auth/signin'
       return NextResponse.redirect(url)
