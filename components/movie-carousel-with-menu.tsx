@@ -345,7 +345,7 @@ export default function MovieCarouselWithMenu({ title, movies, showRank = false 
   // Voir les détails
   const handleViewDetails = (movie: Movie) => {
     if (typeof window !== 'undefined') {
-      window.open(getDetailLink(movie), '_blank')
+      window.location.href = getDetailLink(movie)
     }
     setContextMenu(null)
   }
