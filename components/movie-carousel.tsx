@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Star } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { getBannedForTmdbIds } from '@/lib/supabase'
 
 interface Movie {
   id: number
@@ -36,27 +37,23 @@ export default function MovieCarousel({ title, movies, showRank = false }: Movie
   const [canScrollNext, setCanScrollNext] = useState(false)
   const [bannedContent, setBannedContent] = useState<Set<string>>(new Set())
 
-  // Vérifier le contenu banni au chargement du composant
+  // Vérifier le contenu banni au chargement du composant (optimisé, une seule requête Supabase)
   useEffect(() => {
     const checkBannedContent = async () => {
-      const bannedSet = new Set<string>()
+      try {
+        const ids = movies.map((movie) => movie.id)
+        const bannedList = await getBannedForTmdbIds(ids)
 
-      // Vérifier chaque film/série pour voir s'il est banni
-      for (const movie of movies) {
-        try {
-          const mediaType = getMediaType(movie)
-          const response = await fetch(`/api/banned?tmdb_id=${movie.id}&content_type=${mediaType}`)
-          const data = await response.json()
+        const bannedSet = new Set<string>()
+        bannedList.forEach((item) => {
+          const key = `${item.tmdb_id}-${item.content_type}`
+          bannedSet.add(key)
+        })
 
-          if (data.banned) {
-            bannedSet.add(`${movie.id}-${mediaType}`)
-          }
-        } catch (error) {
-          console.error('Error checking banned content:', error)
-        }
+        setBannedContent(bannedSet)
+      } catch (error) {
+        console.error('Error checking banned content:', error)
       }
-
-      setBannedContent(bannedSet)
     }
 
     if (movies.length > 0) {

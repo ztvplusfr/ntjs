@@ -6,12 +6,17 @@ import { getToken } from 'next-auth/jwt'
 const ADMIN_IPS = ['165.169.45.189', '192.168.1.3']
 
 // Routes publiques qui ne nécessitent pas d'authentification
-const PUBLIC_ROUTES = ['/', '/auth/signin', '/auth/error', '/logout', '/api/auth', '/api/logout', '/api/clean-auth']
+const PUBLIC_ROUTES = ['/', '/auth/signin', '/auth/error', '/logout', '/api/auth', '/api/logout', '/api/clean-auth', '/watch', '/watch/series', '/watch/series/', '/watch/series/[id]', '/watch/series/[id]/[season]', '/watch/series/[id]/[season]/[episode]', '/watch/[movie-id]']
 
 // Vérifier si une route est publique
 function isPublicRoute(pathname: string): boolean {
   // Vérification exacte
   if (PUBLIC_ROUTES.includes(pathname)) {
+    return true
+  }
+  
+  // Vérification des routes watch (commencent par /watch)
+  if (pathname.startsWith('/watch')) {
     return true
   }
   

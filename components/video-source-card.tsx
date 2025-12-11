@@ -1,6 +1,6 @@
 'use client'
 
-import { Video } from '@/app/watch/[movie-id]/page'
+import { Video } from '@/app/watch/[movie-id]/client-page'
 
 // Translation function for language codes
 const translateLanguage = (lang: string): string => {

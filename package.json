@@ -1,7 +1,7 @@
 {
   "name": "nextjs-vite-tailwind",
   "private": true,
-  "version": "6.20.1",
+  "version": "6.30",
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "dev:https": "next dev -H 0.0.0.0 --experimental-https",

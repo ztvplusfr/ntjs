@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo, useRef, type CSSProperties } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
+import { getBannedForTmdbIds } from '@/lib/supabase'
 
 interface Movie {
   id: number
@@ -45,27 +46,23 @@ export default function MovieCarouselWithMenu({ title, movies, showRank = false 
   const menuRef = useRef<HTMLDivElement | null>(null)
   const { data: session } = useSession()
 
-  // Vérifier le contenu banni au chargement du composant
+  // Vérifier le contenu banni au chargement du composant (optimisé, une seule requête Supabase)
   useEffect(() => {
     const checkBannedContent = async () => {
-      const bannedSet = new Set<string>()
+      try {
+        const ids = movies.map((movie) => movie.id)
+        const bannedList = await getBannedForTmdbIds(ids)
 
-      // Vérifier chaque film/série pour voir s'il est banni
-      for (const movie of movies) {
-        try {
-          const mediaType = getMediaType(movie)
-          const response = await fetch(`/api/banned?tmdb_id=${movie.id}&content_type=${mediaType}`)
-          const data = await response.json()
+        const bannedSet = new Set<string>()
+        bannedList.forEach((item) => {
+          const key = `${item.tmdb_id}-${item.content_type}`
+          bannedSet.add(key)
+        })
 
-          if (data.banned) {
-            bannedSet.add(`${movie.id}-${mediaType}`)
-          }
-        } catch (error) {
-          console.error('Error checking banned content:', error)
-        }
+        setBannedContent(bannedSet)
+      } catch (error) {
+        console.error('Error checking banned content:', error)
       }
-
-      setBannedContent(bannedSet)
     }
 
     if (movies.length > 0) {
@@ -348,7 +345,7 @@ export default function MovieCarouselWithMenu({ title, movies, showRank = false 
   // Voir les détails
   const handleViewDetails = (movie: Movie) => {
     if (typeof window !== 'undefined') {
-      window.location.href = getDetailLink(movie)
+      window.open(getDetailLink(movie), '_blank')
     }
     setContextMenu(null)
   }

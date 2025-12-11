@@ -46,6 +46,7 @@ export default function HistoryCarousel() {
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const { data: session, status } = useSession()
+  const hasInitializedRef = useRef(false)
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: 'start',
     skipSnaps: false,
@@ -269,6 +270,10 @@ export default function HistoryCarousel() {
   useEffect(() => {
     if (status === 'loading') return
 
+    // Éviter les doubles appels (ex: React StrictMode en dev)
+    if (hasInitializedRef.current) return
+    hasInitializedRef.current = true
+
     const loadFromCookies = async () => {
       cookieUtils.migrateFromLocalStorage()
       const cookieHistory = cookieUtils.getWatchHistory()
@@ -360,7 +365,10 @@ export default function HistoryCarousel() {
         if (!response.ok) {
           const errorText = await response.text()
           console.error('Supabase API error:', response.status, errorText)
-          throw new Error('Erreur récupération historique')
+          // Fallback silencieux sur les cookies pour éviter de spammer
+          await loadFromCookies()
+          setLoading(false)
+          return
         }
 
         const data = await response.json()
@@ -427,6 +435,7 @@ export default function HistoryCarousel() {
       } catch (error) {
         console.error('Erreur chargement historique Supabase, fallback cookies:', error)
         await loadFromCookies()
+        setLoading(false)
         return
       }
 
@@ -759,7 +768,7 @@ export default function HistoryCarousel() {
             type="button"
             onClick={() => {
               if (typeof window === 'undefined') return
-              window.open(buildDetailLink(contextMenu.item), '_blank')
+              window.location.href = buildDetailLink(contextMenu.item)
               closeContextMenu()
             }}
             className="flex items-center gap-2 rounded-xl px-3 py-2 text-white transition hover:bg-white/10"

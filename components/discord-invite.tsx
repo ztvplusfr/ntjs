@@ -1,10 +1,50 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { IconBrandDiscord } from '@tabler/icons-react'
 
 export default function DiscordInvite() {
   const [isHovered, setIsHovered] = useState(false)
+  const [memberCount, setMemberCount] = useState<number | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const fetchMemberCount = async () => {
+      try {
+        const response = await fetch(
+          'https://discord.com/api/v10/invites/WjedsPDts3?with_counts=true',
+          { cache: 'no-store' }
+        )
+
+        if (!response.ok) {
+          return
+        }
+
+        const data = await response.json()
+        if (!isMounted) return
+
+        const count =
+          typeof data.approximate_member_count === 'number'
+            ? data.approximate_member_count
+            : typeof data.member_count === 'number'
+            ? data.member_count
+            : null
+
+        if (count !== null) {
+          setMemberCount(count)
+        }
+      } catch {
+        // Échec silencieux, on garde la valeur par défaut
+      }
+    }
+
+    fetchMemberCount()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const handleJoinDiscord = () => {
     window.open('https://discord.com/invite/WjedsPDts3', '_blank')
@@ -67,7 +107,9 @@ export default function DiscordInvite() {
               <div className="flex flex-col items-center gap-3 sm:gap-4 mt-4 lg:mt-0">
                 <div className="text-center">
                   <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
-                    <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">39</span>
+                    <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                      {memberCount ?? 39}
+                    </span>
                   </div>
                   <p className="text-xs sm:text-sm text-white/70">Membres actifs</p>
                 </div>

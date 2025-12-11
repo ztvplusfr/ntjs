@@ -399,6 +399,30 @@ export async function unbanContent(tmdbId: number, contentType: 'movie' | 'tv'):
   }
 }
 
+// Récupérer les contenus bannis pour une liste de tmdb_id (optimisé pour le client)
+export async function getBannedForTmdbIds(tmdbIds: number[]): Promise<Array<{ tmdb_id: number; content_type: 'movie' | 'tv' }>> {
+  if (!tmdbIds.length) return []
+
+  try {
+    const uniqueIds = Array.from(new Set(tmdbIds))
+
+    const { data, error } = await supabase
+      .from('banned_content')
+      .select('tmdb_id, content_type')
+      .in('tmdb_id', uniqueIds)
+
+    if (error) {
+      console.error('Error fetching banned content for list:', error)
+      return []
+    }
+
+    return (data || []) as Array<{ tmdb_id: number; content_type: 'movie' | 'tv' }>
+  } catch (error) {
+    console.error('Error fetching banned content for list:', error)
+    return []
+  }
+}
+
 // Fonctions pour créer du contenu depuis TMDB
 export interface ContentData {
   tmdb_id: number

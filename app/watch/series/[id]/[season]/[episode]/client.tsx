@@ -9,6 +9,7 @@ import PageHead from '@/components/page-head'
 import MovieDonationPrompt from '@/components/movie-donation-prompt'
 import ViewCounter from '@/components/view-counter'
 import DiscordMessageModal from '@/components/discord-message-modal'
+import AuthGuard from '@/components/auth-guard'
 import { cookieUtils } from '@/lib/cookies'
 import { supabase, getEpisodeVideos } from '@/lib/supabase'
 import VideoPlayer from '@/components/video-player'
@@ -760,112 +761,114 @@ export default function WatchSeriesPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full">
               {/* Video Player - 2/3 width */}
               <div className="lg:col-span-2 w-full">
-                {selectedServer && episodeAvailable ? (
-                  <div className="relative w-full bg-black border border-white/20 rounded-lg overflow-hidden">
-                    {selectedServer.play === 1 && !(selectedServer.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)) ? (
-                      // Lecteur vidéo natif pour play=1 (sauf proxy.afterdark.click sur iOS)
-                      <VideoPlayer
-                        key={`video-episode-${season}-${episode}-${selectedServer.id}`}
-                        src={selectedServer.url}
-                        poster={episodeStillUrl || undefined}
-                        title={`${serie.name} - S${season}E${episode}`}
-                        controls={true}
-                        autoPlayWhenChanged={true}
-                        className="w-full aspect-video select-none"
-                      />
-                    ) : selectedServer.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) ? (
-                      // Lecteur vidéo natif HTML5 direct pour proxy.afterdark.click sur iOS
-                      <video
-                        key={`native-video-episode-${season}-${episode}-${selectedServer.id}`}
-                        controls
-                        controlsList="nodownload noremoteplayback"
-                        className="w-full aspect-video select-none"
-                        poster={episodeStillUrl || undefined}
-                        preload="metadata"
-                        onLoadedData={() => setIsLoadingVideo(false)}
-                        onError={() => setIsLoadingVideo(false)}
-                        onContextMenu={(event) => event.preventDefault()}
-                        onCopy={(event) => event.preventDefault()}
-                        onCut={(event) => event.preventDefault()}
-                        onPaste={(event) => event.preventDefault()}
-                      >
-                        <source src={selectedServer.url} type="application/x-mpegURL" />
-                        <source src={selectedServer.url} type="video/mp4" />
-                        Votre navigateur ne supporte pas la lecture vidéo.
-                      </video>
-                    ) : (
-                      // Iframe embed pour play=0
-                      <>
-                        {isLoadingVideo && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
-                            <div className="w-12 h-12 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        )}
-                        {embedUrl && (
-                          <iframe
-                            key={`episode-${season}-${episode}-${selectedServer.id}`}
-                            src={embedUrl}
-                            className={`w-full aspect-video border-0 ${isLoadingVideo ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
-                            allowFullScreen
-                            allow="autoplay; encrypted-media; picture-in-picture; web-share"
-                            onLoad={() => setIsLoadingVideo(false)}
-                            onError={() => setIsLoadingVideo(false)}
-                            loading="eager"
-                            title={`Regarder ${serie.name} S${season}E${episode} en streaming`}
-                            referrerPolicy="no-referrer-when-downgrade"
-                          />
-                        )}
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-black border border-white/20 rounded-lg aspect-video flex items-center justify-center w-full">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-black border border-white/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Tv className="w-8 h-8 text-white/60" />
-                      </div>
-                      
-                      {episodeRelease && !episodeAvailable ? (
-                        <>
-                          <h2 className="text-lg sm:text-xl font-medium mb-2 sm:mb-2 text-blue-400">
-                            Compte à rebours
-                          </h2>
-                          <div className="mb-3 sm:mb-4">
-                            <div className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-sky-600/20 to-blue-600/20 border border-sky-500/30 rounded-full text-base sm:text-lg font-medium text-blue-400 mb-2">
-                              {countdown}
-                            </div>
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                              <span className="text-gray-300">
-                                S{String(episodeRelease.season_number).padStart(2, '0')}E{String(episodeRelease.episode_number).padStart(2, '0')}
-                              </span>
-                              {episodeRelease.release_time && (
-                                <>
-                                  <span className="text-gray-400 hidden sm:inline">•</span>
-                                  <span className="text-gray-300">
-                                    à {formatLocalTime(episodeRelease.release_time)}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                            {episodeRelease.episode_title && (
-                              <p className="text-gray-400 text-xs mt-1 line-clamp-1">
-                                "{episodeRelease.episode_title}"
-                              </p>
-                            )}
-                          </div>
-                          <p className="text-gray-500 text-xs sm:text-sm">
-                            Revenez à la diffusion pour regarder !
-                          </p>
-                        </>
+                <AuthGuard message="Connectez-vous pour accéder au streaming de cet épisode en haute qualité.">
+                  {selectedServer && episodeAvailable ? (
+                    <div className="relative w-full bg-black border border-white/20 rounded-lg overflow-hidden">
+                      {selectedServer.play === 1 && !(selectedServer.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)) ? (
+                        // Lecteur vidéo natif pour play=1 (sauf proxy.afterdark.click sur iOS)
+                        <VideoPlayer
+                          key={`video-episode-${season}-${episode}-${selectedServer.id}`}
+                          src={selectedServer.url}
+                          poster={episodeStillUrl || undefined}
+                          title={`${serie.name} - S${season}E${episode}`}
+                          controls={true}
+                          autoPlayWhenChanged={true}
+                          className="w-full aspect-video select-none"
+                        />
+                      ) : selectedServer.url.includes('proxy.afterdark.click') && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) ? (
+                        // Lecteur vidéo natif HTML5 direct pour proxy.afterdark.click sur iOS
+                        <video
+                          key={`native-video-episode-${season}-${episode}-${selectedServer.id}`}
+                          controls
+                          controlsList="nodownload noremoteplayback"
+                          className="w-full aspect-video select-none"
+                          poster={episodeStillUrl || undefined}
+                          preload="metadata"
+                          onLoadedData={() => setIsLoadingVideo(false)}
+                          onError={() => setIsLoadingVideo(false)}
+                          onContextMenu={(event) => event.preventDefault()}
+                          onCopy={(event) => event.preventDefault()}
+                          onCut={(event) => event.preventDefault()}
+                          onPaste={(event) => event.preventDefault()}
+                        >
+                          <source src={selectedServer.url} type="application/x-mpegURL" />
+                          <source src={selectedServer.url} type="video/mp4" />
+                          Votre navigateur ne supporte pas la lecture vidéo.
+                        </video>
                       ) : (
+                        // Iframe embed pour play=0
                         <>
-                          <h2 className="text-xl font-medium mb-2">Aucune vidéo disponible</h2>
-                          <p className="text-gray-400">Cet épisode n'est pas disponible - ZTVPlus</p>
+                          {isLoadingVideo && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
+                              <div className="w-12 h-12 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          )}
+                          {embedUrl && (
+                            <iframe
+                              key={`episode-${season}-${episode}-${selectedServer.id}`}
+                              src={embedUrl}
+                              className={`w-full aspect-video border-0 ${isLoadingVideo ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
+                              allowFullScreen
+                              allow="autoplay; encrypted-media; picture-in-picture; web-share"
+                              onLoad={() => setIsLoadingVideo(false)}
+                              onError={() => setIsLoadingVideo(false)}
+                              loading="eager"
+                              title={`Regarder ${serie.name} S${season}E${episode} en streaming`}
+                              referrerPolicy="no-referrer-when-downgrade"
+                            />
+                          )}
                         </>
                       )}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="bg-black border border-white/20 rounded-lg aspect-video flex items-center justify-center w-full">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-black border border-white/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Tv className="w-8 h-8 text-white/60" />
+                        </div>
+                        
+                        {episodeRelease && !episodeAvailable ? (
+                          <>
+                            <h2 className="text-lg sm:text-xl font-medium mb-2 sm:mb-2 text-blue-400">
+                              Compte à rebours
+                            </h2>
+                            <div className="mb-3 sm:mb-4">
+                              <div className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-sky-600/20 to-blue-600/20 border border-sky-500/30 rounded-full text-base sm:text-lg font-medium text-blue-400 mb-2">
+                                {countdown}
+                              </div>
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                                <span className="text-gray-300">
+                                  S{String(episodeRelease.season_number).padStart(2, '0')}E{String(episodeRelease.episode_number).padStart(2, '0')}
+                                </span>
+                                {episodeRelease.release_time && (
+                                  <>
+                                    <span className="text-gray-400 hidden sm:inline">•</span>
+                                    <span className="text-gray-300">
+                                      à {formatLocalTime(episodeRelease.release_time)}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              {episodeRelease.episode_title && (
+                                <p className="text-gray-400 text-xs mt-1 line-clamp-1">
+                                  "{episodeRelease.episode_title}"
+                                </p>
+                              )}
+                            </div>
+                            <p className="text-gray-500 text-xs sm:text-sm">
+                              Revenez à la diffusion pour regarder !
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <h2 className="text-xl font-medium mb-2">Aucune vidéo disponible</h2>
+                            <p className="text-gray-400">Cet épisode n'est pas disponible - ZTVPlus</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </AuthGuard>
                 
                 {/* Navigation Buttons */}
                 <div className="flex flex-row items-center gap-2 mt-4 w-full">
@@ -911,9 +914,9 @@ export default function WatchSeriesPage() {
                           <ChevronRight size={20} />
                         </div>
                       )
-                    })()}
-                  </div>
-                </div>
+                     })()}
+                   </div>
+                 </div>
 
                 {/* Bouton Signaler un problème */}
                 <div className="mt-4">
