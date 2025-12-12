@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/use-auth'
 import { cookieUtils, WatchHistoryItem } from '@/lib/cookies'
 
 interface HistoryTrackerProps {
@@ -43,7 +43,7 @@ export default function HistoryTracker({
   episodeTitle, 
   video 
 }: HistoryTrackerProps) {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const searchParams = useSearchParams()
   const [hasTracked, setHasTracked] = useState(false)
 
@@ -68,7 +68,7 @@ export default function HistoryTracker({
     }
   }) => {
     try {
-      // Récupérer le token JWT depuis next-auth
+      // Envoyer les données à l'API
       const tokenResponse = await fetch('/api/auth/token')
       if (!tokenResponse.ok) {
         console.error('Failed to get auth token')
@@ -233,8 +233,8 @@ export default function HistoryTracker({
   }
 
   useEffect(() => {
-    // Ne pas tracker si déjà fait ou si pas de session
-    if (hasTracked || !session) {
+    // Ne pas tracker si déjà fait ou si pas d'utilisateur connecté
+    if (hasTracked || !user) {
       return
     }
     
@@ -292,7 +292,7 @@ export default function HistoryTracker({
     } catch (error) {
       console.error('Error in HistoryTracker useEffect:', error)
     }
-  }, [type, movie, series, season, episode, episodeTitle, video, searchParams, session, hasTracked])
+  }, [type, movie, series, season, episode, episodeTitle, video, searchParams, user, hasTracked])
 
   // Ce composant ne rend rien visuellement
   return null

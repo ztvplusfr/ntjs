@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/use-auth'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { BookmarkPlus } from 'lucide-react'
@@ -18,21 +19,27 @@ interface WatchlistEntry {
 }
 
 export default function WatchlistPage() {
-  const { data: session, status } = useSession()
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [items, setItems] = useState<WatchlistEntry[]>([])
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ item: WatchlistEntry; x: number; y: number } | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (status === 'loading') return
-    if (!session?.user) return
+    if (authLoading) return
+    if (!user) {
+      router.push("/api/auth/discord")
+      return
+    }
+    if (authLoading) return
+    if (!user) return
 
     const controller = new AbortController()
 
     const fetchWatchlist = async () => {
-      setLoading(true)
+      setIsLoading(true)
       try {
         const response = await fetch('/api/watchlist', {
           signal: controller.signal,
@@ -51,16 +58,21 @@ export default function WatchlistPage() {
         console.error(err)
         setError('Erreur lors du chargement')
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
     fetchWatchlist()
 
     return () => controller.abort()
-  }, [session, status])
+  }, [user, authLoading])
 
   useEffect(() => {
+    if (authLoading) return
+    if (!user) {
+      router.push("/api/auth/discord")
+      return
+    }
     if (!contextMenu) return
     const handleClick = (event: MouseEvent | TouchEvent) => {
       if (menuRef.current?.contains(event.target as Node)) return
@@ -80,7 +92,7 @@ export default function WatchlistPage() {
   }, [contextMenu])
 
   const handleDelete = async (entry: WatchlistEntry) => {
-    setLoading(true)
+    setIsLoading(true)
     try {
       const response = await fetch('/api/watchlist', {
         method: 'DELETE',
@@ -101,11 +113,11 @@ export default function WatchlistPage() {
       console.error('Erreur suppression watchlist:', err)
       setError('Impossible de supprimer cet élément')
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-700 border-t-sky-500"></div>
@@ -113,7 +125,7 @@ export default function WatchlistPage() {
     )
   }
 
-  if (!session?.user) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-3">
         <p>Connecte-toi pour voir ta watchlist</p>

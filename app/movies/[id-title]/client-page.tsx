@@ -326,7 +326,7 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
       )}
       <div className={showMatureWarning ? 'pointer-events-none filter blur-sm' : ''}>
         {/* Hero Section */}
-        <div className="relative h-[60vh] overflow-hidden -mt-16">
+        <div className="relative h-[80vh] overflow-hidden -mt-16">
         {backdropUrl && (
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"

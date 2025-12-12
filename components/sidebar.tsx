@@ -4,7 +4,7 @@ import { Home, Search, User, LogOut, Settings, Calendar } from 'lucide-react'
 import { IconBrandDiscord } from '@tabler/icons-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/use-auth'
 import { useState, useEffect } from 'react'
 import DiscordMessageModal from './discord-message-modal'
 import packageInfo from '../package.json'
@@ -18,8 +18,7 @@ const sidebarItems = [
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const { data: session, status } = useSession()
-  const user = session?.user
+  const { user, loading, signOut } = useAuth()
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false)
   const [appVersion, setAppVersion] = useState('')
 
@@ -29,11 +28,11 @@ export default function Sidebar() {
     }
   }, [])
 
-  // Force re-render when session status changes to reflect logout immediately
+  // Force re-render when user or loading changes to reflect logout immediately
   useEffect(() => {
-    // This effect runs whenever session or status changes
+    // This effect runs whenever user or loading changes
     // It helps ensure the UI reflects the current auth state
-  }, [session, status])
+  }, [user, loading])
 
   return (
     <div className="fixed left-0 top-0 h-full w-20 bg-black flex flex-col items-center py-8 justify-between z-50 border-r border-white/10">
@@ -85,7 +84,7 @@ export default function Sidebar() {
           </div>
         )}
 
-        {session && (
+        {user && (
           <button
             onClick={async () => {
               try {
@@ -96,12 +95,8 @@ export default function Sidebar() {
                 // Use comprehensive cleaning endpoint
                 await fetch('/api/clean-auth', { method: 'POST' })
                 
-                // Use NextAuth signOut with redirect to ensure complete cleanup
-                const { signOut } = await import('next-auth/react')
-                await signOut({ 
-                  redirect: true, 
-                  callbackUrl: '/' 
-                })
+                // Use custom signOut
+                await signOut()
               } catch (error) {
                 console.error('Failed to sign out:', error)
                 // Fallback: force hard reload

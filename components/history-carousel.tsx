@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import type { CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/use-auth'
 import useEmblaCarousel from 'embla-carousel-react'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, Trash2, Eye, Download, Share2, Play } from 'lucide-react'
@@ -44,8 +44,8 @@ interface Movie {
 
 export default function HistoryCarousel() {
   const [history, setHistory] = useState<HistoryItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const { data: session, status } = useSession()
+  const [isLoading, setIsLoading] = useState(true)
+  const { user, loading: authLoading } = useAuth()
   const hasInitializedRef = useRef(false)
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: 'start',
@@ -268,7 +268,7 @@ export default function HistoryCarousel() {
   const scrollNext = () => emblaApi?.scrollNext()
 
   useEffect(() => {
-    if (status === 'loading') return
+    if (authLoading) return
 
     // Éviter les doubles appels (ex: React StrictMode en dev)
     if (hasInitializedRef.current) return
@@ -280,7 +280,7 @@ export default function HistoryCarousel() {
 
       if (cookieHistory.length === 0) {
         setHistory([])
-        setLoading(false)
+        setIsLoading(false)
         return
       }
 
@@ -355,7 +355,7 @@ export default function HistoryCarousel() {
       )
 
       setHistory(dedupedHistory)
-      setLoading(false)
+      setIsLoading(false)
     }
 
     const loadFromSupabase = async () => {
@@ -367,7 +367,7 @@ export default function HistoryCarousel() {
           console.error('Supabase API error:', response.status, errorText)
           // Fallback silencieux sur les cookies pour éviter de spammer
           await loadFromCookies()
-          setLoading(false)
+          setIsLoading(false)
           return
         }
 
@@ -442,27 +442,27 @@ export default function HistoryCarousel() {
       } catch (error) {
         console.error('Erreur chargement historique Supabase, fallback cookies:', error)
         await loadFromCookies()
-        setLoading(false)
+        setIsLoading(false)
         return
       }
 
-      setLoading(false)
+      setIsLoading(false)
     }
 
-    if (session?.user?.id) {
+    if (user?.id) {
       loadFromSupabase()
     } else {
       // Pour les utilisateurs non connectés, ne charger aucun historique
       setHistory([])
-      setLoading(false)
+      setIsLoading(false)
     }
-  }, [session, status])
+  }, [user, authLoading])
 
   const clearHistory = async () => {
     setHistory([])
     cookieUtils.clearWatchHistory()
 
-    if (session?.user?.id) {
+    if (user?.id) {
       try {
         await fetch('/api/history?action=all', {
           method: 'DELETE'
@@ -490,7 +490,7 @@ export default function HistoryCarousel() {
     })
 
     // Supprimer de Supabase si l'utilisateur est connecté
-    if (session?.user?.id && targetItem) {
+    if (user?.id && targetItem) {
       try {
         const params = new URLSearchParams({
           contentId: id,
@@ -514,7 +514,7 @@ export default function HistoryCarousel() {
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="w-full py-8 pl-4 sm:pl-6 lg:pl-8">
         <div className="flex items-center gap-4 mb-6">

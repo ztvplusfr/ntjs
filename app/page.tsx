@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/use-auth'
 import { useRouter } from 'next/navigation'
 import { 
   IconPlayerPlay,
@@ -34,7 +34,7 @@ export default function WelcomePage() {
 
 function WelcomePageContent() {
   const [isLoaded, setIsLoaded] = useState(false)
-  const { data: session, status } = useSession()
+  const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -43,13 +43,13 @@ function WelcomePageContent() {
 
   useEffect(() => {
     // Redirect to browse if user is already authenticated
-    if (status === 'authenticated' && session) {
+    if (!loading && user) {
       router.push('/browse')
     }
-  }, [status, session, router])
+  }, [loading, user, router])
 
   // Show loading state while checking authentication
-  if (status === 'loading') {
+  if (loading) {
     return <div className="min-h-screen bg-black flex items-center justify-center"><div className="text-white">Chargement...</div></div>
   }
 
@@ -130,7 +130,7 @@ function WelcomePageWithParams({ searchParams, isLoaded }: { searchParams: URLSe
         url={typeof window !== 'undefined' ? window.location.href : ''}
       />
 
-      <div className="bg-black text-white overflow-hidden">
+      <div className="bg-black text-white overflow-hidden absolute top-0 left-0 w-full min-h-screen z-0 pt-20">
         {/* Notification d'authentification requise */}
         {showAuthNotification && (
           <div className="fixed top-4 right-4 z-50 max-w-sm animate-pulse">

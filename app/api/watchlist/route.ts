@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getToken } from 'next-auth/jwt'
+import { verifyToken } from '@/lib/auth-jwt'
 import { supabase } from '@/lib/supabase'
 
 const allowedTypes = ['movie', 'series']
 
 async function requireToken(request: NextRequest) {
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET
-  })
+  const token = request.cookies.get('auth-token')?.value
 
-  if (!token?.sub) {
+  if (!token) {
     throw new Error('Unauthorized')
   }
 
-  return token.sub
+  const payload = verifyToken(token)
+  if (!payload?.user?.id) {
+    throw new Error('Unauthorized')
+  }
+
+  return payload.user.id
 }
 
 export async function GET(request: NextRequest) {

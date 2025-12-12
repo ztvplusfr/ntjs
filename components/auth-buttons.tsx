@@ -1,129 +1,101 @@
 'use client'
 
-import { useSession, signOut } from 'next-auth/react'
-import { IconBrandDiscord, IconUser } from '@tabler/icons-react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { writeAuthFlag } from '@/lib/auth-flag'
 import { useState } from 'react'
+import { LogIn, LogOut, User, Settings } from 'lucide-react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function AuthButtons() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const { user, loading, signIn, signOut } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleLogout = async () => {
-    if (isLoggingOut) return
-    setIsLoggingOut(true)
+  const handleSignIn = () => {
+    setIsLoading(true)
+    signIn()
+  }
+
+  const handleSignOut = async () => {
+    setIsLoading(true)
     try {
-      // First clear local auth flag
-      writeAuthFlag(false)
-      
-      // Use comprehensive cleaning endpoint
-      await fetch('/api/clean-auth', { method: 'POST' })
-      
-      // Use NextAuth signOut with redirect to ensure complete cleanup
-      await signOut({ 
-        redirect: true, 
-        callbackUrl: '/' 
-      })
-    } catch (error) {
-      console.error('Failed to sign out:', error)
-      // Fallback: force hard reload
-      window.location.replace('/')
+      await signOut()
     } finally {
-      setIsLoggingOut(false)
+      setIsLoading(false)
     }
   }
 
-  if (status === 'loading') {
+  if (loading) {
     return (
-      <div className="w-32 h-10 bg-black border border-white/20 rounded-lg animate-pulse"></div>
+      <div className="flex items-center gap-2">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-600 border-t-white"></div>
+      </div>
     )
   }
 
-  if (session) {
+  if (user) {
+    const avatarUrl = user.avatar 
+      ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+      : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.discriminator) % 5}.png`
+
     return (
-      <>
-        <div className="lg:hidden flex items-center">
-          {session.user?.image ? (
-            <img
-              src={session.user.image}
-              alt={session.user?.name || 'User'}
-              className="w-8 h-8 rounded-full border border-white/30"
-            />
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 rounded-full bg-gray-800 px-3 py-1.5">
+          <Image
+            src={avatarUrl}
+            alt={user.username}
+            width={24}
+            height={24}
+            className="rounded-full"
+          />
+          <span className="text-sm text-white hidden sm:inline">
+            {user.username}
+          </span>
+        </div>
+        
+        <Link
+          href="/profile"
+          className="rounded-full bg-gray-800 p-2 text-white transition hover:bg-gray-700"
+          title="Profil"
+        >
+          <User size={16} />
+        </Link>
+        
+        <Link
+          href="/settings"
+          className="rounded-full bg-gray-800 p-2 text-white transition hover:bg-gray-700"
+          title="Paramètres"
+        >
+          <Settings size={16} />
+        </Link>
+        
+        <button
+          onClick={handleSignOut}
+          disabled={isLoading}
+          className="rounded-full bg-red-600 p-2 text-white transition hover:bg-red-700 disabled:opacity-50"
+          title="Se déconnecter"
+        >
+          {isLoading ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
           ) : (
-            <div className="w-8 h-8 bg-black border border-white/30 rounded-full flex items-center justify-center">
-              <IconUser size={16} className="text-white" />
-            </div>
+            <LogOut size={16} />
           )}
-        </div>
-
-        <div className="hidden lg:flex items-center gap-3">
-          <Link
-            href="/profile"
-            className="flex items-center gap-2 hover:bg-gray-900 px-3 py-2 rounded-lg transition-colors"
-          >
-            {session.user?.image && (
-              <img
-                src={session.user.image}
-                alt={session.user?.name || 'User'}
-                className="w-8 h-8 rounded-full border border-white/30"
-              />
-            )}
-            <span className="text-white text-sm font-medium">
-              {session.user?.name}
-            </span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="bg-black border border-white/30 hover:bg-gray-900 hover:border-white/50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            {isLoggingOut ? 'Déconnexion...' : 'Déconnexion'}
-          </button>
-        </div>
-
-        <div className="lg:hidden">
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="bg-black border border-white/30 hover:bg-gray-900 hover:border-white/50 text-white p-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center disabled:opacity-70"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-          </button>
-        </div>
-      </>
+        </button>
+      </div>
     )
   }
 
   return (
-    <>
-      <div className="lg:hidden"></div>
-
-      <div className="hidden lg:block">
-        <Link 
-          href="/auth/discord"
-          className="bg-black border border-white/30 hover:bg-gray-900 hover:border-white/50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
-        >
-          <IconBrandDiscord size={18} />
-          <span className="ml-2">Connexion Discord</span>
-        </Link>
-      </div>
-
-      <div className="lg:hidden">
-        <Link 
-          href="/auth/discord"
-          className="bg-black border border-white/30 hover:bg-gray-900 hover:border-white/50 text-white p-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
-        >
-          <IconBrandDiscord size={18} />
-        </Link>
-      </div>
-    </>
+    <button
+      onClick={handleSignIn}
+      disabled={isLoading}
+      className="flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
+    >
+      {isLoading ? (
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+      ) : (
+        <LogIn size={16} />
+      )}
+      <span className="hidden sm:inline">Se connecter</span>
+    </button>
   )
 }

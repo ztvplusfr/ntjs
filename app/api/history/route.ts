@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { getToken } from 'next-auth/jwt'
+import { verifyToken } from '@/lib/auth-jwt'
 
 export async function POST(request: NextRequest) {
   try {
-    // Récupérer le token depuis l'en-tête Authorization
-    const token = await getToken({ 
-      req: request, 
-      secret: process.env.NEXTAUTH_SECRET 
-    })
+    const token = request.cookies.get('auth-token')?.value
     
-    if (!token?.sub) {
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const payload = verifyToken(token)
+    if (!payload?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
-
     const {
       content_id,
       content_type,
@@ -38,22 +38,13 @@ export async function POST(request: NextRequest) {
       metadata
     } = body
 
-    // Validation des données
     if (!content_id || !content_type || !['movie', 'series'].includes(content_type) || !title) {
       return NextResponse.json({ error: 'Invalid content data' }, { status: 400 })
     }
 
-    // Helper function to get current time in ISO format
-    const getReunionDateTime = () => {
-      // Utiliser l'heure du serveur directement (UTC)
-      return new Date().toISOString()
-    }
+    const getDateTime = () => new Date().toISOString()
+    const userId = payload.user.id
 
-    const userId = token.sub // Discord user ID
-    
-    // Vérifier si une entrée existe déjà
-    // Pour les films: vérifier uniquement content_id et content_type
-    // Pour les séries: vérifier content_id, content_type, season et episode
     let existingEntryQuery = supabase
       .from('history')
       .select('*')
@@ -68,36 +59,33 @@ export async function POST(request: NextRequest) {
     }
     
     const existingEntry = await existingEntryQuery.single()
-
     let result
 
     if (existingEntry.data) {
-      // Mettre à jour l'entrée existante
-    let updateQuery = supabase
-      .from('history')
-      .update({
-        title,
-        poster,
-        backdrop,
-        episode_title,
-        video_id,
-        video_has_ads,
-        video_lang,
-        video_pub,
-        video_quality,
-        video_server,
-        video_url,
-        video_server_index,
-        progress_seconds,
-        duration_seconds,
-        metadata: metadata || existingEntry.data.metadata,
-        updated_at: getReunionDateTime()
-      })
-      .eq('id', existingEntry.data.id)
+      let updateQuery = supabase
+        .from('history')
+        .update({
+          title,
+          poster,
+          backdrop,
+          episode_title,
+          video_id,
+          video_has_ads,
+          video_lang,
+          video_pub,
+          video_quality,
+          video_server,
+          video_url,
+          video_server_index,
+          progress_seconds,
+          duration_seconds,
+          metadata: metadata || existingEntry.data.metadata,
+          updated_at: getDateTime()
+        })
+        .eq('id', existingEntry.data.id)
     
-    result = await updateQuery.select().single()
+      result = await updateQuery.select().single()
     } else {
-      // Créer une nouvelle entrée
       const newEntry = {
         user_id: userId,
         content_id,
@@ -119,9 +107,9 @@ export async function POST(request: NextRequest) {
         progress_seconds,
         duration_seconds,
         metadata,
-        created_at: getReunionDateTime(),
-        updated_at: getReunionDateTime(),
-        last_watched_at: getReunionDateTime()
+        created_at: getDateTime(),
+        updated_at: getDateTime(),
+        last_watched_at: getDateTime()
       }
 
       result = await supabase
@@ -134,127 +122,27 @@ export async function POST(request: NextRequest) {
     if (result.error) {
       return NextResponse.json({ 
         error: 'Database error', 
-        details: result.error.message,
-        code: result.error.code 
+        details: result.error.message 
       }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, data: result.data })
   } catch (error) {
-    console.error('History API error:', error instanceof Error ? error.message : String(error))
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  try {
-    // Récupérer le token depuis l'en-tête Authorization
-    const token = await getToken({ 
-      req: request, 
-      secret: process.env.NEXTAUTH_SECRET 
-    })
-    
-    if (!token?.sub) {
-      console.error('No token found or missing sub')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const body = await request.json()
-
-    const {
-      content_id,
-      content_type,
-      season,
-      episode,
-      title,
-      poster,
-      backdrop,
-      episode_title,
-      video_id,
-      video_has_ads,
-      video_lang,
-      video_pub,
-      video_quality,
-      video_server,
-      video_url,
-      video_server_index,
-      progress_seconds = 0,
-      duration_seconds,
-      metadata
-    } = body
-
-    // Validation des données
-    if (!content_id || !content_type || !['movie', 'series'].includes(content_type) || !title) {
-      return NextResponse.json({ error: 'Invalid content data' }, { status: 400 })
-    }
-
-    // Helper function to get current time in ISO format
-    const getReunionDateTime = () => {
-      // Utiliser l'heure du serveur directement (UTC)
-      return new Date().toISOString()
-    }
-
-    const userId = token.sub // Discord user ID
-
-    // Mettre à jour l'entrée existante
-    // Pour les films: mettre à jour uniquement par content_id et content_type
-    // Pour les séries: mettre à jour par content_id, content_type, season et episode
-    let updateQuery = supabase
-      .from('history')
-      .update({
-        title,
-        poster,
-        backdrop,
-        episode_title,
-        video_id,
-        video_has_ads,
-        video_lang,
-        video_pub,
-        video_quality,
-        video_server,
-        video_url,
-        video_server_index,
-        progress_seconds,
-        duration_seconds,
-        metadata,
-        updated_at: getReunionDateTime()
-      })
-      .eq('user_id', userId)
-      .eq('content_id', content_id)
-      .eq('content_type', content_type)
-    
-    if (content_type === 'series') {
-      updateQuery = updateQuery
-        .eq('season', season || null)
-        .eq('episode', episode || null)
-    }
-    
-    const updateResult = await updateQuery.select().single()
-
-    if (updateResult.error) {
-      return NextResponse.json({ 
-        error: 'Database error', 
-        details: updateResult.error.message,
-        code: updateResult.error.code 
-      }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: true, data: updateResult.data })
-  } catch (error) {
-    console.error('History API PUT error:', error)
+    console.error('History API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    // Récupérer le token depuis l'en-tête Authorization
-    const token = await getToken({ 
-      req: request, 
-      secret: process.env.NEXTAUTH_SECRET 
-    })
+    const token = request.cookies.get('auth-token')?.value
     
-    if (!token?.sub) {
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const payload = verifyToken(token)
+    if (!payload?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -266,7 +154,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('history')
       .select('*')
-      .eq('user_id', token.sub)
+      .eq('user_id', payload.user.id)
       .order('updated_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -278,7 +166,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching history:', error)
-      return NextResponse.json({ error: 'Database error', details: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Database error' }, { status: 500 })
     }
 
     return NextResponse.json({ history: data || [] })
@@ -290,35 +178,33 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Récupérer le token depuis l'en-tête Authorization
-    const token = await getToken({ 
-      req: request, 
-      secret: process.env.NEXTAUTH_SECRET 
-    })
+    const token = request.cookies.get('auth-token')?.value
     
-    if (!token?.sub) {
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const payload = verifyToken(token)
+    if (!payload?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
     const action = searchParams.get('action')
     
-    // Si action=all, supprimer tout l'historique de l'utilisateur
     if (action === 'all') {
       const { error } = await supabase
         .from('history')
         .delete()
-        .eq('user_id', token.sub)
+        .eq('user_id', payload.user.id)
 
       if (error) {
-        console.error('Supabase delete all error:', error)
         return NextResponse.json({ error: 'Database error' }, { status: 500 })
       }
 
       return NextResponse.json({ success: true })
     }
 
-    // Suppression d'un item spécifique
     const contentId = searchParams.get('contentId')
     const contentType = searchParams.get('contentType')
     const season = searchParams.get('season')
@@ -331,21 +217,16 @@ export async function DELETE(request: NextRequest) {
     let query = supabase
       .from('history')
       .delete()
-      .eq('user_id', token.sub)
+      .eq('user_id', payload.user.id)
       .eq('content_id', contentId)
       .eq('content_type', contentType)
 
-    if (season) {
-      query = query.eq('season', parseInt(season))
-    }
-    if (episode) {
-      query = query.eq('episode', parseInt(episode))
-    }
+    if (season) query = query.eq('season', parseInt(season))
+    if (episode) query = query.eq('episode', parseInt(episode))
 
     const { error } = await query
 
     if (error) {
-      console.error('Supabase delete error:', error)
       return NextResponse.json({ error: 'Database error' }, { status: 500 })
     }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/use-auth'
 import { LogIn } from 'lucide-react'
 import Link from 'next/link'
 import { memo, useMemo } from 'react'
@@ -16,14 +16,14 @@ const AuthGuard = memo(function AuthGuard({
   fallback,
   message = "Connectez-vous pour accéder au contenu en haute qualité." 
 }: AuthGuardProps) {
-  const { data: session, status } = useSession()
+  const { user, loading } = useAuth()
 
   const authState = useMemo(() => {
-    const isAuthenticated = status === 'authenticated' && session
-    const isLoading = status === 'loading'
+    const isAuthenticated = !!user
+    const isLoading = loading
     
     return { isAuthenticated, isLoading }
-  }, [status, session])
+  }, [user, loading])
 
   if (authState.isLoading) {
     return fallback || (
@@ -46,7 +46,7 @@ const AuthGuard = memo(function AuthGuard({
           <h2 className="text-xl font-medium mb-2">Connexion requise</h2>
           <p className="text-gray-400 mb-6">{message}</p>
           <Link
-            href="/auth/signin"
+            href="/api/auth/discord"
             className="inline-flex items-center px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-medium rounded-lg transition-colors"
           >
             <LogIn className="w-4 h-4 mr-2" />

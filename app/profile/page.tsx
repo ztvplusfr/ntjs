@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/use-auth'
 import { useRouter } from 'next/navigation'
 import { User, Film, Tv, Calendar, TrendingUp, Clock, BookmarkPlus } from 'lucide-react'
 import Link from 'next/link'
@@ -45,25 +45,25 @@ interface HistoryItem {
 }
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [stats, setStats] = useState<ProfileStats | null>(null)
   const [watchlistStats, setWatchlistStats] = useState<WatchlistStats | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [deviceInfo, setDeviceInfo] = useState<any>(null)
 
   useEffect(() => {
-    if (status === 'loading') return
+    if (authLoading) return
 
-    if (status === 'unauthenticated' || !session?.user) {
-      router.push('/auth/signin')
+    if (!user) {
+      router.push('/api/auth/discord')
       return
     }
 
     loadProfileData()
     loadWatchlistStats()
     detectDeviceInfo()
-  }, [session, status, router])
+  }, [user, authLoading, router])
 
   // Fonction pour détecter les informations de l'appareil
   const detectDeviceInfo = () => {
@@ -116,7 +116,7 @@ export default function ProfilePage() {
 
       if (!response.ok) {
         console.error('Erreur chargement historique')
-        setLoading(false)
+        setIsLoading(false)
         return
       }
 
@@ -193,7 +193,7 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Erreur chargement données profil:', error)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
@@ -222,7 +222,7 @@ export default function ProfilePage() {
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-700 border-t-sky-500"></div>
@@ -230,14 +230,14 @@ export default function ProfilePage() {
     )
   }
 
-  if (!session?.user) {
+  if (!user) {
     return null
   }
 
   return (
     <>
       <PageHead
-        title={`Profil - ${session.user.name || 'Utilisateur'}`}
+        title={`Profil - ${user.username || 'Utilisateur'}`}
         description="Consultez votre profil, vos statistiques de visionnage et votre historique personnalisé sur ZTVPlus"
         keywords="profil, historique, statistiques, ZTVPlus"
         image="/og-default.jpg"
@@ -249,10 +249,10 @@ export default function ProfilePage() {
         <div className="bg-black border-b border-gray-800 px-4 py-6">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center gap-4 mb-4">
-              {session.user.image ? (
+              {user.avatar ? (
                 <img
-                  src={session.user.image}
-                  alt={session.user.name || 'User'}
+                  src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`}
+                  alt={user.username || 'User'}
                   className="w-16 h-16 rounded-full border-2 border-sky-500/50"
                 />
               ) : (
@@ -261,8 +261,8 @@ export default function ProfilePage() {
                 </div>
               )}
               <div>
-                <h1 className="text-3xl font-bold">{session.user.name || 'Utilisateur'}</h1>
-                <p className="text-gray-400">{session.user.email}</p>
+                <h1 className="text-3xl font-bold">{user.username || 'Utilisateur'}</h1>
+                <p className="text-gray-400">{user.email}</p>
               </div>
             </div>
           </div>

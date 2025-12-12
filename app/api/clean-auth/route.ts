@@ -1,33 +1,21 @@
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyToken } from '@/lib/auth-jwt'
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     // Récupérer la session pour obtenir le token Discord
-    const session = await getServerSession(authOptions)
+    const token = request.cookies.get('auth-token')?.value
+    let discordToken = null
     
-    // Révoquer le token Discord si disponible
-    if (session?.user?.accessToken) {
-      try {
-        await fetch('https://discord.com/api/oauth2/token/revoke', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            token: session.user.accessToken,
-            client_id: process.env.DISCORD_CLIENT_ID!,
-            client_secret: process.env.DISCORD_CLIENT_SECRET!,
-          }),
-        })
-      } catch (discordError) {
-        console.error('Error revoking Discord token:', discordError)
-      }
+    if (token) {
+      const payload = verifyToken(token)
+      // Note: Discord access token n'est pas stocké dans notre JWT
+      // La révocation Discord devra être gérée différemment si nécessaire
     }
 
-    // Liste complète des cookies NextAuth et autres cookies d'authentification
+    // Liste complète des cookies d'authentification
     const cookieNames = [
+      'auth-token',
       'next-auth.session-token',
       'next-auth.csrf-token',
       'next-auth.callback-url',
@@ -37,7 +25,6 @@ export async function POST() {
       '__Host-next-auth.session-token',
       '__Host-next-auth.csrf-token',
       '__Host-next-auth.callback-url',
-      // Ajouter d'autres cookies potentiels
       'authjs.session-token',
       'authjs.csrf-token',
       'authjs.callback-url',
@@ -53,11 +40,10 @@ export async function POST() {
     const response = NextResponse.json({ 
       success: true, 
       message: 'Authentication data cleared successfully',
-      clearedCookies: cookieNames.length,
-      discordTokenRevoked: !!session?.user?.accessToken
+      clearedCookies: cookieNames.length
     })
 
-    // Nettoyer tous les cookies avec différentes configurations pour s'assurer qu'ils sont supprimés
+    // Nettoyer tous les cookies avec différentes configurations
     cookieNames.forEach(cookieName => {
       // Configuration de base
       response.cookies.set(cookieName, '', {

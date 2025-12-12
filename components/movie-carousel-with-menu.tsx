@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Star, Eye, Download, Share2, Plus, Minus, Pl
 import { useState, useEffect, useMemo, useRef, type CSSProperties } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/use-auth'
 import { getBannedForTmdbIds } from '@/lib/supabase'
 
 interface Movie {
@@ -44,7 +44,7 @@ export default function MovieCarouselWithMenu({ title, movies, showRank = false 
   const [watchlist, setWatchlist] = useState<Set<number>>(new Set())
   const [loadingWatchlist, setLoadingWatchlist] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
-  const { data: session } = useSession()
+  const { user } = useAuth()
 
   // Vérifier le contenu banni au chargement du composant (optimisé, une seule requête Supabase)
   useEffect(() => {
@@ -73,7 +73,7 @@ export default function MovieCarouselWithMenu({ title, movies, showRank = false 
   // Charger la watchlist
   useEffect(() => {
     const loadWatchlist = async () => {
-      if (!session?.user?.id) return
+      if (!user?.id) return
       setLoadingWatchlist(true)
       try {
         const response = await fetch('/api/watchlist')
@@ -90,7 +90,7 @@ export default function MovieCarouselWithMenu({ title, movies, showRank = false 
     }
 
     loadWatchlist()
-  }, [session])
+  }, [user])
 
   // Écouter les changements de watchlist depuis d'autres composants
   useEffect(() => {
@@ -224,7 +224,7 @@ export default function MovieCarouselWithMenu({ title, movies, showRank = false 
 
   // Gérer la watchlist
   const toggleWatchlist = async (movie: Movie) => {
-    if (!session?.user?.id) {
+    if (!user?.id) {
       alert('Connectez-vous pour gérer votre watchlist')
       return
     }

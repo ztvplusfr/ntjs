@@ -1,12 +1,15 @@
 'use client'
 
 import { useEffect } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn } from '@/lib/auth-client'
 
 export default function DiscordAuthPage() {
   useEffect(() => {
     // Rediriger directement vers Discord
-    signIn('discord', { callbackUrl: '/browse' })
+    signIn.social({
+      provider: 'discord',
+      callbackURL: '/browse'
+    })
   }, [])
 
   return (

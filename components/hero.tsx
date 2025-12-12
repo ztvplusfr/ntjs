@@ -362,7 +362,7 @@ export default function Hero() {
 
   if (loading) {
     return (
-      <div className="relative w-full h-[70vh] md:h-[80vh] bg-gray-900 animate-pulse">
+      <div className="relative w-full h-screen bg-gray-900 animate-pulse">
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
       </div>
     )
@@ -391,7 +391,7 @@ export default function Hero() {
   return (
     <div 
       ref={containerRef}
-      className="relative w-full h-[85vh] md:h-[90vh] overflow-hidden -mt-16"
+      className="relative w-full h-screen overflow-hidden"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}

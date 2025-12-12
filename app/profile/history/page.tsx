@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/use-auth'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Clock, Film, Tv, XCircle, Play } from 'lucide-react'
@@ -19,20 +20,29 @@ interface HistoryEntry {
 }
 
 export default function ProfileHistoryPage() {
-  const { data: session, status } = useSession()
+  const { user, loading } = useAuth()
+  const router = useRouter()
   const [items, setItems] = useState<HistoryEntry[]>([])
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ item: HistoryEntry; x: number; y: number } | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (status === 'loading') return
-    if (!session?.user) return
+    if (loading) return
+    if (!user) {
+      router.push('/api/auth/discord')
+      return
+    }
+  }, [user, loading, router])
+
+  useEffect(() => {
+    if (loading) return
+    if (!user) return
 
     const controller = new AbortController()
     const load = async () => {
-      setLoading(true)
+      setIsLoading(true)
       try {
         const response = await fetch('/api/history', {
           signal: controller.signal,
@@ -48,12 +58,12 @@ export default function ProfileHistoryPage() {
         console.error(err)
         setError('Erreur lors du chargement')
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
     load()
     return () => controller.abort()
-  }, [session, status])
+  }, [user, loading])
 
   useEffect(() => {
     if (!contextMenu) return
@@ -102,7 +112,7 @@ export default function ProfileHistoryPage() {
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-700 border-t-sky-500"></div>
@@ -110,7 +120,7 @@ export default function ProfileHistoryPage() {
     )
   }
 
-  if (!session?.user) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-3">
         <p>Connecte-toi pour voir ton historique</p>

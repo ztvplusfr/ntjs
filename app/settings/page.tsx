@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ReactNode } from 'react'
 import { Settings, Trash2, Info, Moon, Sun, Monitor, Globe, Volume2, Bell, Film } from 'lucide-react'
-import { signOut } from 'next-auth/react'
+import { useAuth } from '@/hooks/use-auth'
 import PageHead from '@/components/page-head'
 import packageInfo from '../../package.json'
 
@@ -49,6 +49,7 @@ function resolveLocationLabel(value?: string) {
 }
 
 export default function SettingsPage() {
+  const { signOut } = useAuth()
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
   const [language, setLanguage] = useState('fr')
   const [notifications, setNotifications] = useState(true)
@@ -156,8 +157,8 @@ export default function SettingsPage() {
         const confirmed = confirm('Êtes-vous sûr de vouloir vider tout le cache et les cookies ? Cela vous déconnectera également.')
         if (!confirmed) return
 
-        // Déconnexion NextAuth d'abord
-        await signOut({ redirect: false })
+        // Déconnexion avec notre système d'auth maison
+        await signOut()
         
         // Nettoyer via l'API
         await fetch('/api/clean-auth', { method: 'POST' })

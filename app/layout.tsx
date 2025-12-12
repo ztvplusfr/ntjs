@@ -3,10 +3,9 @@ import Script from 'next/script'
 import './globals.css'
 import '@vidstack/react/player/styles/default/theme.css'
 import '@vidstack/react/player/styles/default/layouts/video.css'
-import Sidebar from '@/components/sidebar'
-import BottomBar from '@/components/bottom-bar'
 import Header from '@/components/header'
-import SessionProviderWrapper from '@/components/session-provider'
+import PageLoader from '@/components/page-loader'
+import ScrollToTop from '@/components/scroll-to-top'
 import NavigationLoader from '@/components/navigation-loader'
 import CookieMigrationProvider from '@/components/cookie-migration-provider'
 import PWASplashScreen from '@/components/pwa-splash-screen'
@@ -76,31 +75,24 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/favicon.png" />
         <link rel="apple-touch-startup-image" href="/favicon.png" />
       </head>
-      <body className="bg-black">
+      <body className="bg-black" suppressHydrationWarning={true}>
         <PWAMetaTags />
         <PWASplashScreen />
         <PWAContentWrapper>
           <div id="pwa-content">
             <ReCaptchaWrapper>
             <CookieMigrationProvider>
-              <SessionProviderWrapper>
+                <ScrollToTop />
+                <PageLoader />
                 <NavigationLoader />
-                {/* Sidebar - cachée sur mobile */}
-                <div className="hidden lg:block">
-                  <Sidebar />
-                </div>
                 
                 {/* Contenu principal */}
-                <div className="lg:ml-20">
+                <div>
                   <Header />
-                  <main className="pb-main-safe lg:pb-0">
+                  <main className="pb-20 lg:pb-0">
                     {children}
                   </main>
                 </div>
-                
-                {/* Bottom bar - visible uniquement sur mobile */}
-                <BottomBar />
-              </SessionProviderWrapper>
             </CookieMigrationProvider>
           </ReCaptchaWrapper>
           </div>
