@@ -3,7 +3,7 @@ import { signToken, setAuthCookie } from '@/lib/auth-jwt'
 
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID!
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET!
-const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'http://192.168.1.17:3000/api/auth/discord'
+const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'https://ztvplus.site/api/auth/discord'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     const token = signToken(user)
 
     // Create response and set cookie
-    const host = request.headers.get('host') || '192.168.1.17:3000'
+    const host = request.headers.get('host') || 'ztvplus.site'
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
     const response = NextResponse.redirect(new URL(`${protocol}://${host}/browse`))
     response.cookies.set('auth-token', token, {
