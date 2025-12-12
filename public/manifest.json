@@ -2,7 +2,7 @@
   "name": "ZTVPlus",
   "short_name": "ZTVPlus",
   "description": "Streaming HD gratuit - Films et Séries en VF/VOSTFR",
-  "start_url": "/",
+  "start_url": "/browse",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
