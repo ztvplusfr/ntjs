@@ -4,56 +4,40 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { Search as SearchIcon, Film, Star, Calendar, Tv } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import StreamingDisclaimer from '@/components/streaming-disclaimer'
-
-interface TMDBMovie {
-  id: number
-  title: string
-  name?: string
-  poster_path: string
-  vote_average: number
-  release_date: string
-  first_air_date?: string
-  overview: string
-  media_type: 'movie' | 'tv'
-}
+import NoContentAvailable from '@/components/no-content-available'
 
 function SearchContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
+  
   const [query, setQuery] = useState('')
-  const [movies, setMovies] = useState<TMDBMovie[]>([])
+  const [movies, setMovies] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   
-  // Ref pour éviter les boucles de mise à jour d'URL
-  const isUpdatingFromUrl = useRef(false)
   const debounceTimerRef = useRef<NodeJS.Timeout>()
+  const initialized = useRef(false)
 
-  // Récupérer la requête depuis l'URL au chargement
+  // Initialize query from URL only once
   useEffect(() => {
-    const searchQuery = searchParams.get('search')
-    if (searchQuery && searchQuery !== query) {
-      isUpdatingFromUrl.current = true
-      setQuery(searchQuery)
-      // Réinitialiser le flag après un court délai pour éviter les conflits
-      setTimeout(() => {
-        isUpdatingFromUrl.current = false
-      }, 100)
+    if (!initialized.current) {
+      const searchQuery = searchParams.get('search')
+      if (searchQuery) {
+        setQuery(searchQuery)
+      }
+      initialized.current = true
     }
   }, [searchParams])
 
-  // Mettre à jour l'URL avec debounce quand la requête change (seulement si pas initié par l'URL)
+  // Update URL when query changes (with debounce)
   useEffect(() => {
-    if (isUpdatingFromUrl.current) return
-    
-    // Annuler le timer précédent
+    if (!initialized.current) return
+
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current)
     }
-    
-    // Nouveau timer pour mettre à jour l'URL après 500ms de pause
+
     debounceTimerRef.current = setTimeout(() => {
       if (query.trim()) {
         const params = new URLSearchParams()
@@ -63,7 +47,7 @@ function SearchContent() {
         router.replace(pathname)
       }
     }, 500)
-    
+
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
@@ -81,14 +65,9 @@ function SearchContent() {
     setError('')
 
     try {
-      // Rechercher à la fois les films et les séries
       const [moviesResponse, tvResponse] = await Promise.all([
-        fetch(
-          `https://api.themoviedb.org/3/search/movie?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&query=${encodeURIComponent(searchQuery)}&language=fr-FR`
-        ),
-        fetch(
-          `https://api.themoviedb.org/3/search/tv?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&query=${encodeURIComponent(searchQuery)}&language=fr-FR`
-        )
+        fetch(`/api/tmdb/search/movie?query=${encodeURIComponent(searchQuery)}&language=fr-FR`),
+        fetch(`/api/tmdb/search/tv?query=${encodeURIComponent(searchQuery)}&language=fr-FR`)
       ])
 
       if (!moviesResponse.ok || !tvResponse.ok) {
@@ -98,16 +77,13 @@ function SearchContent() {
       const moviesData = await moviesResponse.json()
       const tvData = await tvResponse.json()
 
-      // Combiner les résultats et ajouter le type de média
       const combinedResults = [
-        ...moviesData.results.map((item: any) => ({ ...item, media_type: 'movie' as const })),
-        ...tvData.results.map((item: any) => ({ ...item, media_type: 'tv' as const, title: item.name }))
+        ...moviesData.results.map((movie: any) => ({ ...movie, media_type: 'movie' })),
+        ...tvData.results.map((tv: any) => ({ ...tv, media_type: 'tv', title: tv.name }))
       ]
 
-      // Trier par popularité (score TMDB)
       combinedResults.sort((a, b) => b.popularity - a.popularity)
-
-      setMovies(combinedResults.slice(0, 20)) // Limiter à 20 résultats
+      setMovies(combinedResults.slice(0, 20))
     } catch (error) {
       setError('Erreur lors de la recherche')
       setMovies([])
@@ -116,7 +92,10 @@ function SearchContent() {
     }
   }
 
+  // Search when query changes (with debounce)
   useEffect(() => {
+    if (!initialized.current) return
+
     const timeoutId = setTimeout(() => {
       searchMovies(query)
     }, 500)
@@ -144,7 +123,7 @@ function SearchContent() {
         </div>
       </div>
 
-      {/* Results */}
+      {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {loading && (
           <div className="text-center py-12">
@@ -172,16 +151,13 @@ function SearchContent() {
             <h2 className="text-2xl font-bold mb-6">
               {movies.length} résultat{movies.length > 1 ? 's' : ''} pour "{query}"
             </h2>
-
-            {/* Movie Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {movies.map((item) => (
-                <Link 
-                  key={`${item.media_type}-${item.id}`} 
+                <Link
+                  key={`${item.media_type}-${item.id}`}
                   href={`/${item.media_type === 'movie' ? 'movies' : 'series'}/${item.id}-${(item.title || item.name || '').toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]/g, '')}`}
                 >
                   <div className="group cursor-pointer">
-                    {/* Movie Poster */}
                     <div className="relative aspect-[2/3] overflow-hidden rounded-lg mb-3 border border-white/20 group-hover:border-white/30 transition-colors">
                       {item.poster_path ? (
                         <img
@@ -198,15 +174,11 @@ function SearchContent() {
                           )}
                         </div>
                       )}
-                      
-                      {/* Media Type Badge */}
                       <div className="absolute top-2 left-2 bg-black border border-white/30 backdrop-blur-sm px-2 py-1 rounded-full">
                         <span className="text-xs text-white font-medium">
                           {item.media_type === 'tv' ? 'SÉRIE' : 'FILM'}
                         </span>
                       </div>
-                      
-                      {/* Rating Badge */}
                       <div className="absolute top-2 right-2 bg-black border border-white/30 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
                         <Star size={12} className="text-yellow-400 fill-yellow-400" />
                         <span className="text-xs text-white font-medium">
@@ -214,8 +186,6 @@ function SearchContent() {
                         </span>
                       </div>
                     </div>
-
-                    {/* Movie Info */}
                     <div className="space-y-1">
                       <h3 className="text-sm font-medium text-white line-clamp-2 group-hover:text-sky-400 transition-colors">
                         {item.title || item.name}
@@ -223,9 +193,7 @@ function SearchContent() {
                       {(item.release_date || item.first_air_date) && (
                         <div className="flex items-center gap-1 text-xs text-gray-400">
                           <Calendar size={10} />
-                          <span>
-                            {new Date(item.release_date || item.first_air_date || '').getFullYear()}
-                          </span>
+                          <span>{new Date(item.release_date || item.first_air_date || '').getFullYear()}</span>
                         </div>
                       )}
                     </div>
@@ -243,9 +211,7 @@ function SearchContent() {
             <p className="text-gray-400 max-w-md mx-auto mb-8">
               Utilisez la barre de recherche ci-dessus pour trouver des films, séries TV et bien plus encore.
             </p>
-
-            {/* Streaming Disclaimer */}
-            <StreamingDisclaimer />
+            <NoContentAvailable />
           </div>
         )}
       </div>
@@ -253,7 +219,7 @@ function SearchContent() {
   )
 }
 
-export default function Search() {
+export default function SearchPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
