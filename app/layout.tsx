@@ -8,9 +8,6 @@ import PageLoader from '@/components/page-loader'
 import ScrollToTop from '@/components/scroll-to-top'
 import NavigationLoader from '@/components/navigation-loader'
 import CookieMigrationProvider from '@/components/cookie-migration-provider'
-import PWASplashScreen from '@/components/pwa-splash-screen'
-import PWAMetaTags from '@/components/pwa-meta-tags'
-import PWAContentWrapper from '@/components/pwa-content-wrapper'
 
 import { Analytics } from '@vercel/analytics/next'
 export const dynamic = 'force-dynamic'
@@ -63,39 +60,27 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Métadonnées PWA spécifiques pour iOS */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="ZTVPlus" />
-        <meta name="application-name" content="ZTVPlus" />
-        <meta name="theme-color" content="#000000" />
         <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0" />
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        <link rel="apple-touch-icon" href="/favicon.png" />
-        <link rel="apple-touch-startup-image" href="/favicon.png" />
       </head>
       <body className="bg-black" suppressHydrationWarning={true}>
-        <PWAMetaTags />
-        <PWASplashScreen />
-        <PWAContentWrapper>
-          <div id="pwa-content">
-            <CookieMigrationProvider>
-                <ScrollToTop />
-                <PageLoader />
-                <NavigationLoader />
-                
-                {/* Contenu principal */}
-                <div>
-                  <Header />
-                  <main className="pb-20 lg:pb-0">
-                    {children}
-                  </main>
-                </div>
-            </CookieMigrationProvider>
-          </div>
-        </PWAContentWrapper>
+        <div id="app-content">
+          <CookieMigrationProvider>
+              <ScrollToTop />
+              <PageLoader />
+              <NavigationLoader />
+              
+              {/* Contenu principal */}
+              <div>
+                <Header />
+                <main className="pb-20 lg:pb-0">
+                  {children}
+                </main>
+              </div>
+          </CookieMigrationProvider>
+        </div>
         <Analytics />
         <Script
           defer
