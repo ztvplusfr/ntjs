@@ -59,12 +59,24 @@ export async function POST() {
 
     // Nettoyer tous les cookies avec différentes configurations pour s'assurer qu'ils sont supprimés
     cookieNames.forEach(cookieName => {
-      // Utiliser la syntaxe correcte pour supprimer les cookies
+      // Configuration de base
       response.cookies.set(cookieName, '', {
         path: '/',
         maxAge: -1,
         expires: new Date(0),
       })
+      
+      // Configuration pour production avec domaine
+      if (process.env.NODE_ENV === 'production') {
+        response.cookies.set(cookieName, '', {
+          path: '/',
+          maxAge: -1,
+          expires: new Date(0),
+          domain: '.ztvplus.site',
+          secure: true,
+          sameSite: 'lax'
+        })
+      }
     })
 
     // Ajouter des headers pour empêcher le cache

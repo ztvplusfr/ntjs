@@ -378,10 +378,10 @@ export default function HistoryCarousel() {
           let timeStr = ''
           let timestamp = Date.now()
 
-          if (item.last_watched_at) {
+          if (item.updated_at) {
             try {
               // Format ISO de Supabase (UTC) : 2025-11-30T07:57:43.352305+00:00
-              const lastWatched = new Date(item.last_watched_at)
+              const lastWatched = new Date(item.updated_at)
 
               // Convertir en heure locale de l'appareil utilisateur
               dateStr = lastWatched.toLocaleDateString(undefined, {
@@ -397,7 +397,7 @@ export default function HistoryCarousel() {
 
               timestamp = lastWatched.getTime()
             } catch (error) {
-              console.error('Error parsing date:', item.last_watched_at, error)
+              console.error('Error parsing date:', item.updated_at, error)
               dateStr = new Date().toLocaleDateString(undefined).replace(/\//g, '-')
               timeStr = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
             }
@@ -431,7 +431,14 @@ export default function HistoryCarousel() {
           }
         })
 
-        setHistory(supabaseHistory)
+        // Trier par updated_at (plus récent en premier)
+        const sortedHistory = supabaseHistory.sort((a, b) => {
+          const aTime = new Date(a.timestamp).getTime()
+          const bTime = new Date(b.timestamp).getTime()
+          return bTime - aTime
+        })
+
+        setHistory(sortedHistory)
       } catch (error) {
         console.error('Erreur chargement historique Supabase, fallback cookies:', error)
         await loadFromCookies()

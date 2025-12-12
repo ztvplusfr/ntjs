@@ -61,7 +61,7 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: false, // Désactiver pour mobile/developpement
+        secure: process.env.NODE_ENV === 'production',
         domain: process.env.NODE_ENV === 'production' ? '.ztvplus.site' : undefined
       }
     },
@@ -71,7 +71,7 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: false, // Désactiver pour mobile/developpement
+        secure: process.env.NODE_ENV === 'production',
         domain: process.env.NODE_ENV === 'production' ? '.ztvplus.site' : undefined
       }
     },
@@ -81,7 +81,7 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: false, // Désactiver pour mobile/developpement
+        secure: process.env.NODE_ENV === 'production',
         domain: process.env.NODE_ENV === 'production' ? '.ztvplus.site' : undefined
       }
     }

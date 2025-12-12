@@ -12,7 +12,7 @@ interface HistoryEntry {
   title?: string
   poster?: string
   backdrop?: string
-  last_watched_at?: string
+  updated_at?: string
   season?: number
   episode?: number
   video_id?: string
@@ -140,13 +140,13 @@ export default function ProfileHistoryPage() {
               items
                 .slice()
                 .sort((a, b) => {
-                  const aDate = new Date(a.last_watched_at || 0).getTime()
-                  const bDate = new Date(b.last_watched_at || 0).getTime()
+                  const aDate = new Date(a.updated_at || 0).getTime()
+                  const bDate = new Date(b.updated_at || 0).getTime()
                   return bDate - aDate
                 })
                 .reduce((acc, item) => {
-                  const label = item.last_watched_at
-                    ? new Date(item.last_watched_at).toLocaleDateString('fr-FR', {
+                  const label = item.updated_at
+                    ? new Date(item.updated_at).toLocaleDateString('fr-FR', {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
@@ -238,10 +238,10 @@ export default function ProfileHistoryPage() {
                               {item.season ? ` • S${String(item.season).padStart(2, '0')}` : ''}
                               {item.episode ? `E${String(item.episode).padStart(2, '0')}` : ''}
                             </p>
-                            {item.last_watched_at && (
+                            {item.updated_at && (
                               <p className="text-[11px] text-gray-400">
-                                Vu le {new Date(item.last_watched_at).toLocaleDateString('fr-FR')} à{' '}
-                                {new Date(item.last_watched_at).toLocaleTimeString('fr-FR', {
+                                Vu le {new Date(item.updated_at).toLocaleDateString('fr-FR')} à{' '}
+                                {new Date(item.updated_at).toLocaleTimeString('fr-FR', {
                                   hour: '2-digit',
                                   minute: '2-digit'
                                 })}

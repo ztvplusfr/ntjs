@@ -193,7 +193,12 @@ export default function SettingsPage() {
         }
         
         alert('Cache, cookies et données locales vidés avec succès! Vous allez être redirigé.')
-        window.location.href = '/'
+        
+        // Force un rechargement complet sans cache
+        window.location.replace('/')
+        setTimeout(() => {
+          window.location.reload()
+        }, 100)
       } catch (error) {
         console.error('Erreur lors du nettoyage:', error)
         alert('Une erreur est survenue lors du nettoyage. Veuillez réessayer.')
