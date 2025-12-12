@@ -23,7 +23,7 @@ export default function LatestSeries() {
         
         // Utiliser la catégorie TV pour les séries
         const response = await fetch(
-          `https://api.themoviedb.org/3/tv/popular?api_key=${apiKey}&language=fr-FR&page=1`
+          `/api/tmdb/tv/popular?language=fr-FR&page=1`
         )
         
         if (!response.ok) throw new Error('Failed to fetch series')

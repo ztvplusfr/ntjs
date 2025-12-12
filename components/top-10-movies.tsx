@@ -27,7 +27,7 @@ export default function Top10Movies() {
         
         // Récupérer les films les plus populaires du moment en France
         const response = await fetch(
-          `https://api.themoviedb.org/3/movie/now_playing?api_key=${apiKey}&language=fr-FR&page=1&region=FR`,
+          `/api/tmdb/movie/now_playing?language=fr-FR&page=1&region=FR`,
           { cache: 'no-store' }
         )
 

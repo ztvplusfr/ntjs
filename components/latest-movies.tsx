@@ -24,7 +24,7 @@ export default function LatestMovies() {
         console.log('TMDB API Key available:', !!apiKey && apiKey !== 'your_api_key_here')
         
         const response = await fetch(
-          `https://api.themoviedb.org/3/movie/now_playing?api_key=${apiKey}&language=fr-FR&page=1`
+          `/api/tmdb/movie/now_playing?language=fr-FR&page=1`
         )
         
         console.log('TMDB Response status:', response.status)

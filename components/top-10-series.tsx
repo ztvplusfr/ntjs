@@ -27,7 +27,7 @@ export default function Top10Series() {
         
         // Récupérer les séries les plus populaires du moment
         const response = await fetch(
-          `https://api.themoviedb.org/3/tv/popular?api_key=${apiKey}&language=fr-FR&page=1`,
+          `/api/tmdb/tv/popular?language=fr-FR&page=1`,
           { cache: 'no-store' }
         )
 

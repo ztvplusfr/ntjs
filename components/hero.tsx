@@ -194,8 +194,8 @@ export default function Hero() {
         
         // Récupérer les films et séries tendances du jour
         const [moviesResponse, seriesResponse] = await Promise.all([
-          fetch(`https://api.themoviedb.org/3/trending/movie/day?api_key=${apiKey}&language=fr-FR`),
-          fetch(`https://api.themoviedb.org/3/trending/tv/day?api_key=${apiKey}&language=fr-FR`)
+          fetch(`/api/tmdb/trending/movie/day?language=fr-FR`),
+          fetch(`/api/tmdb/trending/tv/day?language=fr-FR`)
         ])
         
         if (!moviesResponse.ok || !seriesResponse.ok) {
@@ -231,7 +231,7 @@ export default function Hero() {
                 (content.media_type || '').toLowerCase().includes('tv') ? 'tv' : 'movie'
 
                 const detailsResponse = await fetch(
-                  `https://api.themoviedb.org/3/${mediaType}/${content.id}?api_key=${apiKey}&language=fr-FR&append_to_response=images&include_image_language=fr,null`
+                  `/api/tmdb/${mediaType}/${content.id}?language=fr-FR&append_to_response=images&include_image_language=fr,null`
                 )
 
               if (detailsResponse.ok) {

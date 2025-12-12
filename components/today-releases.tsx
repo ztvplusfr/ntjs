@@ -54,7 +54,7 @@ export default function TodayReleases() {
           try {
             const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
             const response = await fetch(
-              `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}&language=fr-FR`,
+              `/api/tmdb/tv/${tmdbId}?language=fr-FR`,
               { cache: 'no-store' }
             )
             

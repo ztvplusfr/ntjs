@@ -23,7 +23,7 @@ export default function LatestAnimes() {
         
         // Utiliser la catégorie TV pour les animes
         const response = await fetch(
-          `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&language=fr-FR&with_genres=16&sort_by=popularity.desc&page=1`
+          `/api/tmdb/discover/tv?language=fr-FR&with_genres=16&sort_by=popularity.desc&page=1`
         )
         
         if (!response.ok) throw new Error('Failed to fetch animes')

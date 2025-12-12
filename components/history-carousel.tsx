@@ -317,7 +317,7 @@ export default function HistoryCarousel() {
           try {
             const tmdbType = item.type === 'series' ? 'tv' : 'movie'
             const response = await fetch(
-              `https://api.themoviedb.org/3/${tmdbType}/${item.id}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&language=fr-FR`,
+              `/api/tmdb/${tmdbType}/${item.id}?language=fr-FR`,
               { cache: 'no-store' }
             )
 
