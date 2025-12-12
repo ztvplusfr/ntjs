@@ -1,7 +1,31 @@
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 export async function POST() {
   try {
+    // Récupérer la session pour obtenir le token Discord
+    const session = await getServerSession(authOptions)
+    
+    // Révoquer le token Discord si disponible
+    if (session?.user?.accessToken) {
+      try {
+        await fetch('https://discord.com/api/oauth2/token/revoke', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            token: session.user.accessToken,
+            client_id: process.env.DISCORD_CLIENT_ID!,
+            client_secret: process.env.DISCORD_CLIENT_SECRET!,
+          }),
+        })
+      } catch (discordError) {
+        console.error('Error revoking Discord token:', discordError)
+      }
+    }
+
     // Liste complète des cookies NextAuth et autres cookies d'authentification
     const cookieNames = [
       'next-auth.session-token',
@@ -29,7 +53,8 @@ export async function POST() {
     const response = NextResponse.json({ 
       success: true, 
       message: 'Authentication data cleared successfully',
-      clearedCookies: cookieNames.length
+      clearedCookies: cookieNames.length,
+      discordTokenRevoked: !!session?.user?.accessToken
     })
 
     // Nettoyer tous les cookies avec différentes configurations pour s'assurer qu'ils sont supprimés

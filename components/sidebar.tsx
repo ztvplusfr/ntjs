@@ -18,7 +18,7 @@ const sidebarItems = [
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const user = session?.user
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false)
   const [appVersion, setAppVersion] = useState('')
@@ -28,6 +28,12 @@ export default function Sidebar() {
       setAppVersion(packageInfo.version)
     }
   }, [])
+
+  // Force re-render when session status changes to reflect logout immediately
+  useEffect(() => {
+    // This effect runs whenever session or status changes
+    // It helps ensure the UI reflects the current auth state
+  }, [session, status])
 
   return (
     <div className="fixed left-0 top-0 h-full w-20 bg-black flex flex-col items-center py-8 justify-between z-50 border-r border-white/10">

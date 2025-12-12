@@ -15,7 +15,7 @@ export default function Header() {
   const { data: session, status } = useSession()
   const userImage = session?.user?.image
   const userName = session?.user?.name || 'Utilisateur'
-  const showMobileAuthedViews = status === 'authenticated' || Boolean(session)
+  const showMobileAuthedViews = status === 'authenticated'
 
   return (
     <header className="w-full h-16 py-4 px-6 flex items-center justify-between relative z-40">

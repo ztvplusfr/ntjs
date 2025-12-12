@@ -2,6 +2,7 @@
 
 import { useState, useEffect, type ReactNode } from 'react'
 import { Settings, Trash2, Info, Moon, Sun, Monitor, Globe, Volume2, Bell, Film } from 'lucide-react'
+import { signOut } from 'next-auth/react'
 import PageHead from '@/components/page-head'
 import packageInfo from '../../package.json'
 
@@ -152,26 +153,25 @@ export default function SettingsPage() {
   const clearCache = async () => {
     if (typeof window !== 'undefined') {
       try {
-        // Show confirmation dialog
         const confirmed = confirm('Êtes-vous sûr de vouloir vider tout le cache et les cookies ? Cela vous déconnectera également.')
         if (!confirmed) return
 
-        // Use comprehensive cleaning endpoint first
+        // Déconnexion NextAuth d'abord
+        await signOut({ redirect: false })
+        
+        // Nettoyer via l'API
         await fetch('/api/clean-auth', { method: 'POST' })
         
         // Clear localStorage
         localStorage.clear()
-        
-        // Clear sessionStorage
         sessionStorage.clear()
         
-        // Clear all cookies (comprehensive approach)
+        // Clear cookies
         document.cookie.split(";").forEach((c) => {
           const cookie = c.trim()
           const eqPos = cookie.indexOf("=")
           const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
           
-          // Try to delete cookie with different path and domain combinations
           const domains = ['', 'localhost', window.location.hostname]
           const paths = ['/', '/api', '/auth']
           
@@ -182,22 +182,18 @@ export default function SettingsPage() {
           })
         })
         
-        // Clear service workers if any
         if ('serviceWorker' in navigator) {
           const registrations = await navigator.serviceWorker.getRegistrations()
           await Promise.all(registrations.map(registration => registration.unregister()))
         }
         
-        // Clear browser cache using Clear-Site-Data header (if supported)
         if ('caches' in window) {
           const cacheNames = await caches.keys()
           await Promise.all(cacheNames.map(name => caches.delete(name)))
         }
         
         alert('Cache, cookies et données locales vidés avec succès! Vous allez être redirigé.')
-        
-        // Force redirect to home page
-        window.location.replace('/')
+        window.location.href = '/'
       } catch (error) {
         console.error('Erreur lors du nettoyage:', error)
         alert('Une erreur est survenue lors du nettoyage. Veuillez réessayer.')

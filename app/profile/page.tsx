@@ -55,7 +55,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (status === 'loading') return
 
-    if (!session?.user) {
+    if (status === 'unauthenticated' || !session?.user) {
       router.push('/auth/signin')
       return
     }
