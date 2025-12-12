@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, type ReactNode } from 'react'
-import { Settings, Trash2, Info, Moon, Sun, Monitor, Globe, Volume2, Bell, Film } from 'lucide-react'
+import { Settings, Trash2, Info, Moon, Sun, Monitor, Globe, Volume2, Bell, Film, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import PageHead from '@/components/page-head'
 import packageInfo from '../../package.json'
@@ -148,6 +148,42 @@ export default function SettingsPage() {
     setShowAvailableOnly(enabled)
     if (typeof window !== 'undefined') {
       localStorage.setItem('ztv-series-filter-available', enabled.toString())
+    }
+  }
+
+  const updateApp = async () => {
+    if (typeof window !== 'undefined') {
+      try {
+        const confirmed = confirm('Mettre à jour l\'application ? Cela va vider le cache et recharger la page.')
+        if (!confirmed) return
+
+        // Clear caches but keep auth
+        if ('caches' in window) {
+          const cacheNames = await caches.keys()
+          await Promise.all(cacheNames.map(name => caches.delete(name)))
+        }
+        
+        // Clear sessionStorage but keep localStorage auth
+        sessionStorage.clear()
+        
+        // Clear only non-auth localStorage items
+        const authToken = localStorage.getItem('auth-token')
+        const keysToKeep = ['auth-token', 'ztv-theme', 'ztv-language', 'ztv-notifications', 'ztv-sound', 'ztv-series-filter-available']
+        const allKeys = Object.keys(localStorage)
+        allKeys.forEach(key => {
+          if (!keysToKeep.includes(key)) {
+            localStorage.removeItem(key)
+          }
+        })
+        
+        alert('Application mise à jour ! La page va se recharger.')
+        
+        // Force reload with cache bypass
+        window.location.reload()
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour:', error)
+        alert('Une erreur est survenue lors de la mise à jour. Veuillez réessayer.')
+      }
     }
   }
 
@@ -320,6 +356,23 @@ export default function SettingsPage() {
                     active={showAvailableOnly}
                   />
                 </div>
+              </div>
+
+              <div className="bg-black border border-gray-800 rounded-2xl p-6 shadow-xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold">Mettre à jour l'application</h2>
+                  <RefreshCw size={20} className="text-sky-400" />
+                </div>
+                <p className="text-sm text-gray-400">
+                  Vide le cache et recharge l'application pour obtenir la dernière version. 
+                  Vous restez connecté et vos préférences sont conservées.
+                </p>
+                <button
+                  onClick={updateApp}
+                  className="w-full rounded-2xl border border-sky-500/60 bg-sky-500/10 px-4 py-3 text-center text-sm font-medium text-sky-300 transition hover:bg-sky-500/20"
+                >
+                  Mettre à jour l'application
+                </button>
               </div>
 
               <div className="bg-black border border-gray-800 rounded-2xl p-6 shadow-xl space-y-4">

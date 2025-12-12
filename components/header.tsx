@@ -169,7 +169,8 @@ export default function Header() {
             item.label === 'Accueil' || 
             item.label === 'Recherche' || 
             item.label === 'Agenda' || 
-            item.label === 'Discord'
+            item.label === 'Discord' ||
+            item.label === 'Paramètres'
           ).map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href

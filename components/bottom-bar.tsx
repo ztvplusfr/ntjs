@@ -1,12 +1,14 @@
 'use client'
 
-import { Home, Search, Calendar, Settings } from 'lucide-react'
+import { Home, Search, Calendar, Settings, User } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const bottomBarItems = [
   { icon: Home, label: 'Home', href: '/browse' },
   { icon: Search, label: 'Search', href: '/search' },
+  { icon: Calendar, label: 'Agenda', href: '/agenda' },
+  { icon: User, label: 'Profile', href: '/profile' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ]
 
@@ -39,19 +41,6 @@ export default function BottomBar({ hidden = false }: BottomBarProps) {
             </Link>
           )
         })}
-
-        {/* Agenda */}
-        <Link
-          href="/agenda"
-          className={`flex flex-col items-center p-2 rounded-lg transition-all duration-200 ${
-            pathname === '/agenda'
-              ? 'text-sky-400'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <Calendar size={20} />
-          <span className="text-xs mt-1">Agenda</span>
-        </Link>
       </div>
     </div>
   )
