@@ -147,12 +147,19 @@ export default function WatchPageClient({ params, searchParams }: WatchMovieClie
   const [currentUrl, setCurrentUrl] = useState<string>('')
   useEffect(() => {
     const loadData = async () => {
-      const resolvedParams = await params
-      const resolvedSearchParams = await searchParams
-      const id = resolvedParams['movie-id']
+      try {
+        const resolvedParams = await params
+        const resolvedSearchParams = await searchParams
+        const id = resolvedParams['movie-id']
 
-      setMovieId(id)
-      setSearch(resolvedSearchParams)
+        if (!id) {
+          console.error('Movie ID not found in params')
+          setLoading(false)
+          return
+        }
+
+        setMovieId(id)
+        setSearch(resolvedSearchParams)
 
       if (typeof window !== 'undefined') {
         setCurrentUrl(window.location.href)
@@ -168,7 +175,11 @@ export default function WatchPageClient({ params, searchParams }: WatchMovieClie
       setMovie(movieData)
       setVideosData(videosResponse)
       setLogosData(logosResponse)
-      setLoading(false)
+      } catch (error) {
+        console.error('Error loading movie data:', error)
+      } finally {
+        setLoading(false)
+      }
     }
 
     loadData()
@@ -185,8 +196,20 @@ export default function WatchPageClient({ params, searchParams }: WatchMovieClie
     )
   }
   
-  if (!movie) {
-    notFound()
+  if (!movie && !loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center px-4">
+          <p className="text-lg mb-4">Film non trouvé</p>
+          <Link
+            href="/"
+            className="px-4 py-2 rounded bg-sky-600 hover:bg-sky-700 transition-colors"
+          >
+            Retour à l'accueil
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   // Find the best video based on search params or default selection

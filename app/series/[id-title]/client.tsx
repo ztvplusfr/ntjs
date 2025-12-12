@@ -465,7 +465,26 @@ export default function SeriePage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [id] = (params['id-title'] as string).split('-')
+  
+  // Safety check for params
+  const idTitle = params['id-title'] as string
+  if (!idTitle) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center px-4">
+          <p className="text-lg mb-4">Erreur de chargement</p>
+          <button
+            onClick={() => router.push('/')}
+            className="px-4 py-2 rounded bg-sky-600 hover:bg-sky-700 transition-colors"
+          >
+            Retour à l'accueil
+          </button>
+        </div>
+      </div>
+    )
+  }
+  
+  const [id] = idTitle.split('-')
   
   // Récupérer la saison depuis l'URL ou utiliser 1 par défaut
   const seasonFromUrl = searchParams.get('season')

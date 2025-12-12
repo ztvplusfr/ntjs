@@ -349,6 +349,24 @@ function isEpisodeAvailable(releaseDate: Date, releaseTime?: string): boolean {
 export default function WatchSeriesPage() {
   const params = useParams()
   const searchParams = useSearchParams()
+  
+  // Safety check for params
+  if (!params.id || !params.season || !params.episode) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center px-4">
+          <p className="text-lg mb-4">Erreur de chargement de l'épisode</p>
+          <Link
+            href="/"
+            className="px-4 py-2 rounded bg-sky-600 hover:bg-sky-700 transition-colors"
+          >
+            Retour à l'accueil
+          </Link>
+        </div>
+      </div>
+    )
+  }
+  
   const { id, season, episode } = params as { id: string; season: string; episode: string }
   
   const [loading, setLoading] = useState(true)
