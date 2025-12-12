@@ -133,3 +133,15 @@
 body.hide-bottom-bar .fixed.bottom-0.left-0.right-0.bg-black\/95.backdrop-blur-sm.border-t.border-gray-800.z-50.lg\:hidden {
   display: none !important;
 }
+
+@layer utilities {
+  .pb-main-safe {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  @media (min-width: 1024px) {
+    .pb-main-safe {
+      padding-bottom: 0;
+    }
+  }
+}

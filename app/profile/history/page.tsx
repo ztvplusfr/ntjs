@@ -157,7 +157,40 @@ export default function ProfileHistoryPage() {
                   acc[label].push(item)
                   return acc
                 }, {} as Record<string, HistoryEntry[]>)
-            ).map(([dateLabel, entries]) => (
+            )
+            .sort(([dateA], [dateB]) => {
+              // Trier les groupes de dates par ordre chronologique décroissant
+              if (dateA === 'Date inconnue') return 1
+              if (dateB === 'Date inconnue') return -1
+              
+              // Convertir les labels de date en objets Date pour le tri
+              const parseDate = (dateLabel: string) => {
+                // Extraire la date du format "lundi 9 décembre 2024"
+                const parts = dateLabel.split(' ')
+                if (parts.length >= 4) {
+                  const day = parseInt(parts[1])
+                  const monthName = parts[2]
+                  const year = parseInt(parts[3])
+                  
+                  const months = [
+                    'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+                    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
+                  ]
+                  const month = months.indexOf(monthName)
+                  
+                  if (month !== -1) {
+                    return new Date(year, month, day)
+                  }
+                }
+                return new Date(0)
+              }
+              
+              const dateObjA = parseDate(dateA)
+              const dateObjB = parseDate(dateB)
+              
+              return dateObjB.getTime() - dateObjA.getTime()
+            })
+            .map(([dateLabel, entries]) => (
               <div key={dateLabel} className="space-y-4">
                 <div className="text-sm font-semibold uppercase tracking-[0.3em] text-gray-400">
                   {dateLabel}

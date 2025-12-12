@@ -25,7 +25,7 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
         {/* Contenu principal */}
         <div className={isHomePage ? '' : 'lg:ml-20'}>
           {!isHomePage && <Header />}
-          <main className={isHomePage ? '' : 'pb-16 lg:pb-0'}>
+          <main className={isHomePage ? '' : 'pb-main-safe lg:pb-0'}>
             {children}
           </main>
         </div>

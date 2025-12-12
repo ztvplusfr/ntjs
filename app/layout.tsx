@@ -9,6 +9,9 @@ import Header from '@/components/header'
 import SessionProviderWrapper from '@/components/session-provider'
 import NavigationLoader from '@/components/navigation-loader'
 import CookieMigrationProvider from '@/components/cookie-migration-provider'
+import PWASplashScreen from '@/components/pwa-splash-screen'
+import PWAMetaTags from '@/components/pwa-meta-tags'
+import PWAContentWrapper from '@/components/pwa-content-wrapper'
 
 import { Analytics } from '@vercel/analytics/next'
 import ReCaptchaWrapper from '@/components/recaptcha-wrapper'
@@ -21,7 +24,7 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.png',
     shortcut: '/favicon.png',
-    apple: '/logo.png',
+    apple: '/favicon.png',
   },
   verification: {
     google: 'JoVfuBLfd6H-fd6wA8nGaf8eYKfkRV9gTkaFkftTmyE',
@@ -33,7 +36,7 @@ export const metadata: Metadata = {
     title: 'ZTVPlus',
     startupImage: [
       {
-        url: '/logo.png',
+        url: '/favicon.png',
         media: '(device-width: 768px) and (device-height: 1024px)',
       },
     ],
@@ -46,6 +49,10 @@ export const metadata: Metadata = {
     'msapplication-TileColor': '#000000',
     'msapplication-config': '/browserconfig.xml',
     'theme-color': '#000000',
+    // Forcer les métadonnées PWA sur toutes les pages
+    'application-name': 'ZTVPlus',
+    'apple-touch-icon': '/favicon.png',
+    'format-detection': 'telephone=no',
   },
 }
 
@@ -57,30 +64,47 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Métadonnées PWA spécifiques pour iOS */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="ZTVPlus" />
+        <meta name="application-name" content="ZTVPlus" />
+        <meta name="theme-color" content="#000000" />
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
+        <link rel="apple-touch-startup-image" href="/favicon.png" />
       </head>
       <body className="bg-black">
-        <ReCaptchaWrapper>
-          <CookieMigrationProvider>
-            <SessionProviderWrapper>
-              <NavigationLoader />
-              {/* Sidebar - cachée sur mobile */}
-              <div className="hidden lg:block">
-                <Sidebar />
-              </div>
-              
-              {/* Contenu principal */}
-              <div className="lg:ml-20">
-                <Header />
-                <main className="pb-16 lg:pb-0">
-                  {children}
-                </main>
-              </div>
-              
-              {/* Bottom bar - visible uniquement sur mobile */}
-              <BottomBar />
-            </SessionProviderWrapper>
-          </CookieMigrationProvider>
-        </ReCaptchaWrapper>
+        <PWAMetaTags />
+        <PWASplashScreen />
+        <PWAContentWrapper>
+          <div id="pwa-content">
+            <ReCaptchaWrapper>
+            <CookieMigrationProvider>
+              <SessionProviderWrapper>
+                <NavigationLoader />
+                {/* Sidebar - cachée sur mobile */}
+                <div className="hidden lg:block">
+                  <Sidebar />
+                </div>
+                
+                {/* Contenu principal */}
+                <div className="lg:ml-20">
+                  <Header />
+                  <main className="pb-main-safe lg:pb-0">
+                    {children}
+                  </main>
+                </div>
+                
+                {/* Bottom bar - visible uniquement sur mobile */}
+                <BottomBar />
+              </SessionProviderWrapper>
+            </CookieMigrationProvider>
+          </ReCaptchaWrapper>
+          </div>
+        </PWAContentWrapper>
         <Analytics />
         <Script
           defer
