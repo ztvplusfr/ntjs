@@ -34,6 +34,20 @@ function WelcomePageContent() {
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
+    // Rediriger vers /browse en PWA
+    const checkPWA = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      const isInWebAppiOS = (window.navigator as any).standalone === true
+      const isInWebAppChrome = window.matchMedia('(display-mode: minimal-ui)').matches
+      
+      return isStandalone || isInWebAppiOS || isInWebAppChrome
+    }
+
+    if (checkPWA()) {
+      window.location.href = '/browse'
+      return
+    }
+
     setIsLoaded(true)
   }, [])
 
