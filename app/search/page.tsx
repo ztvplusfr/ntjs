@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { Search as SearchIcon, Film, Star, Calendar, Tv } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import NoContentAvailable from '@/components/no-content-available'
 
 function SearchContent() {
   const searchParams = useSearchParams()
@@ -211,7 +210,6 @@ function SearchContent() {
             <p className="text-gray-400 max-w-md mx-auto mb-8">
               Utilisez la barre de recherche ci-dessus pour trouver des films, séries TV et bien plus encore.
             </p>
-            <NoContentAvailable />
           </div>
         )}
       </div>
