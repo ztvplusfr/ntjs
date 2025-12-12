@@ -45,26 +45,28 @@ export default function TodayReleases() {
         
         const releasesData = await releasesResponse.json()
 
-        // Récupérer les détails des séries
+        // Récupérer les détails des séries en parallèle
         const uniqueTmdbIds = [...new Set(releasesData?.map(r => r.tmdb_id) || [])]
-        const detailsMap = new Map()
         
-        for (const tmdbId of uniqueTmdbIds) {
-          try {
-            const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || 'your_api_key_here'
-            const response = await fetch(
-              `/api/tmdb/tv/${tmdbId}?language=fr-FR`,
-              { cache: 'no-store' }
-            )
-            
-            if (response.ok) {
+        const detailsEntries = await Promise.all(
+          uniqueTmdbIds.map(async (tmdbId) => {
+            try {
+              const response = await fetch(
+                `/api/tmdb/tv/${tmdbId}?language=fr-FR`,
+                { cache: 'no-store' }
+              )
+              if (!response.ok) return null
               const data = await response.json()
-              detailsMap.set(tmdbId, data)
+              return [tmdbId, data] as const
+            } catch {
+              return null
             }
-          } catch (error) {
-            console.error(`Error fetching series ${tmdbId}:`, error)
-          }
-        }
+          })
+        )
+
+        const detailsMap = new Map(
+          detailsEntries.filter(Boolean) as [number, any][]
+        )
 
         setSeriesDetails(detailsMap)
         setReleases(releasesData || [])
@@ -157,7 +159,17 @@ export default function TodayReleases() {
         {releases.map((release) => {
           const seriesInfo = seriesDetails.get(release.tmdb_id)
           
-          if (!seriesInfo) return null
+          if (!seriesInfo) {
+            return (
+              <div key={release.id} className="flex-[0_0_280px] mr-4">
+                <div className="bg-black border border-white/20 rounded-lg p-4 animate-pulse">
+                  <div className="w-full h-32 bg-gray-800 rounded mb-3"></div>
+                  <div className="h-4 bg-gray-800 rounded mb-2"></div>
+                  <div className="h-3 bg-gray-800 rounded w-2/3"></div>
+                </div>
+              </div>
+            )
+          }
 
           return (
             <Link 
