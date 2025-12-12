@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { 
   IconPlayerPlay,
   IconStar,
@@ -32,24 +34,24 @@ export default function WelcomePage() {
 
 function WelcomePageContent() {
   const [isLoaded, setIsLoaded] = useState(false)
+  const { data: session, status } = useSession()
+  const router = useRouter()
 
   useEffect(() => {
-    // Rediriger vers /browse en PWA
-    const checkPWA = () => {
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-      const isInWebAppiOS = (window.navigator as any).standalone === true
-      const isInWebAppChrome = window.matchMedia('(display-mode: minimal-ui)').matches
-      
-      return isStandalone || isInWebAppiOS || isInWebAppChrome
-    }
-
-    if (checkPWA()) {
-      window.location.href = '/browse'
-      return
-    }
-
     setIsLoaded(true)
   }, [])
+
+  useEffect(() => {
+    // Redirect to browse if user is already authenticated
+    if (status === 'authenticated' && session) {
+      router.push('/browse')
+    }
+  }, [status, session, router])
+
+  // Show loading state while checking authentication
+  if (status === 'loading') {
+    return <div className="min-h-screen bg-black flex items-center justify-center"><div className="text-white">Chargement...</div></div>
+  }
 
   return (
     <SearchParamsProvider>
