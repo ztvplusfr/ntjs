@@ -13,7 +13,6 @@ import PWAMetaTags from '@/components/pwa-meta-tags'
 import PWAContentWrapper from '@/components/pwa-content-wrapper'
 
 import { Analytics } from '@vercel/analytics/next'
-import ReCaptchaWrapper from '@/components/recaptcha-wrapper'
 export const dynamic = 'force-dynamic'
 
 
@@ -80,7 +79,6 @@ export default function RootLayout({
         <PWASplashScreen />
         <PWAContentWrapper>
           <div id="pwa-content">
-            <ReCaptchaWrapper>
             <CookieMigrationProvider>
                 <ScrollToTop />
                 <PageLoader />
@@ -94,7 +92,6 @@ export default function RootLayout({
                   </main>
                 </div>
             </CookieMigrationProvider>
-          </ReCaptchaWrapper>
           </div>
         </PWAContentWrapper>
         <Analytics />

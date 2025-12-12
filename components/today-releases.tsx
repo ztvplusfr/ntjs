@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase, SeriesRelease } from '@/lib/supabase'
 import { Calendar, Clock, Tv, Play } from 'lucide-react'
 import Link from 'next/link'
 
@@ -34,17 +33,17 @@ export default function TodayReleases() {
         const today = new Date().toISOString().split('T')[0]
         
         // Récupérer les sorties d'aujourd'hui
-        const { data: releasesData, error } = await supabase
-          .from('series_releases')
-          .select('*')
-          .eq('release_date', today)
-          .order('release_time', { ascending: true })
-
-        if (error) {
-          console.error('Error fetching today releases:', error)
+        const releasesResponse = await fetch('/api/today-releases', {
+          cache: 'no-store'
+        })
+        
+        if (!releasesResponse.ok) {
+          console.error('Error fetching today releases')
           setLoading(false)
           return
         }
+        
+        const releasesData = await releasesResponse.json()
 
         // Récupérer les détails des séries
         const uniqueTmdbIds = [...new Set(releasesData?.map(r => r.tmdb_id) || [])]
