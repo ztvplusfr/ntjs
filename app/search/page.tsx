@@ -10,49 +10,14 @@ function SearchContent() {
   const router = useRouter()
   const pathname = usePathname()
   
-  const [query, setQuery] = useState('')
   const [movies, setMovies] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   
+  // URL is the single source of truth
+  const query = searchParams.get('search') || ''
+  
   const debounceTimerRef = useRef<NodeJS.Timeout>()
-  const initialized = useRef(false)
-
-  // Initialize query from URL only once
-  useEffect(() => {
-    if (!initialized.current) {
-      const searchQuery = searchParams.get('search')
-      if (searchQuery) {
-        setQuery(searchQuery)
-      }
-      initialized.current = true
-    }
-  }, [searchParams])
-
-  // Update URL when query changes (with debounce)
-  useEffect(() => {
-    if (!initialized.current) return
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current)
-    }
-
-    debounceTimerRef.current = setTimeout(() => {
-      if (query.trim()) {
-        const params = new URLSearchParams()
-        params.set('search', query)
-        router.replace(`${pathname}?${params.toString()}`)
-      } else {
-        router.replace(pathname)
-      }
-    }, 500)
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-      }
-    }
-  }, [query, router, pathname])
 
   const searchMovies = async (searchQuery: string) => {
     if (!searchQuery.trim()) {
@@ -91,16 +56,30 @@ function SearchContent() {
     }
   }
 
-  // Search when query changes (with debounce)
+  // Single effect: search when query changes (from URL)
   useEffect(() => {
-    if (!initialized.current) return
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
 
-    const timeoutId = setTimeout(() => {
+    debounceTimerRef.current = setTimeout(() => {
       searchMovies(query)
     }, 500)
 
-    return () => clearTimeout(timeoutId)
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
   }, [query])
+
+  const handleInputChange = (value: string) => {
+    if (value.trim()) {
+      router.replace(`${pathname}?search=${encodeURIComponent(value)}`)
+    } else {
+      router.replace(pathname)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -113,7 +92,7 @@ function SearchContent() {
               <input
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => handleInputChange(e.target.value)}
                 placeholder="Rechercher des films et séries..."
                 className="w-full bg-black text-white pl-10 pr-4 py-3 rounded-xl border border-white/20 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/10 transition-all"
               />
