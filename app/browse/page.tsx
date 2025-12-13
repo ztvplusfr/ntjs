@@ -43,16 +43,16 @@ export default function Browse() {
         <Hero />
       </div>
       <div className="relative z-20 mt-[100vh] overflow-x-hidden space-y-8 py-8 bg-black">
+        <DonationCta />
         <HistoryCarousel />
+        <DiscordInvite />
         <TodayReleasesCarousel />
         <Top10Movies />
+        <Countdown />
         <LatestMovies />
         <Top10Series />
         <LatestSeries />
         <LatestAnimes />
-        <DiscordInvite />
-        <DonationCta />
-        <Countdown />
       </div>
     </main>
   )

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select"
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { IconBrandDiscord } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 
@@ -1302,6 +1303,13 @@ export default function SeriePage() {
                                 </div>
                               )}
                               
+                              {/* Badge pour épisode non disponible */}
+                              {!hasVideos(episode.episode_number) && !upcomingRelease && (
+                                <div className="mt-1">
+                                  <Badge variant="destructive">Non disponible</Badge>
+                                </div>
+                              )}
+                              
                               {/* Multi-episode release info */}
                               {upcomingRelease && upcomingRelease.episode_range && (
                                 <div className="mt-1">
@@ -1430,6 +1438,13 @@ export default function SeriePage() {
                                   <span className="px-2 py-1 bg-orange-600/20 border border-orange-500/30 rounded-full text-xs text-orange-400 font-medium">
                                     À venir{upcomingRelease.release_time ? ` ${formatLocalTime(upcomingRelease.release_time)}` : ''}
                                   </span>
+                                </div>
+                              )}
+                              
+                              {/* Badge pour épisode non disponible */}
+                              {!hasVideos(episode.episode_number) && !upcomingRelease && (
+                                <div className="mb-2">
+                                  <Badge variant="destructive">Non disponible</Badge>
                                 </div>
                               )}
                               

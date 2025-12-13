@@ -1,7 +1,7 @@
 {
   "name": "nextjs-vite-tailwind",
   "private": true,
-  "version": "7.10",
+  "version": "7.10.1",
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "dev:https": "next dev -H 0.0.0.0 --experimental-https",
@@ -18,6 +18,9 @@
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/auth-helpers-react": "^0.15.0",
     "@supabase/supabase-js": "^2.86.0",
     "@tabler/icons-react": "^3.35.0",
     "@types/js-cookie": "^3.0.6",
@@ -28,6 +31,7 @@
     "@vidstack/react": "^1.12.13",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "hls.js": "^1.6.15",
     "js-cookie": "^3.0.5",

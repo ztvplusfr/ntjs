@@ -9,10 +9,12 @@ import SimilarMovies from '@/components/similar-movies'
 import Actors from '@/components/actors'
 import MovieDonationPrompt from '@/components/movie-donation-prompt'
 import StreamingDisclaimer from '@/components/streaming-disclaimer'
-import { Play, MessageCircle } from 'lucide-react'
+import { Play, Film, Users, Video, Image } from 'lucide-react'
 import { IconBrandDiscord } from '@tabler/icons-react'
 import { getRatingInfo } from '@/lib/ratings'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useAuth } from '@/hooks/use-auth'
 
 interface Video {
   id?: string
@@ -142,6 +144,7 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
    const [tmdbVideos, setTmdbVideos] = useState<any[]>([])
    const [matureAcknowledged, setMatureAcknowledged] = useState(false)
   const [showMatureWarning, setShowMatureWarning] = useState(false)
+  const { user, loading: authLoading } = useAuth()
   const ratingInfo = useMemo(() => getRatingInfo(frenchCertification), [frenchCertification])
   const frenchRatingLabel = ratingInfo?.label
   const frenchRatingCode = ratingInfo?.code
@@ -419,25 +422,48 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
       {/* Additional Content */}
       <div className="px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-5xl">
-          <MovieDonationPrompt />
+          {/* Tabs Section */}
+          <Tabs defaultValue="streaming" className="w-full">
+            <TabsList className="w-full justify-start bg-black/50 border border-white/20 rounded-lg p-1 mb-8 flex-wrap h-auto gap-1">
+              <TabsTrigger 
+                value="streaming" 
+                className="data-[state=active]:bg-red-600 data-[state=active]:text-white text-gray-400 hover:text-white transition-colors px-4 py-2 rounded-md flex items-center gap-2"
+              >
+                <Film className="w-4 h-4" />
+                Streaming
+              </TabsTrigger>
 
-          {/* Videos */}
-          <div className="mb-12">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-1 h-8 bg-red-600 rounded-full"></div>
-              <h2 className="text-3xl font-bold">Streaming</h2>
-            </div>
-            {(() => {
-              console.log('Section Streaming - Données videos:', videos)
-              console.log('Section Streaming - videos.videos:', videos?.videos)
-              console.log('Section Streaming - Longueur:', videos?.videos?.length || 0)
-              
-              if (videos && videos.videos && videos.videos.length > 0) {
-                return (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {videos.videos.map((video: Video, index: number) => {
-                      console.log(`Video ${index}:`, video)
-                      return (
+              <TabsTrigger 
+                value="casting" 
+                className="data-[state=active]:bg-red-600 data-[state=active]:text-white text-gray-400 hover:text-white transition-colors px-4 py-2 rounded-md flex items-center gap-2"
+              >
+                <Users className="w-4 h-4" />
+                Casting
+              </TabsTrigger>
+              <TabsTrigger 
+                value="videos" 
+                className="data-[state=active]:bg-red-600 data-[state=active]:text-white text-gray-400 hover:text-white transition-colors px-4 py-2 rounded-md flex items-center gap-2"
+              >
+                <Video className="w-4 h-4" />
+                Vidéos
+              </TabsTrigger>
+              <TabsTrigger 
+                value="images" 
+                className="data-[state=active]:bg-red-600 data-[state=active]:text-white text-gray-400 hover:text-white transition-colors px-4 py-2 rounded-md flex items-center gap-2"
+              >
+                <Image className="w-4 h-4" />
+                Images
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Streaming Tab */}
+            <TabsContent value="streaming">
+              <MovieDonationPrompt />
+              {(() => {
+                if (videos && videos.videos && videos.videos.length > 0) {
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {videos.videos.map((video: Video, index: number) => (
                         <VideoCard 
                           key={index} 
                           video={video} 
@@ -447,20 +473,18 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
                           backdropUrl={bestBackdrop || undefined}
                           className="border border-white/20"
                         />
-                      )
-                    })}
-                  </div>
-                )
-              } else {
-                 return (
-                   <>
+                      ))}
+                    </div>
+                  )
+                } else {
+                  return (
+                    <>
                       <Alert className="mb-6 border-cyan-500/50 bg-cyan-600/10">
-                        <MessageCircle className="h-4 w-4" />
-                        <AlertDescription className="text-cyan-200 flex items-center justify-between">
+                        <AlertDescription className="text-cyan-200 flex items-center justify-between flex-wrap gap-4">
                           <span>Pour demander ce film, rejoignez notre serveur Discord où vous pourrez soumettre vos demandes directement à notre équipe.</span>
                           <button
                             onClick={() => window.open('https://discord.com/invite/WjedsPDts3', '_blank')}
-                            className="ml-4 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-all transform hover:scale-[1.02] border border-indigo-500/50"
+                            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-all transform hover:scale-[1.02] border border-indigo-500/50"
                           >
                             <IconBrandDiscord size={16} />
                             Rejoindre Discord
@@ -475,68 +499,86 @@ export default function MovieClientPage({ movie, videos, imagesData, similarMovi
                         </div>
                         <p className="text-gray-400 mb-6">Aucune vidéo disponible pour ce film.</p>
                       </div>
-                     <StreamingDisclaimer />
-                   </>
-                 )
-               }
-            })()}
-          </div>
+                      <StreamingDisclaimer />
+                    </>
+                  )
+                }
+              })()}
+            </TabsContent>
 
-          {/* Actors */}
-          <Actors actors={castData?.cast || []} />
 
-          {/* Videos Section */}
-          {sortedVideos.length > 0 && (
-            <div className="mb-12">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="w-1 h-8 bg-red-600 rounded-full"></div>
-                <h2 className="text-3xl font-bold">Vidéos</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sortedVideos.map((video: any, index: number) => (
-                  <div 
-                    key={index} 
-                    className="bg-gray-900 rounded-lg overflow-hidden group cursor-pointer border border-white/20 hover:border-white/40 transition-colors"
-                    onClick={() => window.location.href = `/watch/video/${movie.id}/${video.key}`}
-                  >
-                    <div className="relative aspect-video">
-                      <img
-                        src={`https://img.youtube.com/vi/${video.key}/maxresdefault.jpg`}
-                        alt={video.name}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors flex items-center justify-center">
-                        <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center group-hover:scale-110 transition-transform border border-white/20">
-                          <Play className="w-8 h-8 text-white ml-1" />
+
+            {/* Casting Tab */}
+            <TabsContent value="casting">
+              <MovieDonationPrompt />
+              <Actors actors={castData?.cast || []} />
+            </TabsContent>
+
+            {/* Videos Tab */}
+            <TabsContent value="videos">
+              <MovieDonationPrompt />
+              {sortedVideos.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {sortedVideos.map((video: any, index: number) => (
+                    <div 
+                      key={index} 
+                      className="bg-gray-900 rounded-lg overflow-hidden group cursor-pointer border border-white/20 hover:border-white/40 transition-colors"
+                      onClick={() => window.location.href = `/watch/video/${movie.id}/${video.key}`}
+                    >
+                      <div className="relative aspect-video">
+                        <img
+                          src={`https://img.youtube.com/vi/${video.key}/maxresdefault.jpg`}
+                          alt={video.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors flex items-center justify-center">
+                          <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center group-hover:scale-110 transition-transform border border-white/20">
+                            <Play className="w-8 h-8 text-white ml-1" />
+                          </div>
+                        </div>
+                        <div className="absolute top-2 right-2">
+                          <span className="px-2 py-1 bg-black border border-white/20 rounded text-xs text-white">
+                            {video.iso_639_1?.toUpperCase() || 'N/A'}
+                          </span>
                         </div>
                       </div>
-                      <div className="absolute top-2 right-2">
-                        <span className="px-2 py-1 bg-black border border-white/20 rounded text-xs text-white">
-                          {video.iso_639_1?.toUpperCase() || 'N/A'}
-                        </span>
+                      <div className="p-4 bg-black">
+                        <h3 className="font-semibold text-white mb-2 line-clamp-2">{video.name}</h3>
+                        <p className="text-gray-400 text-sm">
+                          {video.type === 'Trailer' ? 'Bande-annonce' : video.type} • {video.site}
+                        </p>
                       </div>
                     </div>
-                    <div className="p-4 bg-black">
-                      <h3 className="font-semibold text-white mb-2 line-clamp-2">{video.name}</h3>
-                      <p className="text-gray-400 text-sm">
-                        {video.type === 'Trailer' ? 'Bande-annonce' : video.type} • {video.site}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-black/50 rounded-lg p-8 text-center border border-white/20">
+                  <Video className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Aucune vidéo</h3>
+                  <p className="text-gray-400">Pas de bandes-annonces disponibles pour ce film.</p>
+                </div>
+              )}
+            </TabsContent>
 
-          {/* Image Gallery */}
-          {movieImages.length > 0 && (
-            <div className="mb-12">
-              <ImageGallery images={movieImages} movieTitle={movie.title} />
-            </div>
-          )}
+            {/* Images Tab */}
+            <TabsContent value="images">
+              <MovieDonationPrompt />
+              {movieImages.length > 0 ? (
+                <ImageGallery images={movieImages} movieTitle={movie.title} />
+              ) : (
+                <div className="bg-black/50 rounded-lg p-8 text-center border border-white/20">
+                  <Image className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Aucune image</h3>
+                  <p className="text-gray-400">Pas d'images disponibles pour ce film.</p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
 
           {/* Similar Movies */}
-          <SimilarMovies movies={similarMovies?.results || []} />
+          <div className="mt-12">
+            <SimilarMovies movies={similarMovies?.results || []} />
+          </div>
         </div>
       </div>
      </div>
